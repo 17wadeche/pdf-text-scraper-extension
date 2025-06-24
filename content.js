@@ -2,59 +2,79 @@
 console.log('PDF-Scraper injected on', location.href);
 
 (async () => {
-  // 1) find the PDF embed
-  const embed = document.querySelector('embed[type*="pdf"], embed#plugin');
-  if (!embed) {
-    console.warn('No PDF embed found on this page');
-    return;
+  // 1) Utility to find the PDF <embed> inside the <pdf-viewer> shadow DOM
+  function findPdfEmbed() {
+    const viewer = document.querySelector('pdf-viewer');
+    if (viewer && viewer.shadowRoot) {
+      // first try the Chrome plugin ID, then any embed[type*="pdf"]
+      return (
+        viewer.shadowRoot.querySelector('embed#plugin') ||
+        viewer.shadowRoot.querySelector('embed[type*="pdf"]')
+      );
+    }
+    return null;
   }
 
-  // 2) wait until embed.real URL (original-url or src) is populated
-  const pdfUrl = await new Promise(resolve => {
-    const getUrl = () => embed.getAttribute('original-url') || embed.src;
-    if (getUrl() && !getUrl().startsWith('about:')) {
-      return resolve(getUrl());
-    }
+  // 2) Wait until the embed shows up (or time out after 10s)
+  const embed = await new Promise((resolve, reject) => {
+    const existing = findPdfEmbed();
+    if (existing) return resolve(existing);
+
     const obs = new MutationObserver(() => {
-      if (getUrl() && !getUrl().startsWith('about:')) {
+      const e = findPdfEmbed();
+      if (e) {
         obs.disconnect();
-        resolve(getUrl());
+        resolve(e);
       }
     });
-    obs.observe(embed, { attributes: true, attributeFilter: ['src','original-url'] });
+    obs.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src', 'original-url']
+    });
+
+    setTimeout(() => {
+      obs.disconnect();
+      reject(new Error('Timed out waiting for PDF embed'));
+    }, 10000);
   });
 
-  console.log('Fetching PDF from', pdfUrl);
+  // 3) Pull the “real” URL off of original-url (or fallback to src)
+  const pdfUrl = embed.getAttribute('original-url') || embed.src;
+  console.log('Found PDF URL:', pdfUrl);
 
-  // 3) fetch the PDF bytes
+  // 4) Fetch it
   let data;
   try {
-    data = await fetch(pdfUrl, { credentials: 'include' }).then(r => r.arrayBuffer());
+    data = await fetch(pdfUrl, { credentials: 'include' })
+                   .then(r => r.arrayBuffer());
   } catch (err) {
     return console.error('Failed to fetch PDF:', err);
   }
 
-  // 4) load pdf.js and extract text
+  // 5) Scrape via pdf.js
   const { GlobalWorkerOptions, getDocument } =
     await import(chrome.runtime.getURL('pdf.mjs'));
-  GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.min.mjs');
+  GlobalWorkerOptions.workerSrc =
+    chrome.runtime.getURL('pdf.worker.min.js');
 
   const pdf = await getDocument({ data }).promise;
   let fullText = '';
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const { items } = await page.getTextContent();
-    fullText += items.map(item => item.str).join(' ') + '\n\n';
+    fullText += items.map(i => i.str).join(' ') + '\n\n';
   }
 
-  // 5) inject a textarea with all the text
+  // 6) Show it!
   const ta = document.createElement('textarea');
   Object.assign(ta.style, {
     position: 'fixed',
     top: '10px',
     left: '10px',
-    width: '50%',
-    height: '60%',
+    width: '60vw',
+    height: '70vh',
     zIndex: 2147483647,
     fontFamily: 'monospace',
     whiteSpace: 'pre-wrap'
@@ -62,5 +82,5 @@ console.log('PDF-Scraper injected on', location.href);
   ta.value = fullText;
   document.body.appendChild(ta);
 
-  console.log('PDF text injected');
+  console.log('✅ PDF text injected');
 })();
