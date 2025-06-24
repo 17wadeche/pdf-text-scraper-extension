@@ -1,42 +1,61 @@
 // content.js
-console.log("🔍 Scraper injected on", location.href);
+console.log("🧩 Scraper injected on", location.href);
 
 (async () => {
-  // 1) Do we have CRM’s <pdf-viewer> component?
+  // 1) Look for a PDF embed (viewer or raw):
+  let embed = null;
+
+  // A) Chrome’s <pdf-viewer> component
   const viewer = document.querySelector("pdf-viewer");
   if (viewer?.shadowRoot) {
-    console.log("🗂️  Detected <pdf-viewer> — extracting PDF text");
+    embed = viewer.shadowRoot.querySelector(
+      "embed#plugin, embed[type*='pdf']"
+    );
+  }
 
-    // 2) Pull the embed out of its shadow DOM
-    const embed = viewer.shadowRoot.querySelector("embed#plugin");
-    if (!embed) {
-      return console.error("❌  No #plugin embed inside <pdf-viewer>");
-    }
+  // B) Raw <embed type="application/pdf">
+  if (!embed) {
+    embed = document.querySelector(
+      "embed[type='application/pdf'], embed[type='application/x-google-chrome-pdf']"
+    );
+  }
 
-    // 3) Get the real URL from its original-url attribute
-    let pdfUrl = embed.getAttribute("original-url");
-    if (!pdfUrl) {
-      console.warn("⚠️  No original-url on embed, falling back to src");
+  // 2) If we found one, it’s a PDF page → fetch & parse via pdf.js
+  if (embed) {
+    // Pick the real URL
+    const orig = embed.getAttribute("original-url");
+    let pdfUrl;
+    if (orig) {
+      pdfUrl = orig;
+    } else if (
+      embed.src &&
+      !embed.src.startsWith("about:") &&
+      !embed.src.startsWith("chrome-extension://")
+    ) {
       pdfUrl = embed.src;
+    } else {
+      pdfUrl = location.href;
     }
+
     console.log("🚀 Fetching PDF from", pdfUrl);
 
-    // 4) Grab the bytes
-    let data;
+    // Fetch bytes
+    let arrayBuffer;
     try {
-      data = await fetch(pdfUrl, { credentials: "include" }).then((r) =>
-        r.arrayBuffer()
-      );
+      arrayBuffer = await fetch(pdfUrl, { credentials: "include" })
+        .then((r) => r.arrayBuffer());
     } catch (err) {
-      return console.error("❌  PDF fetch failed", err);
+      return console.error("❌ PDF fetch failed:", err);
     }
 
-    // 5) Load pdf.js and bundle its worker into a Blob
+    // Load pdf.js
     const pdfjsLib = await import(chrome.runtime.getURL("pdf.mjs"));
+
+    // Bundle the worker into a Blob URL
     const workerCode = await fetch(
       chrome.runtime.getURL("pdf.worker.min.js")
     ).then((r) => {
-      if (!r.ok) throw new Error("Worker load failed");
+      if (!r.ok) throw new Error("Worker failed to load");
       return r.text();
     });
     const blobUrl = URL.createObjectURL(
@@ -44,8 +63,8 @@ console.log("🔍 Scraper injected on", location.href);
     );
     pdfjsLib.GlobalWorkerOptions.workerSrc = blobUrl;
 
-    // 6) Extract text page-by-page
-    const pdf = await pdfjsLib.getDocument({ data }).promise;
+    // Extract text
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
     let fullText = "";
     for (let i = 1; i <= pdf.numPages; i++) {
@@ -54,7 +73,7 @@ console.log("🔍 Scraper injected on", location.href);
       fullText += items.map((x) => x.str).join(" ") + "\n\n";
     }
 
-    // 7) Show it in a big textarea
+    // Inject as textarea
     console.log("✅ PDF extraction complete, injecting textarea");
     const ta = document.createElement("textarea");
     Object.assign(ta.style, {
@@ -71,17 +90,14 @@ console.log("🔍 Scraper injected on", location.href);
     document.body.appendChild(ta);
 
   } else {
-    // 8) No <pdf-viewer> → just scrape the DOM as plain text
-    console.log("📄 No PDF viewer detected — extracting HTML text");
+    // 3) No PDF embed → walk HTML
+    console.log("📄 No PDF detected — extracting HTML text");
     const walker = document.createTreeWalker(
       document.body,
       NodeFilter.SHOW_TEXT,
-      {
-        acceptNode: (n) =>
-          n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
-      }
+      { acceptNode: n => n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT
+                                            : NodeFilter.FILTER_REJECT }
     );
-
     let htmlText = "";
     let node;
     while ((node = walker.nextNode())) {
