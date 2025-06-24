@@ -1,9 +1,13 @@
 // content.js
-import defaultStyleWords from './styles.js';
-
 console.log("🧩 Scraper injected on", location.href);
 
 (async () => {
+  // 0) Dynamically load our styles configuration
+  const { default: defaultStyleWords } = await import(
+    chrome.runtime.getURL('styles.js')
+  );
+
+  // helper to escape HTML
   function escapeHTML(s) {
     return s
       .replace(/&/g, "&amp;")
@@ -15,7 +19,9 @@ console.log("🧩 Scraper injected on", location.href);
   let embed = null;
   const viewer = document.querySelector("pdf-viewer");
   if (viewer?.shadowRoot) {
-    embed = viewer.shadowRoot.querySelector("embed#plugin, embed[type*='pdf']");
+    embed = viewer.shadowRoot.querySelector(
+      "embed#plugin, embed[type*='pdf']"
+    );
   }
   if (!embed) {
     embed = document.querySelector(
@@ -101,7 +107,10 @@ console.log("🧩 Scraper injected on", location.href);
           words.forEach(w => {
             const safe = w.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
             const re = new RegExp(`\\b(${safe})\\b`, 'gi');
-            escaped = escaped.replace(re, `<span style="${style}">$1</span>`);
+            escaped = escaped.replace(
+              re,
+              `<span style="${style}">$1</span>`
+            );
           });
         });
         return escaped;
@@ -117,7 +126,8 @@ console.log("🧩 Scraper injected on", location.href);
       document.body,
       NodeFilter.SHOW_TEXT,
       { acceptNode: n =>
-          n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
+          n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+      }
     );
     let htmlText = "", node;
     while ((node = walker.nextNode())) {
