@@ -13,7 +13,7 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["pdf.mjs", "pdf.worker.mjs"],
+      "resources": ["pdf.mjs", "pdf.worker.mjs", "styles"],
       "matches": ["<all_urls>"]
     }
   ]
