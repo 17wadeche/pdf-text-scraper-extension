@@ -34,7 +34,7 @@ console.log("🧩 Scraper injected on", location.href);
     // 4) Load pdf.js and set its workerSrc to our extension resource
     const pdfjsLib = await import(chrome.runtime.getURL("pdf.mjs"));
     pdfjsLib.GlobalWorkerOptions.workerSrc =
-      chrome.runtime.getURL("pdf.worker.min.js");
+      chrome.runtime.getURL("pdf.worker.mjs");
 
     // 5) Extract text
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
