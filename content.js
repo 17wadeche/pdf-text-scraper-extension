@@ -1,8 +1,6 @@
 // content.js
 console.log("🧩 Scraper injected on", location.href);
-
 (async () => {
-  // 1) Detect PDF embed (Chrome viewer or raw)
   let embed = null;
   const viewer = document.querySelector("pdf-viewer");
   if (viewer?.shadowRoot) {
@@ -13,16 +11,11 @@ console.log("🧩 Scraper injected on", location.href);
       "embed[type='application/pdf'], embed[type='application/x-google-chrome-pdf']"
     );
   }
-
   if (embed) {
     console.log("📄 PDF embed detected — extracting text");
-
-    // 2) Resolve real URL
     const orig = embed.getAttribute("original-url");
     const pdfUrl = orig || location.href;
     console.log("🚀 Fetching PDF from", pdfUrl);
-
-    // 3) Fetch the PDF bytes
     let arrayBuffer;
     try {
       arrayBuffer = await fetch(pdfUrl, { credentials: "include" })
@@ -30,13 +23,9 @@ console.log("🧩 Scraper injected on", location.href);
     } catch (err) {
       return console.error("❌ PDF fetch failed:", err);
     }
-
-    // 4) Load pdf.js and set its workerSrc to our extension resource
     const pdfjsLib = await import(chrome.runtime.getURL("pdf.mjs"));
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       chrome.runtime.getURL("pdf.worker.mjs");
-
-    // 5) Extract text
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
     let fullText = "";
@@ -45,8 +34,6 @@ console.log("🧩 Scraper injected on", location.href);
       const { items } = await page.getTextContent();
       fullText += items.map(x => x.str).join(" ") + "\n\n";
     }
-
-    // 6) Inject into a textarea
     console.log("✅ PDF extraction complete, injecting textarea");
     const ta = document.createElement("textarea");
     Object.assign(ta.style, {
@@ -61,9 +48,7 @@ console.log("🧩 Scraper injected on", location.href);
     });
     ta.value = fullText;
     document.body.appendChild(ta);
-
   } else {
-    // HTML‐only fallback
     console.log("📄 No PDF detected — extracting HTML text");
     const walker = document.createTreeWalker(
       document.body,
@@ -78,7 +63,6 @@ console.log("🧩 Scraper injected on", location.href);
     while ((node = walker.nextNode())) {
       htmlText += node.nodeValue.trim() + "\n";
     }
-
     console.log("✅ HTML extraction complete, injecting textarea");
     const ta = document.createElement("textarea");
     Object.assign(ta.style, {
