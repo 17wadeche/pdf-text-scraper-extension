@@ -9,7 +9,7 @@ console.log("🧩 PDF‐Scraper injected on", location.href);
   const viewer = document.querySelector("pdf-viewer");
   if (viewer?.shadowRoot) {
     embed = viewer.shadowRoot.querySelector(
-      `embed#plugin, 
+      `embed#plugin,
        embed[type="application/x-google-chrome-pdf"],
        embed[type*="pdf"]`
     );
@@ -35,11 +35,10 @@ console.log("🧩 PDF‐Scraper injected on", location.href);
     embed.src ||
     "";
 
-  // Wait if it’s still about:blank
   let pdfUrl = getUrl();
   if (pdfUrl.startsWith("about:")) {
     console.log("⏳ waiting for embed to pick up real URL…");
-    pdfUrl = await new Promise(res => {
+    pdfUrl = await new Promise((res) => {
       const mo = new MutationObserver(() => {
         const u = getUrl();
         if (u && !u.startsWith("about:")) {
@@ -47,8 +46,10 @@ console.log("🧩 PDF‐Scraper injected on", location.href);
           res(u);
         }
       });
-      mo.observe(embed, { attributes: true, attributeFilter: ["src","original-url"] });
-      // Failsafe after 10s
+      mo.observe(embed, {
+        attributes: true,
+        attributeFilter: ["src", "original-url"],
+      });
       setTimeout(() => {
         mo.disconnect();
         res(getUrl());
@@ -56,8 +57,7 @@ console.log("🧩 PDF‐Scraper injected on", location.href);
     });
   }
 
-  // Special case: if it’s STILL about:… we assume a raw-PDF page,
-  // so just use location.href
+  // If still about:blank, fall back to location.href
   if (!pdfUrl || pdfUrl.startsWith("about:")) {
     pdfUrl = location.href;
   }
@@ -67,26 +67,40 @@ console.log("🧩 PDF‐Scraper injected on", location.href);
   /** 3) Fetch the bytes **/
   let data;
   try {
-    data = await fetch(pdfUrl, { credentials: "include" })
-                 .then(r => r.arrayBuffer());
+    data = await fetch(pdfUrl, { credentials: "include" }).then((r) =>
+      r.arrayBuffer()
+    );
   } catch (err) {
     console.error("❌ fetch failed:", err);
     return;
   }
 
-  /** 4) Run pdf.js in the page and extract text **/
-  const { GlobalWorkerOptions, getDocument } =
-    await import(chrome.runtime.getURL("pdf.mjs"));
-  GlobalWorkerOptions.workerSrc =
-    chrome.runtime.getURL("pdf.worker.min.js");
+  /** 4) Load pdf.js and bundle its worker as a Blob **/
+  const pdfjsLib = await import(chrome.runtime.getURL("pdf.mjs"));
 
-  const pdf = await getDocument({ data }).promise;
+  // fetch the worker script text
+  const workerCode = await fetch(
+    chrome.runtime.getURL("pdf.worker.min.js")
+  ).then((r) => {
+    if (!r.ok) throw new Error("Worker failed to load");
+    return r.text();
+  });
+
+  // create a Blob URL for it
+  const blob = new Blob([workerCode], { type: "application/javascript" });
+  const workerBlobUrl = URL.createObjectURL(blob);
+
+  // point PDF.js at that worker
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerBlobUrl;
+
+  // extract text
+  const pdf = await pdfjsLib.getDocument({ data }).promise;
   let fullText = "";
   console.log(`📄 PDF has ${pdf.numPages} pages, extracting…`);
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const { items } = await page.getTextContent();
-    fullText += items.map(x => x.str).join(" ") + "\n\n";
+    fullText += items.map((x) => x.str).join(" ") + "\n\n";
   }
 
   /** 5) Dump it into a textarea for you to see **/
