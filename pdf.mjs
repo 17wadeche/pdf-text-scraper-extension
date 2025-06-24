@@ -21,8 +21,8 @@
  */
 
 /**
- * pdfjsVersion = 5.3.75
- * pdfjsBuild = 1ebc896b6
+ * pdfjsVersion = 5.3.31
+ * pdfjsBuild = 47ad820d9
  */
 
 ;// ./src/shared/util.js
@@ -1077,71 +1077,19 @@ function getPdfFilenameFromUrl(url, defaultFilename = "document.pdf") {
     warn('getPdfFilenameFromUrl: ignore "data:"-URL for performance reasons.');
     return defaultFilename;
   }
-  const getURL = urlString => {
-    try {
-      return new URL(urlString);
-    } catch {
+  const reURI = /^(?:(?:[^:]+:)?\/\/[^/]+)?([^?#]*)(\?[^#]*)?(#.*)?$/;
+  const reFilename = /[^/?#=]+\.pdf\b(?!.*\.pdf\b)/i;
+  const splitURI = reURI.exec(url);
+  let suggestedFilename = reFilename.exec(splitURI[1]) || reFilename.exec(splitURI[2]) || reFilename.exec(splitURI[3]);
+  if (suggestedFilename) {
+    suggestedFilename = suggestedFilename[0];
+    if (suggestedFilename.includes("%")) {
       try {
-        return new URL(decodeURIComponent(urlString));
-      } catch {
-        try {
-          return new URL(urlString, "https://foo.bar");
-        } catch {
-          try {
-            return new URL(decodeURIComponent(urlString), "https://foo.bar");
-          } catch {
-            return null;
-          }
-        }
-      }
-    }
-  };
-  const newURL = getURL(url);
-  if (!newURL) {
-    return defaultFilename;
-  }
-  const decode = name => {
-    try {
-      let decoded = decodeURIComponent(name);
-      if (decoded.includes("/")) {
-        decoded = decoded.split("/").at(-1);
-        if (decoded.test(/^\.pdf$/i)) {
-          return decoded;
-        }
-        return name;
-      }
-      return decoded;
-    } catch {
-      return name;
-    }
-  };
-  const pdfRegex = /\.pdf$/i;
-  const filename = newURL.pathname.split("/").at(-1);
-  if (pdfRegex.test(filename)) {
-    return decode(filename);
-  }
-  if (newURL.searchParams.size > 0) {
-    const values = Array.from(newURL.searchParams.values()).reverse();
-    for (const value of values) {
-      if (pdfRegex.test(value)) {
-        return decode(value);
-      }
-    }
-    const keys = Array.from(newURL.searchParams.keys()).reverse();
-    for (const key of keys) {
-      if (pdfRegex.test(key)) {
-        return decode(key);
-      }
+        suggestedFilename = reFilename.exec(decodeURIComponent(suggestedFilename))[0];
+      } catch {}
     }
   }
-  if (newURL.hash) {
-    const reFilename = /[^/?#=]+\.pdf\b(?!.*\.pdf\b)/i;
-    const hashFilename = reFilename.exec(newURL.hash);
-    if (hashFilename) {
-      return decode(hashFilename[0]);
-    }
-  }
-  return defaultFilename;
+  return suggestedFilename || defaultFilename;
 }
 class StatTimer {
   started = Object.create(null);
@@ -1412,6 +1360,7 @@ class EditorToolbar {
       style.insetInlineEnd = `${100 * x}%`;
       style.top = `calc(${100 * position[1]}% + var(--editor-toolbar-vert-offset))`;
     }
+    this.#addDeleteButton();
     return editToolbar;
   }
   get div() {
@@ -1450,7 +1399,7 @@ class EditorToolbar {
     this.#toolbar.classList.remove("hidden");
     this.#altText?.shown();
   }
-  addDeleteButton() {
+  #addDeleteButton() {
     const {
       editorType,
       _uiManager
@@ -1475,35 +1424,19 @@ class EditorToolbar {
   async addAltText(altText) {
     const button = await altText.render();
     this.#addListenersToElement(button);
-    this.#buttons.append(button, this.#divider);
+    this.#buttons.prepend(button, this.#divider);
     this.#altText = altText;
   }
   addColorPicker(colorPicker) {
     this.#colorPicker = colorPicker;
     const button = colorPicker.renderButton();
     this.#addListenersToElement(button);
-    this.#buttons.append(button, this.#divider);
+    this.#buttons.prepend(button, this.#divider);
   }
   async addEditSignatureButton(signatureManager) {
     const button = this.#signatureDescriptionButton = await signatureManager.renderEditButton(this.#editor);
     this.#addListenersToElement(button);
-    this.#buttons.append(button, this.#divider);
-  }
-  async addButton(name, tool) {
-    switch (name) {
-      case "colorPicker":
-        this.addColorPicker(tool);
-        break;
-      case "altText":
-        await this.addAltText(tool);
-        break;
-      case "editSignature":
-        await this.addEditSignatureButton(tool);
-        break;
-      case "delete":
-        this.addDeleteButton();
-        break;
-    }
+    this.#buttons.prepend(button, this.#divider);
   }
   updateEditSignatureButton(description) {
     if (this.#signatureDescriptionButton) {
@@ -2187,11 +2120,7 @@ class AnnotationEditorUIManager {
     return shadow(this, "direction", getComputedStyle(this.#container).direction);
   }
   get highlightColors() {
-    return shadow(this, "highlightColors", this.#highlightColors ? new Map(this.#highlightColors.split(",").map(pair => {
-      pair = pair.split("=").map(x => x.trim());
-      pair[1] = pair[1].toUpperCase();
-      return pair;
-    })) : null);
+    return shadow(this, "highlightColors", this.#highlightColors ? new Map(this.#highlightColors.split(",").map(pair => pair.split("=").map(x => x.trim()))) : null);
   }
   get highlightColorNames() {
     return shadow(this, "highlightColorNames", this.highlightColors ? new Map(Array.from(this.highlightColors, e => e.reverse())) : null);
@@ -4535,24 +4464,15 @@ class AnnotationEditor {
   altTextFinish() {
     this.#altText?.finish();
   }
-  get toolbarButtons() {
-    return null;
-  }
   async addEditToolbar() {
     if (this._editToolbar || this.#isInEditMode) {
       return this._editToolbar;
     }
     this._editToolbar = new EditorToolbar(this);
     this.div.append(this._editToolbar.render());
-    const {
-      toolbarButtons
-    } = this;
-    if (toolbarButtons) {
-      for (const [name, tool] of toolbarButtons) {
-        await this._editToolbar.addButton(name, tool);
-      }
+    if (this.#altText) {
+      await this._editToolbar.addAltText(this.#altText);
     }
-    this._editToolbar.addButton("delete");
     return this._editToolbar;
   }
   removeEditToolbar() {
@@ -4574,16 +4494,17 @@ class AnnotationEditor {
   getClientDimensions() {
     return this.div.getBoundingClientRect();
   }
-  createAltText() {
-    if (!this.#altText) {
-      AltText.initialize(AnnotationEditor._l10n);
-      this.#altText = new AltText(this);
-      if (this.#accessibilityData) {
-        this.#altText.data = this.#accessibilityData;
-        this.#accessibilityData = null;
-      }
+  async addAltTextButton() {
+    if (this.#altText) {
+      return;
     }
-    return this.#altText;
+    AltText.initialize(AnnotationEditor._l10n);
+    this.#altText = new AltText(this);
+    if (this.#accessibilityData) {
+      this.#altText.data = this.#accessibilityData;
+      this.#accessibilityData = null;
+    }
+    await this.addEditToolbar();
   }
   get altTextData() {
     return this.#altText?.data;
@@ -11665,7 +11586,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.3.75",
+    apiVersion: "5.3.31",
     data,
     password,
     disableAutoFetch,
@@ -13275,8 +13196,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.3.75";
-const build = "1ebc896b6";
+const version = "5.3.31";
+const build = "47ad820d9";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -13336,8 +13257,6 @@ class ColorConverters {
     return ["CMYK", c, m, y, k];
   }
 }
-const DateFormats = (/* unused pure expression or super */ null && (["m/d", "m/d/yy", "mm/dd/yy", "mm/yy", "d-mmm", "d-mmm-yy", "dd-mmm-yy", "yy-mm-dd", "mmm-yy", "mmmm-yy", "mmm d, yyyy", "mmmm d, yyyy", "m/d/yy h:MM tt", "m/d/yy HH:MM"]));
-const TimeFormats = (/* unused pure expression or super */ null && (["HH:MM", "h:MM tt", "HH:MM:ss", "h:MM:ss tt"]));
 
 ;// ./src/display/svg_factory.js
 
@@ -13591,6 +13510,7 @@ class XfaLayer {
 
 
 
+const DEFAULT_TAB_INDEX = 1000;
 const annotation_layer_DEFAULT_FONT_SIZE = 9;
 const GetElementsByNameSet = new WeakSet();
 class AnnotationElementFactory {
@@ -13684,10 +13604,11 @@ class AnnotationElement {
     }
   }
   static _hasPopupData({
+    titleObj,
     contentsObj,
     richText
   }) {
-    return !!(contentsObj?.str || richText?.str);
+    return !!(titleObj?.str || contentsObj?.str || richText?.str);
   }
   get _isEditable() {
     return this.data.isEditable;
@@ -13759,7 +13680,7 @@ class AnnotationElement {
     const container = document.createElement("section");
     container.setAttribute("data-annotation-id", data.id);
     if (!(this instanceof WidgetAnnotationElement)) {
-      container.tabIndex = 0;
+      container.tabIndex = DEFAULT_TAB_INDEX;
     }
     const {
       style
@@ -14008,7 +13929,6 @@ class AnnotationElement {
     svg.classList.add("quadrilateralsContainer");
     svg.setAttribute("width", 0);
     svg.setAttribute("height", 0);
-    svg.role = "none";
     const defs = svgFactory.createElement("defs");
     svg.append(defs);
     const clipPath = svgFactory.createElement("clipPath");
@@ -14582,11 +14502,7 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
       element.setAttribute("data-element-id", id);
       element.disabled = this.data.readOnly;
       element.name = this.data.fieldName;
-      element.tabIndex = 0;
-      const format = this.data.dateFormat || this.data.timeFormat;
-      if (format) {
-        element.title = format;
-      }
+      element.tabIndex = DEFAULT_TAB_INDEX;
       this._setRequired(element, this.data.required);
       if (maxLen) {
         element.maxLength = maxLen;
@@ -14876,7 +14792,7 @@ class CheckboxWidgetAnnotationElement extends WidgetAnnotationElement {
       element.setAttribute("checked", true);
     }
     element.setAttribute("exportValue", data.exportValue);
-    element.tabIndex = 0;
+    element.tabIndex = DEFAULT_TAB_INDEX;
     element.addEventListener("change", event => {
       const {
         name,
@@ -14956,7 +14872,7 @@ class RadioButtonWidgetAnnotationElement extends WidgetAnnotationElement {
     if (value) {
       element.setAttribute("checked", true);
     }
-    element.tabIndex = 0;
+    element.tabIndex = DEFAULT_TAB_INDEX;
     element.addEventListener("change", event => {
       const {
         name,
@@ -15040,7 +14956,7 @@ class ChoiceWidgetAnnotationElement extends WidgetAnnotationElement {
     selectElement.disabled = this.data.readOnly;
     this._setRequired(selectElement, this.data.required);
     selectElement.name = this.data.fieldName;
-    selectElement.tabIndex = 0;
+    selectElement.tabIndex = DEFAULT_TAB_INDEX;
     let addAnEmptyEntry = this.data.combo && this.data.options.length > 0;
     if (!this.data.combo) {
       selectElement.size = this.data.options.length;
@@ -15256,11 +15172,7 @@ class PopupAnnotationElement extends AnnotationElement {
     this.popup = null;
   }
   render() {
-    const {
-      container
-    } = this;
-    container.classList.add("popupAnnotation");
-    container.role = "comment";
+    this.container.classList.add("popupAnnotation");
     const popup = this.popup = new PopupElement({
       container: this.container,
       color: this.data.color,
@@ -15363,13 +15275,12 @@ class PopupElement {
     } = this.#titleObj);
     popup.append(header);
     if (this.#dateObj) {
-      const modificationDate = document.createElement("time");
+      const modificationDate = document.createElement("span");
       modificationDate.classList.add("popupDate");
       modificationDate.setAttribute("data-l10n-id", "pdfjs-annotation-date-time-string");
       modificationDate.setAttribute("data-l10n-args", JSON.stringify({
         dateObj: this.#dateObj.valueOf()
       }));
-      modificationDate.dateTime = this.#dateObj.toISOString();
       header.append(modificationDate);
     }
     const html = this.#html;
@@ -15920,23 +15831,11 @@ class HighlightAnnotationElement extends AnnotationElement {
     this.annotationEditorType = AnnotationEditorType.HIGHLIGHT;
   }
   render() {
-    const {
-      data: {
-        overlaidText,
-        popupRef
-      }
-    } = this;
-    if (!popupRef && this.hasPopupData) {
+    if (!this.data.popupRef && this.hasPopupData) {
       this._createPopup();
     }
     this.container.classList.add("highlightAnnotation");
     this._editOnDoubleClick();
-    if (overlaidText) {
-      const mark = document.createElement("mark");
-      mark.classList.add("overlaidText");
-      mark.textContent = overlaidText;
-      this.container.append(mark);
-    }
     return this.container;
   }
 }
@@ -15949,22 +15848,10 @@ class UnderlineAnnotationElement extends AnnotationElement {
     });
   }
   render() {
-    const {
-      data: {
-        overlaidText,
-        popupRef
-      }
-    } = this;
-    if (!popupRef && this.hasPopupData) {
+    if (!this.data.popupRef && this.hasPopupData) {
       this._createPopup();
     }
     this.container.classList.add("underlineAnnotation");
-    if (overlaidText) {
-      const underline = document.createElement("u");
-      underline.classList.add("overlaidText");
-      underline.textContent = overlaidText;
-      this.container.append(underline);
-    }
     return this.container;
   }
 }
@@ -15977,22 +15864,10 @@ class SquigglyAnnotationElement extends AnnotationElement {
     });
   }
   render() {
-    const {
-      data: {
-        overlaidText,
-        popupRef
-      }
-    } = this;
-    if (!popupRef && this.hasPopupData) {
+    if (!this.data.popupRef && this.hasPopupData) {
       this._createPopup();
     }
     this.container.classList.add("squigglyAnnotation");
-    if (overlaidText) {
-      const underline = document.createElement("u");
-      underline.classList.add("overlaidText");
-      underline.textContent = overlaidText;
-      this.container.append(underline);
-    }
     return this.container;
   }
 }
@@ -16005,22 +15880,10 @@ class StrikeOutAnnotationElement extends AnnotationElement {
     });
   }
   render() {
-    const {
-      data: {
-        overlaidText,
-        popupRef
-      }
-    } = this;
-    if (!popupRef && this.hasPopupData) {
+    if (!this.data.popupRef && this.hasPopupData) {
       this._createPopup();
     }
     this.container.classList.add("strikeoutAnnotation");
-    if (overlaidText) {
-      const strikeout = document.createElement("s");
-      strikeout.classList.add("overlaidText");
-      strikeout.textContent = overlaidText;
-      this.container.append(strikeout);
-    }
     return this.container;
   }
 }
@@ -16128,7 +15991,7 @@ class AnnotationLayer {
   hasEditableAnnotations() {
     return this.#editableAnnotations.size > 0;
   }
-  async #appendElement(element, id, popupElements) {
+  async #appendElement(element, id) {
     const contentElement = element.firstChild || element;
     const annotationId = contentElement.id = `${AnnotationPrefix}${id}`;
     const ariaAttributes = await this.#structTreeLayer?.getAriaAttributes(annotationId);
@@ -16137,12 +16000,8 @@ class AnnotationLayer {
         contentElement.setAttribute(key, value);
       }
     }
-    if (popupElements) {
-      popupElements.at(-1).container.after(element);
-    } else {
-      this.div.append(element);
-      this.#accessibilityManager?.moveElementInDOM(this.div, element, contentElement, false);
-    }
+    this.div.append(element);
+    this.#accessibilityManager?.moveElementInDOM(this.div, element, contentElement, false);
   }
   async render(params) {
     const {
@@ -16199,7 +16058,7 @@ class AnnotationLayer {
       if (data.hidden) {
         rendered.style.visibility = "hidden";
       }
-      await this.#appendElement(rendered, data.id, elementParams.elements);
+      await this.#appendElement(rendered, data.id);
       if (element._isEditable) {
         this.#editableAnnotations.set(element.data.id, element);
         this._annotationEditorUIManager?.renderAnnotationElement(element);
@@ -16223,7 +16082,7 @@ class AnnotationLayer {
         continue;
       }
       const rendered = element.render();
-      await this.#appendElement(rendered, data.id, null);
+      await this.#appendElement(rendered, data.id);
     }
   }
   update({
@@ -17598,7 +17457,7 @@ class ColorPicker {
     }
     this.#uiManager = editor?._uiManager || uiManager;
     this.#eventBus = this.#uiManager._eventBus;
-    this.#defaultColor = editor?.color?.toUpperCase() || this.#uiManager?.highlightColors.values().next().value || "#FFFF98";
+    this.#defaultColor = editor?.color || this.#uiManager?.highlightColors.values().next().value || "#FFFF98";
     ColorPicker.#l10nColor ||= Object.freeze({
       blue: "pdfjs-editor-colorpicker-blue",
       green: "pdfjs-editor-colorpicker-green",
@@ -17612,10 +17471,7 @@ class ColorPicker {
     button.className = "colorPicker";
     button.tabIndex = "0";
     button.setAttribute("data-l10n-id", "pdfjs-editor-colorpicker-button");
-    button.ariaHasPopup = "true";
-    if (this.#editor) {
-      button.ariaControls = `${this.#editor.id}_colorpicker_dropdown`;
-    }
+    button.setAttribute("aria-haspopup", true);
     const signal = this.#uiManager._signal;
     button.addEventListener("click", this.#openDropdown.bind(this), {
       signal
@@ -17625,15 +17481,15 @@ class ColorPicker {
     });
     const swatch = this.#buttonSwatch = document.createElement("span");
     swatch.className = "swatch";
-    swatch.ariaHidden = "true";
+    swatch.setAttribute("aria-hidden", true);
     swatch.style.backgroundColor = this.#defaultColor;
     button.append(swatch);
     return button;
   }
   renderMainDropdown() {
     const dropdown = this.#dropdown = this.#getDropdownRoot();
-    dropdown.ariaOrientation = "horizontal";
-    dropdown.ariaLabelledBy = "highlightColorPickerLabel";
+    dropdown.setAttribute("aria-orientation", "horizontal");
+    dropdown.setAttribute("aria-labelledby", "highlightColorPickerLabel");
     return dropdown;
   }
   #getDropdownRoot() {
@@ -17644,12 +17500,9 @@ class ColorPicker {
     });
     div.className = "dropdown";
     div.role = "listbox";
-    div.ariaMultiSelectable = "false";
-    div.ariaOrientation = "vertical";
+    div.setAttribute("aria-multiselectable", false);
+    div.setAttribute("aria-orientation", "vertical");
     div.setAttribute("data-l10n-id", "pdfjs-editor-colorpicker-dropdown");
-    if (this.#editor) {
-      div.id = `${this.#editor.id}_colorpicker_dropdown`;
-    }
     for (const [name, color] of this.#uiManager.highlightColors) {
       const button = document.createElement("button");
       button.tabIndex = "0";
@@ -17661,7 +17514,7 @@ class ColorPicker {
       button.append(swatch);
       swatch.className = "swatch";
       swatch.style.backgroundColor = color;
-      button.ariaSelected = color === this.#defaultColor;
+      button.setAttribute("aria-selected", color === this.#defaultColor);
       button.addEventListener("click", this.#colorSelect.bind(this, color), {
         signal
       });
@@ -17743,7 +17596,6 @@ class ColorPicker {
         signal: this.#uiManager.combinedSignal(this.#openDropdownAC)
       });
     }
-    this.#button.ariaExpanded = "true";
     if (this.#dropdown) {
       this.#dropdown.classList.remove("hidden");
       return;
@@ -17759,7 +17611,6 @@ class ColorPicker {
   }
   hideDropdown() {
     this.#dropdown?.classList.add("hidden");
-    this.#button.ariaExpanded = "false";
     this.#openDropdownAC?.abort();
     this.#openDropdownAC = null;
   }
@@ -17789,7 +17640,7 @@ class ColorPicker {
     }
     const i = this.#uiManager.highlightColors.values();
     for (const child of this.#dropdown.children) {
-      child.ariaSelected = i.next().value === color.toUpperCase();
+      child.setAttribute("aria-selected", i.next().value === color);
     }
   }
   destroy() {
@@ -18068,14 +17919,18 @@ class HighlightEditor extends AnnotationEditor {
       thickness
     }, true);
   }
-  get toolbarButtons() {
+  async addEditToolbar() {
+    const toolbar = await super.addEditToolbar();
+    if (!toolbar) {
+      return null;
+    }
     if (this._uiManager.highlightColors) {
-      const colorPicker = this.#colorPicker = new ColorPicker({
+      this.#colorPicker = new ColorPicker({
         editor: this
       });
-      return [["colorPicker", colorPicker]];
+      toolbar.addColorPicker(this.#colorPicker);
     }
-    return super.toolbarButtons;
+    return toolbar;
   }
   disableEditing() {
     super.disableEditing();
@@ -20973,11 +20828,16 @@ class SignatureEditor extends DrawingEditor {
       outline: outlineData.outline
     };
   }
-  get toolbarButtons() {
-    if (this._uiManager.signatureManager) {
-      return [["editSignature", this._uiManager.signatureManager]];
+  async addEditToolbar() {
+    const toolbar = await super.addEditToolbar();
+    if (!toolbar) {
+      return null;
     }
-    return super.toolbarButtons;
+    if (this._uiManager.signatureManager && this.#description !== null) {
+      await toolbar.addEditSignatureButton(this._uiManager.signatureManager, this.#signatureUUID, this.#description);
+      toolbar.show();
+    }
+    return toolbar;
   }
   addSignature(data, heightInPage, description, uuid) {
     const {
@@ -20988,7 +20848,7 @@ class SignatureEditor extends DrawingEditor {
       outline
     } = this.#signatureData = data;
     this.#isExtracted = outline instanceof ContourDrawOutline;
-    this.description = description;
+    this.#description = description;
     this.div.setAttribute("data-l10n-args", JSON.stringify({
       description
     }));
@@ -21224,10 +21084,8 @@ class StampEditor extends AnnotationEditor {
       return;
     }
     if (this._uiManager.useNewAltTextWhenAddingImage && this._uiManager.useNewAltTextFlow && this.#bitmap) {
-      this.addEditToolbar().then(() => {
-        this._editToolbar.hide();
-        this._uiManager.editAltText(this, true);
-      });
+      this._editToolbar.hide();
+      this._uiManager.editAltText(this, true);
       return;
     }
     if (!this._uiManager.useNewAltTextWhenAddingImage && this._uiManager.useNewAltTextFlow && this.#bitmap) {
@@ -21385,9 +21243,6 @@ class StampEditor extends AnnotationEditor {
   isEmpty() {
     return !(this.#bitmapPromise || this.#bitmap || this.#bitmapUrl || this.#bitmapFile || this.#bitmapId || this.#missingCanvas);
   }
-  get toolbarButtons() {
-    return [["altText", this.createAltText()]];
-  }
   get isResizable() {
     return true;
   }
@@ -21402,7 +21257,7 @@ class StampEditor extends AnnotationEditor {
     }
     super.render();
     this.div.hidden = true;
-    this.createAltText();
+    this.addAltTextButton();
     if (!this.#missingCanvas) {
       if (this.#bitmap) {
         this.#createCanvas();
@@ -21843,8 +21698,6 @@ class AnnotationEditorLayer {
   #focusedElement = null;
   #textLayer = null;
   #textSelectionAC = null;
-  #textLayerDblClickAC = null;
-  #lastPointerDownTimestamp = -1;
   #uiManager;
   static _initialized = false;
   static #editorTypes = new Map([FreeTextEditor, InkEditor, StampEditor, HighlightEditor, SignatureEditor].map(type => [type._editorType, type]));
@@ -21946,8 +21799,6 @@ class AnnotationEditorLayer {
     this.#isEnabling = true;
     this.div.tabIndex = 0;
     this.togglePointerEvents(true);
-    this.#textLayerDblClickAC?.abort();
-    this.#textLayerDblClickAC = null;
     const annotationElementIds = new Set();
     for (const editor of this.#editors.values()) {
       editor.enableEditing();
@@ -21983,53 +21834,6 @@ class AnnotationEditorLayer {
     this.#isDisabling = true;
     this.div.tabIndex = -1;
     this.togglePointerEvents(false);
-    if (this.#textLayer && !this.#textLayerDblClickAC) {
-      this.#textLayerDblClickAC = new AbortController();
-      const signal = this.#uiManager.combinedSignal(this.#textLayerDblClickAC);
-      this.#textLayer.div.addEventListener("pointerdown", e => {
-        const DBL_CLICK_THRESHOLD = 500;
-        const {
-          clientX,
-          clientY,
-          timeStamp
-        } = e;
-        const lastPointerDownTimestamp = this.#lastPointerDownTimestamp;
-        if (timeStamp - lastPointerDownTimestamp > DBL_CLICK_THRESHOLD) {
-          this.#lastPointerDownTimestamp = timeStamp;
-          return;
-        }
-        this.#lastPointerDownTimestamp = -1;
-        const {
-          classList
-        } = this.div;
-        classList.toggle("getElements", true);
-        const elements = document.elementsFromPoint(clientX, clientY);
-        classList.toggle("getElements", false);
-        if (!this.div.contains(elements[0])) {
-          return;
-        }
-        let id;
-        const regex = new RegExp(`^${AnnotationEditorPrefix}[0-9]+$`);
-        for (const element of elements) {
-          if (regex.test(element.id)) {
-            id = element.id;
-            break;
-          }
-        }
-        if (!id) {
-          return;
-        }
-        const editor = this.#editors.get(id);
-        if (editor?.annotationElementId === null) {
-          e.stopPropagation();
-          e.preventDefault();
-          editor.dblclick();
-        }
-      }, {
-        signal,
-        capture: true
-      });
-    }
     const changedAnnotations = new Map();
     const resetAnnotations = new Map();
     for (const editor of this.#editors.values()) {
