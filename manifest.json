@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PDF Text Scraper",
-  "version": "0.2.0",
+  "version": "0.3.0",
 
   "content_scripts": [
     {
@@ -12,7 +12,7 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["pdf.mjs", "pdf.worker.min.mjs"],
+      "resources": ["pdf.mjs", "pdf.worker.min.js"],
       "matches": ["<all_urls>"]
     }
   ]

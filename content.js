@@ -47,11 +47,7 @@ console.log("🧩 Scraper injected on", location.href);
     } catch (err) {
       return console.error("❌ PDF fetch failed:", err);
     }
-
-    // Load pdf.js
     const pdfjsLib = await import(chrome.runtime.getURL("pdf.mjs"));
-
-    // Bundle the worker into a Blob URL
     const workerCode = await fetch(
       chrome.runtime.getURL("pdf.worker.min.js")
     ).then((r) => {
