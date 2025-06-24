@@ -4,7 +4,6 @@ import defaultStyleWords from './styles.js';
 console.log("🧩 Scraper injected on", location.href);
 
 (async () => {
-  // helper to escape HTML
   function escapeHTML(s) {
     return s
       .replace(/&/g, "&amp;")
