@@ -1,4 +1,6 @@
 // content.js
+import defaultStyleWords from './styles.js';
+
 console.log("🧩 Scraper injected on", location.href);
 
 (async () => {
@@ -74,8 +76,8 @@ console.log("🧩 Scraper injected on", location.href);
       fullText += lines.join("\n") + "\n\n";
     }
 
-    // 6) Apply keyword styling and inject as HTML
-    console.log("✅ Styling keywords and injecting panel");
+    // 6) Apply default styling and inject as HTML
+    console.log("✅ Styling default keywords and injecting panel");
     const container = document.createElement("div");
     Object.assign(container.style, {
       position:   "fixed",
@@ -92,24 +94,17 @@ console.log("🧩 Scraper injected on", location.href);
       whiteSpace: "pre-wrap"
     });
 
-    // build the HTML, line by line
     const html = fullText
       .split("\n")
       .map(line => {
         let escaped = escapeHTML(line);
-
-        // bold "date"
-        escaped = escaped.replace(
-          /\b(date)\b/gi,
-          "<b>$1</b>"
-        );
-
-        // highlight "not"
-        escaped = escaped.replace(
-          /\b(not)\b/gi,
-          "<mark>$1</mark>"
-        );
-
+        defaultStyleWords.forEach(({ style, words }) => {
+          words.forEach(w => {
+            const safe = w.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+            const re = new RegExp(`\\b(${safe})\\b`, 'gi');
+            escaped = escaped.replace(re, `<span style="${style}">$1</span>`);
+          });
+        });
         return escaped;
       })
       .join("<br>");
@@ -118,7 +113,6 @@ console.log("🧩 Scraper injected on", location.href);
     document.body.appendChild(container);
 
   } else {
-    // 7) HTML fallback (unchanged)
     console.log("📄 No PDF detected — extracting HTML text");
     const walker = document.createTreeWalker(
       document.body,
@@ -127,7 +121,7 @@ console.log("🧩 Scraper injected on", location.href);
           n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
     );
     let htmlText = "", node;
-    while (node = walker.nextNode()) {
+    while ((node = walker.nextNode())) {
       htmlText += node.nodeValue.trim() + "\n";
     }
     console.log("✅ HTML extraction complete, injecting panel");
