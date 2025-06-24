@@ -2,7 +2,7 @@
 console.log("🧩 Scraper injected on", location.href);
 
 (async () => {
-  // 1) Find PDF embed (Chrome viewer or raw <embed>)
+  // 1) Detect PDF embed (Chrome viewer or raw)
   let embed = null;
   const viewer = document.querySelector("pdf-viewer");
   if (viewer?.shadowRoot) {
@@ -14,39 +14,39 @@ console.log("🧩 Scraper injected on", location.href);
     );
   }
 
-  // 2) PDF path
   if (embed) {
-    console.log("📄 PDF embed detected — scraping PDF text…");
+    console.log("📄 PDF embed detected — extracting text");
 
-    // Resolve real URL
+    // 2) Resolve real URL
     const orig = embed.getAttribute("original-url");
     const pdfUrl = orig || location.href;
     console.log("🚀 Fetching PDF from", pdfUrl);
 
-    // Fetch PDF bytes via page context (CORS/cookies OK)
-    let data;
+    // 3) Fetch the PDF bytes
+    let arrayBuffer;
     try {
-      data = await fetch(pdfUrl, { credentials: "include" })
-        .then((r) => r.arrayBuffer());
+      arrayBuffer = await fetch(pdfUrl, { credentials: "include" })
+        .then(r => r.arrayBuffer());
     } catch (err) {
       return console.error("❌ PDF fetch failed:", err);
     }
 
-    // Load pdf.js and disable workers so we never inject blob: scripts
+    // 4) Load pdf.js and set its workerSrc to our extension resource
     const pdfjsLib = await import(chrome.runtime.getURL("pdf.mjs"));
-    pdfjsLib.GlobalWorkerOptions.disableWorker = true;
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      chrome.runtime.getURL("pdf.worker.min.js");
 
-    // Extract text
-    const pdf = await pdfjsLib.getDocument({ data }).promise;
+    // 5) Extract text
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
     let fullText = "";
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const { items } = await page.getTextContent();
-      fullText += items.map((x) => x.str).join(" ") + "\n\n";
+      fullText += items.map(x => x.str).join(" ") + "\n\n";
     }
 
-    // Inject into a textarea
+    // 6) Inject into a textarea
     console.log("✅ PDF extraction complete, injecting textarea");
     const ta = document.createElement("textarea");
     Object.assign(ta.style, {
@@ -63,17 +63,18 @@ console.log("🧩 Scraper injected on", location.href);
     document.body.appendChild(ta);
 
   } else {
-    // 3) HTML path
+    // HTML‐only fallback
     console.log("📄 No PDF detected — extracting HTML text");
     const walker = document.createTreeWalker(
       document.body,
       NodeFilter.SHOW_TEXT,
       {
-        acceptNode: (n) =>
-          n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+        acceptNode: n =>
+          n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
       }
     );
-    let htmlText = "", node;
+    let htmlText = "";
+    let node;
     while ((node = walker.nextNode())) {
       htmlText += node.nodeValue.trim() + "\n";
     }
