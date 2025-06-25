@@ -331,24 +331,7 @@ console.log('🧩 Scraper injected on', location.href);
     fontFamily: 'monospace',
     whiteSpace: 'pre-wrap',
   });
-  const styledHTML = fullText
-    .split('\n')
-    .map(line => {
-      let escaped = escapeHTML(line);
-      defaultStyleWords.forEach(({ style, words }) => {
-        words.forEach(w => {
-          const safe = w.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const re   = new RegExp('\\b(' + safe + ')\\b', 'gi');
-          escaped = escaped.replace(
-            re,
-            `<span style="${style}">$1</span>`
-          );
-        });
-      });
-      return escaped;
-    })
-    .join('<br>');
-  container.innerHTML = styledHTML;
+  renderPDFStyled();
   document.body.appendChild(container);
   document.body.appendChild(toggleBtn);
   let visible = true;
