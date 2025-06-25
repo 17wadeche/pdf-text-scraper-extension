@@ -1,6 +1,33 @@
 // content.js
 console.log('🧩 Scraper injected on', location.href);
 (async () => {
+  const styleTag = document.createElement('style');
+  styleTag.textContent = `
+    /* a little reset + rounded corners + subtle shadow */
+    .modern-select {
+      -webkit-appearance: none;
+      appearance: none;
+      padding: 6px 32px 6px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background-color: #fff;
+      font-size: 14px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+      cursor: pointer;
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-image: url("data:image/svg+xml;charset=UTF-8,\
+  <svg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='%23666'>\
+  <path d='M1 1l5 5 5-5'/>\
+  </svg>");
+    }
+    .modern-select:focus {
+      outline: none;
+      border-color: #4a90e2;
+      box-shadow: 0 0 0 2px rgba(74,144,226,0.3);
+    }
+  `;
+  document.head.appendChild(styleTag);
   const { defaultStyleWords, config } = await import(
     chrome.runtime.getURL('styles.js')
   );
@@ -64,6 +91,7 @@ console.log('🧩 Scraper injected on', location.href);
     zIndex:     2147483647
   });
   const buSelect = document.createElement('select');
+  buSelect.classList.add('modern-select');
   buSelect.style.padding = '4px';
   Object.keys(config).forEach(bu => {
     const opt = document.createElement('option');
@@ -130,6 +158,7 @@ console.log('🧩 Scraper injected on', location.href);
       ...commonStyles, top: '10px', left: '10px', display: 'flex', gap: '8px'
     });
     const buSelect = document.createElement('select');
+    buSelect.classList.add('modern-select');
     Object.assign(buSelect.style, { ...commonStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
     Object.keys(config).forEach(bu => {
       const opt = document.createElement('option'); opt.value = bu; opt.textContent = bu;
