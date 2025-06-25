@@ -61,7 +61,7 @@ console.log('🧩 Scraper injected on', location.href);
     highlightHTML(defaultStyleWords);
     let htmlStyled = true;
     const htmlToggle = document.createElement('button');
-    htmlToggle.textContent = 'Original';
+    htmlToggle.textContent = 'Original HTML';
     Object.assign(htmlToggle.style, {
       position:   'fixed',
       top:        '10px',
@@ -76,10 +76,10 @@ console.log('🧩 Scraper injected on', location.href);
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
         unwrapHighlights();                // ← remove spans in-place
-        htmlToggle.textContent = 'Styled';
+        htmlToggle.textContent = 'Styled HTML';
       } else {
         highlightHTML(defaultStyleWords);  // ← reapply spans
-        htmlToggle.textContent = 'Original';
+        htmlToggle.textContent = 'Original HTML';
       }
       htmlStyled = !htmlStyled;
     });
@@ -94,7 +94,7 @@ console.log('🧩 Scraper injected on', location.href);
     highlightHTML(defaultStyleWords);
     let htmlStyled = true;
     const htmlToggle = document.createElement('button');
-    htmlToggle.textContent = 'Original';
+    htmlToggle.textContent = 'Original HTML';
     Object.assign(htmlToggle.style, {
       position:   'fixed',
       top:        '10px',
@@ -109,10 +109,10 @@ console.log('🧩 Scraper injected on', location.href);
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
         unwrapHighlights();
-        htmlToggle.textContent = 'Styled';
+        htmlToggle.textContent = 'Styled HTML';
       } else {
         highlightHTML(defaultStyleWords);
-        htmlToggle.textContent = 'Original';
+        htmlToggle.textContent = 'Original HTML';
       }
       htmlStyled = !htmlStyled;
     });
@@ -160,7 +160,7 @@ console.log('🧩 Scraper injected on', location.href);
     fullText += lines.join('\n') + '\n\n';
   }
   const toggleBtn = document.createElement('button');
-  toggleBtn.textContent = 'Original';
+  toggleBtn.textContent = 'Original PDF';
   Object.assign(toggleBtn.style, {
     position:   'fixed',
     top:        '10px',
@@ -211,6 +211,6 @@ console.log('🧩 Scraper injected on', location.href);
   toggleBtn.addEventListener('click', () => {
     visible = !visible;
     container.style.display = visible ? 'block' : 'none';
-    toggleBtn.textContent = visible ? 'Original' : 'Styled';
+    toggleBtn.textContent = visible ? 'Original PDF' : 'Styled PDF';
   });
 })();
