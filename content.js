@@ -201,7 +201,7 @@ console.log('🧩 Scraper injected on', location.href);
     position: 'fixed',
     top: '10px',
     left: '10px',
-    zIndex: 2147483647,
+    zIndex: 2147483650,
     width: 'auto'
   });
   const header = document.createElement('div');
