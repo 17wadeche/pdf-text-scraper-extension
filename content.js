@@ -10,6 +10,11 @@ console.log('🧩 Scraper injected on', location.href);
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
   }
+  function unwrapHighlights() {
+    document.querySelectorAll('span[data-highlighted]').forEach(span => {
+      span.replaceWith(document.createTextNode(span.textContent));
+    });
+  }
   function highlightHTML(styleWords) {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let node;
@@ -20,7 +25,10 @@ console.log('🧩 Scraper injected on', location.href);
         words.forEach(raw => {
           const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
           const re = new RegExp('\\b(' + safe + ')\\b', 'gi');
-          html = html.replace(re, '<span style="' + style + '">$1</span>');
+          html = html.replace(
+            re,
+            `<span style="${style}" data-highlighted="true">$1</span>`
+          );
         });
       });
       if (html !== escapeHTML(originalText)) {
@@ -33,12 +41,12 @@ console.log('🧩 Scraper injected on', location.href);
   const viewer = document.querySelector('pdf-viewer');
   if (viewer && viewer.shadowRoot) {
     embed = viewer.shadowRoot.querySelector(
-      'embed#plugin, embed[type*=\"pdf\"]'
+      'embed#plugin, embed[type*="pdf"]'
     );
   }
   if (!embed) {
     embed = document.querySelector(
-      'embed[type=\"application/pdf\"], embed[type=\"application/x-google-chrome-pdf\"]'
+      'embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]'
     );
   }
   if (!embed) {
@@ -55,24 +63,25 @@ console.log('🧩 Scraper injected on', location.href);
     const htmlToggle = document.createElement('button');
     htmlToggle.textContent = 'Original';
     Object.assign(htmlToggle.style, {
-      position: 'fixed',
-      top: '10px',
-      left: '10px',
-      zIndex: 2147483648,
-      padding: '4px 8px',
+      position:   'fixed',
+      top:        '10px',
+      left:       '10px',
+      zIndex:     2147483648,
+      padding:    '4px 8px',
       background: '#444',
-      color: '#fff',
-      border: 'none',
-      cursor: 'pointer'
+      color:      '#fff',
+      border:     'none',
+      cursor:     'pointer',
     });
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
-        location.reload(); // show original
+        unwrapHighlights();                // ← remove spans in-place
+        htmlToggle.textContent = 'Styled';
       } else {
-        highlightHTML(defaultStyleWords); // reapply highlights
+        highlightHTML(defaultStyleWords);  // ← reapply spans
+        htmlToggle.textContent = 'Original';
       }
       htmlStyled = !htmlStyled;
-      htmlToggle.textContent = htmlStyled ? 'Original' : 'Styled';
     });
     document.body.appendChild(htmlToggle);
     return;
@@ -87,30 +96,31 @@ console.log('🧩 Scraper injected on', location.href);
     const htmlToggle = document.createElement('button');
     htmlToggle.textContent = 'Original';
     Object.assign(htmlToggle.style, {
-      position: 'fixed',
-      top: '10px',
-      left: '10px',
-      zIndex: 2147483648,
-      padding: '4px 8px',
+      position:   'fixed',
+      top:        '10px',
+      left:       '10px',
+      zIndex:     2147483648,
+      padding:    '4px 8px',
       background: '#444',
-      color: '#fff',
-      border: 'none',
-      cursor: 'pointer'
+      color:      '#fff',
+      border:     'none',
+      cursor:     'pointer',
     });
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
-        location.reload();
+        unwrapHighlights();
+        htmlToggle.textContent = 'Styled';
       } else {
         highlightHTML(defaultStyleWords);
+        htmlToggle.textContent = 'Original';
       }
       htmlStyled = !htmlStyled;
-      htmlToggle.textContent = htmlStyled ? 'Original' : 'Styled';
     });
     document.body.appendChild(htmlToggle);
     return;
   }
   console.log('📄 PDF embed detected — extracting text…');
-  const orig = embed.getAttribute('original-url');
+  const orig   = embed.getAttribute('original-url');
   const pdfUrl = orig || location.href;
   console.log('🚀 Fetching PDF from', pdfUrl);
   let data;
@@ -144,23 +154,23 @@ console.log('🧩 Scraper injected on', location.href);
   console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
   let fullText = '';
   for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
+    const page        = await pdf.getPage(i);
     const textContent = await page.getTextContent();
-    const lines = extractLines(textContent);
+    const lines       = extractLines(textContent);
     fullText += lines.join('\n') + '\n\n';
   }
   const toggleBtn = document.createElement('button');
   toggleBtn.textContent = 'Original';
   Object.assign(toggleBtn.style, {
-    position: 'fixed',
-    top: '10px',
-    right: '10px',
-    zIndex: 2147483648,
-    padding: '4px 8px',
+    position:   'fixed',
+    top:        '10px',
+    right:      '10px',
+    zIndex:     2147483648,
+    padding:    '4px 8px',
     background: '#444',
-    color: '#fff',
-    border: 'none',
-    cursor: 'pointer'
+    color:      '#fff',
+    border:     'none',
+    cursor:     'pointer',
   });
   const container = document.createElement('div');
   Object.assign(container.style, {
@@ -175,7 +185,7 @@ console.log('🧩 Scraper injected on', location.href);
     border:     '2px solid #444',
     padding:    '8px',
     fontFamily: 'monospace',
-    whiteSpace: 'pre-wrap'
+    whiteSpace: 'pre-wrap',
   });
   const styledHTML = fullText
     .split('\n')
@@ -184,8 +194,11 @@ console.log('🧩 Scraper injected on', location.href);
       defaultStyleWords.forEach(({ style, words }) => {
         words.forEach(w => {
           const safe = w.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const re = new RegExp('\\b(' + safe + ')\\b', 'gi');
-          escaped = escaped.replace(re, '<span style="' + style + '">$1</span>');
+          const re   = new RegExp('\\b(' + safe + ')\\b', 'gi');
+          escaped = escaped.replace(
+            re,
+            `<span style="${style}">$1</span>`
+          );
         });
       });
       return escaped;
