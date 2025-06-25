@@ -201,21 +201,21 @@ console.log('🧩 Scraper injected on', location.href);
       return;
     }
     console.log('🌐 No PDF detected — styling HTML…');
-    highlightHTML(defaultStyleWords);
+    highlightHTML(styleWordsToUse);
     let htmlStyled = true;
     const htmlToggle = document.createElement('button');
     htmlToggle.textContent = 'Original HTML';
     Object.assign(htmlToggle.style, {
       ...commonToggleStyles,
       top:  '10px',
-      left: '10px'
+      right: '10px'
     });
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
         unwrapHighlights();
         htmlToggle.textContent = 'Styled HTML';
       } else {
-        highlightHTML(defaultStyleWords);
+        highlightHTML(styleWordsToUse);
         htmlToggle.textContent = 'Original HTML';
       }
       htmlStyled = !htmlStyled;
@@ -228,7 +228,7 @@ console.log('🧩 Scraper injected on', location.href);
     !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
   ) {
     console.log('⚠️ PDF embed found but URL out of PDF-scope — styling HTML…');
-    highlightHTML(defaultStyleWords);
+    highlightHTML(styleWordsToUse);
     let htmlStyled = true;
     const htmlToggle = document.createElement('button');
     htmlToggle.textContent = 'Original HTML';
@@ -242,7 +242,7 @@ console.log('🧩 Scraper injected on', location.href);
         unwrapHighlights();
         htmlToggle.textContent = 'Styled HTML';
       } else {
-        highlightHTML(defaultStyleWords);
+        highlightHTML(styleWordsToUse);
         htmlToggle.textContent = 'Original HTML';
       }
       htmlStyled = !htmlStyled;
