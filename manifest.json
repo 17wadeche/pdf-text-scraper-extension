@@ -2,7 +2,6 @@
   "manifest_version": 3,
   "name": "Attachment Formatting Tool",
   "version": "0.0.1",
-
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -10,7 +9,6 @@
       "type": "module"
     }
   ],
-
   "web_accessible_resources": [
     {
       "resources": [
