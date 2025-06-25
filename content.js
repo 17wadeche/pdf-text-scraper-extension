@@ -30,6 +30,25 @@ console.log('🧩 Scraper injected on', location.href);
   function applyAllHighlights() {
     unwrapHighlights();
     highlightHTML(styleWordsToUse);
+    renderPDFStyled();
+  }
+  let fullText = '';
+  let pdfContainer = null;
+  function renderPDFStyled() {
+    if (!pdfContainer) return;
+    pdfContainer.innerHTML = fullText
+      .split('\n')
+      .map(line => {
+        let escaped = escapeHTML(line);
+        styleWordsToUse.forEach(({style, words}) => {
+          words.forEach(raw => {
+            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
+            const re   = new RegExp('\\b(' + safe + ')\\b','gi');
+            escaped = escaped.replace(re, `<span style="${style}">$1</span>`);
+          });
+        });
+        return escaped;
+      }).join('<br>');
   }
   updateStyleWords();
   const controlDiv = document.createElement('div');
@@ -283,7 +302,6 @@ console.log('🧩 Scraper injected on', location.href);
   }
   const pdf = await pdfjsLib.getDocument({ data }).promise;
   console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
-  let fullText = '';
   for (let i = 1; i <= pdf.numPages; i++) {
     const page        = await pdf.getPage(i);
     const textContent = await page.getTextContent();
@@ -298,6 +316,7 @@ console.log('🧩 Scraper injected on', location.href);
     right: '10px'
   });
   const container = document.createElement('div');
+  pdfContainer = container;   
   Object.assign(container.style, {
     position:   'fixed',
     top:        '50px',
