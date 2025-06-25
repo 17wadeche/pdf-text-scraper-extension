@@ -29,6 +29,30 @@ console.log('🧩 Scraper injected on', location.href);
       }
     }
   }
+  let htmlStyled = false;
+  const htmlToggle = document.createElement('button');
+  htmlToggle.textContent = 'Styled';
+  Object.assign(htmlToggle.style, {
+    position: 'fixed',
+    top: '10px',
+    left: '10px',
+    zIndex: 2147483648,
+    padding: '4px 8px',
+    background: '#444',
+    color: '#fff',
+    border: 'none',
+    cursor: 'pointer'
+  });
+  htmlToggle.addEventListener('click', () => {
+    if (!htmlStyled) {
+      highlightHTML(defaultStyleWords);
+      htmlToggle.textContent = 'Original';
+    } else {
+      location.reload();
+    }
+    htmlStyled = !htmlStyled;
+  });
+  document.body.appendChild(htmlToggle);
   let embed = null;
   const viewer = document.querySelector('pdf-viewer');
   if (viewer && viewer.shadowRoot) {
