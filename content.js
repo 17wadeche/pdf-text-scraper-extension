@@ -21,10 +21,31 @@
       color: var(--text-color);
     }
     .control-panel {
-      background: var(--panel-bg);
-      border: 1px solid var(--panel-border);
-      border-radius: 6px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      width: 240px;               /* full open width */
+      height: auto;
+      overflow: hidden;           /* hides inner content when too small */
+      transition: width 0.3s ease;
+      z-index: 2147483650;
+    }
+    .control-panel.collapsed {
+      width: 40px;                /* just enough to show the header/arrow */
+    }
+    .control-panel .panel-content {
+      display: block;             /* always in the flow */
+    }
+    .control-panel .panel-header {
+      white-space: nowrap;        /* keep header on one line */
+    }
+    .control-panel .panel-header .arrow {
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+    /* rotate the arrow when collapsed */
+    .control-panel.collapsed .panel-header .arrow {
+      transform: rotate(180deg);
     }
     .modern-select {
       -webkit-appearance: none;
