@@ -42,11 +42,10 @@ console.log('🧩 Scraper injected on', location.href);
     );
   }
   if (!embed) {
-    console.log('🌐 No PDF detected — styling HTML…');
-    highlightHTML(defaultStyleWords);
-    let htmlStyled = true;
+    console.log('🌐 No PDF detected — setting up HTML highlighter…');
+    let htmlStyled = false;
     const htmlToggle = document.createElement('button');
-    htmlToggle.textContent = 'Original';
+    htmlToggle.textContent = 'Highlight HTML';
     Object.assign(htmlToggle.style, {
       position: 'fixed',
       top: '10px',
@@ -59,13 +58,13 @@ console.log('🧩 Scraper injected on', location.href);
       cursor: 'pointer'
     });
     htmlToggle.addEventListener('click', () => {
-      if (htmlStyled) {
-        location.reload(); // show original
+      if (!htmlStyled) {
+        highlightHTML(defaultStyleWords);
+        htmlToggle.textContent = 'Clear Highlights';
       } else {
-        highlightHTML(defaultStyleWords); // reapply highlights
+        location.reload();
       }
       htmlStyled = !htmlStyled;
-      htmlToggle.textContent = htmlStyled ? 'Original' : 'Styled';
     });
     document.body.appendChild(htmlToggle);
     return;
@@ -74,11 +73,10 @@ console.log('🧩 Scraper injected on', location.href);
     !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
     !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
   ) {
-    console.log('⚠️ PDF embed found but URL out of PDF-scope — styling HTML…');
-    highlightHTML(defaultStyleWords);
-    let htmlStyled = true;
+    console.log('⚠️ PDF embed found but URL out of PDF-scope — setting up HTML highlighter…');
+    let htmlStyled = false;
     const htmlToggle = document.createElement('button');
-    htmlToggle.textContent = 'Original';
+    htmlToggle.textContent = 'Highlight HTML';
     Object.assign(htmlToggle.style, {
       position: 'fixed',
       top: '10px',
@@ -91,13 +89,13 @@ console.log('🧩 Scraper injected on', location.href);
       cursor: 'pointer'
     });
     htmlToggle.addEventListener('click', () => {
-      if (htmlStyled) {
-        location.reload();
-      } else {
+      if (!htmlStyled) {
         highlightHTML(defaultStyleWords);
+        htmlToggle.textContent = 'Clear Highlights';
+      } else {
+        location.reload();
       }
       htmlStyled = !htmlStyled;
-      htmlToggle.textContent = htmlStyled ? 'Original' : 'Styled';
     });
     document.body.appendChild(htmlToggle);
     return;
