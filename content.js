@@ -1,87 +1,55 @@
-// content.js
-import interact from './libs/interact.min.js';
-import Choices from './libs/choices.min.js';
-
 (async () => {
-  // 1) Inject Styles (modern-select, panel, themes)
+  // 1) dynamically import your ES‐module builds from web_accessible_resources
+  const interact = (await import(chrome.runtime.getURL('libs/interact.esm.mjs'))).default;
+  const Choices  = (await import(chrome.runtime.getURL('libs/choices.esm.mjs'))).default;
+
+  // 2) inject styles
   const styleTag = document.createElement('style');
   styleTag.textContent = `
     /* modern-select */
-    .modern-select {
-      -webkit-appearance: none;
-      appearance: none;
-      padding: 6px 32px 6px 12px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      background: #fff url("data:image/svg+xml;charset=UTF-8,\
-<svg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='%23666'>\
-<path d='M1 1l5 5 5-5'/></svg>") no-repeat right 8px center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .modern-select:focus {
-      outline: none;
-      border-color: #4a90e2;
-      box-shadow: 0 0 0 2px rgba(74,144,226,0.3);
-    }
-
-    /* control panel */
-    .control-panel {
-      position: fixed;
-      top: 10px; left: 10px;
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px;
-      background: var(--panel-bg, #fff);
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      z-index: 2147483647;
-    }
-    .control-panel.collapsed {
-      height: 32px; overflow: hidden;
-    }
-
-    /* theme vars */
-    body.theme-light { --panel-bg: #fff; }
-    body.theme-dark  { --panel-bg: #2e2e2e; }
-    body.theme-mid   { --panel-bg: #001f3f; }
+    .modern-select { /*…*/ }
+    .modern-select:focus { /*…*/ }
+    /* control-panel */
+    .control-panel { /*…*/ }
+    .control-panel.collapsed { /*…*/ }
+    /* themes */
+    body.theme-light { --panel-bg:#fff }
+    body.theme-dark  { --panel-bg:#2e2e2e }
+    body.theme-mid   { --panel-bg:#001f3f }
   `;
   document.head.appendChild(styleTag);
 
-  // 2) Load your config & defaults
+  // 3) load your config
   const { defaultStyleWords, config } = await import(
     chrome.runtime.getURL('styles.js')
   );
 
-  // 3) State
+  // 4) state & panel scaffold
   let currentBU = localStorage.getItem('highlight_BU') || null;
   let currentOU = localStorage.getItem('highlight_OU') || null;
   const savedTheme = localStorage.getItem('pdf-scraper-theme') || 'auto';
 
-  // 4) Create panel
   const panel = document.createElement('div');
   panel.className = 'control-panel';
   document.body.appendChild(panel);
 
-  // — Collapse button
+  // collapse button
   const btnCollapse = document.createElement('button');
   btnCollapse.textContent = '▼';
   btnCollapse.addEventListener('click', () => {
-    const collapsed = panel.classList.toggle('collapsed');
-    btnCollapse.textContent = collapsed ? '▶' : '▼';
+    const c = panel.classList.toggle('collapsed');
+    btnCollapse.textContent = c ? '▶' : '▼';
   });
   panel.appendChild(btnCollapse);
 
-  // — Theme selector
+  // theme selector
   const themeSel = document.createElement('select');
   ['auto','light','dark','mid'].forEach(val => {
-    const opt = new Option(val.charAt(0).toUpperCase() + val.slice(1), val);
+    const opt = new Option(val[0].toUpperCase()+val.slice(1), val);
     if (val === savedTheme) opt.selected = true;
     themeSel.add(opt);
   });
-  panel.appendChild(themeSel);
-
+  panel.append(themeSel);
   const themeChoices = new Choices(themeSel, { searchEnabled: false, shouldSort: false });
   function applyTheme(t) {
     document.body.classList.remove('theme-light','theme-dark','theme-mid');
@@ -94,7 +62,7 @@ import Choices from './libs/choices.min.js';
   themeSel.addEventListener('change', () => applyTheme(themeSel.value));
   applyTheme(savedTheme);
 
-  // — BU & OU selects
+  // BU / OU selects
   const buSel = document.createElement('select');
   const ouSel = document.createElement('select');
   buSel.className = ouSel.className = 'modern-select';
@@ -120,11 +88,9 @@ import Choices from './libs/choices.min.js';
   }
 
   buSel.addEventListener('change', () => {
-    currentBU = buSel.value;
-    currentOU = null;
+    currentBU = buSel.value; currentOU = null;
     localStorage.setItem('highlight_BU', currentBU);
-    populateOUs();
-    applyAllHighlights();
+    populateOUs(); applyAllHighlights();
   });
   ouSel.addEventListener('change', () => {
     currentOU = ouSel.value;
@@ -137,19 +103,17 @@ import Choices from './libs/choices.min.js';
   populateOUs();
   if (currentOU) ouChoices.setChoiceByValue(currentOU);
 
-  // 5) Make panel draggable
+  // 5) make panel draggable
   interact(panel).draggable({
     listeners: {
-      move(event) {
-        const x = (parseFloat(panel.style.left) || 0) + event.dx;
-        const y = (parseFloat(panel.style.top)  || 0) + event.dy;
-        panel.style.left = `${x}px`;
-        panel.style.top  = `${y}px`;
+      move(e) {
+        const x = (parseFloat(panel.style.left)||0) + e.dx;
+        const y = (parseFloat(panel.style.top )||0) + e.dy;
+        panel.style.left = x + 'px';
+        panel.style.top  = y + 'px';
       }
     }
   });
-
-  // 6) Highlight logic
   let styleWordsToUse = [];
   function updateStyleWords() {
     styleWordsToUse = [...defaultStyleWords];
@@ -160,11 +124,9 @@ import Choices from './libs/choices.min.js';
       }
     }
   }
-
   function escapeHTML(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
-
   function unwrapHighlights() {
     document.querySelectorAll('span[data-highlighted]').forEach(span => {
       span.replaceWith(document.createTextNode(span.textContent));
