@@ -4,21 +4,6 @@ console.log('🧩 Scraper injected on', location.href);
   const { default: defaultStyleWords } = await import(
     chrome.runtime.getURL('styles.js')
   );
-  const commonToggleStyles = {
-    position:   'fixed',
-    padding:    '6px 12px',
-    background: '#ff0',               // bright yellow
-    color:      '#000',               // black text for contrast
-    fontSize:   '14px',
-    fontWeight: 'bold',
-    borderRadius: '4px',
-    boxShadow:  '0 0 6px rgba(0,0,0,0.5)',
-    border:     '2px solid #000',
-    cursor:     'pointer',
-    zIndex:     2147483648,
-    top:        '10px',
-    left:       '10px'
-  }
   function escapeHTML(s) {
     return s
       .replace(/&/g, '&amp;')
@@ -78,7 +63,15 @@ console.log('🧩 Scraper injected on', location.href);
     const htmlToggle = document.createElement('button');
     htmlToggle.textContent = 'Original HTML';
     Object.assign(htmlToggle.style, {
-      ...commonToggleStyles
+      position:   'fixed',
+      top:        '10px',
+      left:       '10px',
+      zIndex:     2147483648,
+      padding:    '4px 8px',
+      background: '#444',
+      color:      '#fff',
+      border:     'none',
+      cursor:     'pointer',
     });
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
@@ -103,7 +96,15 @@ console.log('🧩 Scraper injected on', location.href);
     const htmlToggle = document.createElement('button');
     htmlToggle.textContent = 'Original HTML';
     Object.assign(htmlToggle.style, {
-      ...commonToggleStyles
+      position:   'fixed',
+      top:        '10px',
+      left:       '10px',
+      zIndex:     2147483648,
+      padding:    '4px 8px',
+      background: '#444',
+      color:      '#fff',
+      border:     'none',
+      cursor:     'pointer',
     });
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
@@ -161,11 +162,30 @@ console.log('🧩 Scraper injected on', location.href);
   const toggleBtn = document.createElement('button');
   toggleBtn.textContent = 'Original PDF';
   Object.assign(toggleBtn.style, {
-    ...commonToggleStyles
+    position:   'fixed',
+    top:        '10px',
+    right:      '10px',
+    zIndex:     2147483648,
+    padding:    '4px 8px',
+    background: '#444',
+    color:      '#fff',
+    border:     'none',
+    cursor:     'pointer',
   });
   const container = document.createElement('div');
   Object.assign(container.style, {
-    ...commonToggleStyles
+    position:   'fixed',
+    top:        '50px',
+    left:       '10px',
+    width:      '100vw',
+    height:     '100vh',
+    overflow:   'auto',
+    zIndex:     2147483647,
+    background: '#fff',
+    border:     '2px solid #444',
+    padding:    '8px',
+    fontFamily: 'monospace',
+    whiteSpace: 'pre-wrap',
   });
   const styledHTML = fullText
     .split('\n')
