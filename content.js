@@ -31,6 +31,18 @@ console.log('🧩 Scraper injected on', location.href);
   const { defaultStyleWords, config } = await import(
     chrome.runtime.getURL('styles.js')
   );
+  document.body.addEventListener('click', e => {
+    const a = e.target.closest('a[href*="/sap/bc/contentserver/"]');
+    if (!a) return;
+    try {
+      const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
+      const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
+      const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
+      if (primBU?.Name) localStorage.setItem('highlight_BU', primBU.Name);
+      if (primOU?.Name) localStorage.setItem('highlight_OU', primOU.Name);
+    } catch (_) {
+    }
+  });
   let currentBU = null, currentOU = null;
   try {
     if (top.GUIDE?.PE) {
