@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "PDF Text Scraper",
+  "name": "Attachment Formatting Tool",
   "version": "0.0.1",
 
   "content_scripts": [
