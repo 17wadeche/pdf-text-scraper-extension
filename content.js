@@ -4,6 +4,19 @@ console.log('🧩 Scraper injected on', location.href);
   const { default: defaultStyleWords } = await import(
     chrome.runtime.getURL('styles.js')
   );
+  const commonToggleStyles = {
+    position:   'fixed',
+    padding:    '6px 12px',
+    background: '#ff0',        // bright yellow
+    color:      '#000',        // black text for contrast
+    fontSize:   '14px',
+    fontWeight: 'bold',
+    borderRadius: '4px',
+    boxShadow:  '0 0 6px rgba(0,0,0,0.5)',
+    border:     '2px solid #000',
+    cursor:     'pointer',
+    zIndex:     2147483648,
+  };
   function escapeHTML(s) {
     return s
       .replace(/&/g, '&amp;')
@@ -63,22 +76,16 @@ console.log('🧩 Scraper injected on', location.href);
     const htmlToggle = document.createElement('button');
     htmlToggle.textContent = 'Original HTML';
     Object.assign(htmlToggle.style, {
-      position:   'fixed',
-      top:        '10px',
-      left:       '10px',
-      zIndex:     2147483648,
-      padding:    '4px 8px',
-      background: '#444',
-      color:      '#fff',
-      border:     'none',
-      cursor:     'pointer',
+      ...commonToggleStyles,
+      top:  '10px',
+      left: '10px'
     });
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
-        unwrapHighlights();                // ← remove spans in-place
+        unwrapHighlights();
         htmlToggle.textContent = 'Styled HTML';
       } else {
-        highlightHTML(defaultStyleWords);  // ← reapply spans
+        highlightHTML(defaultStyleWords);
         htmlToggle.textContent = 'Original HTML';
       }
       htmlStyled = !htmlStyled;
@@ -96,15 +103,9 @@ console.log('🧩 Scraper injected on', location.href);
     const htmlToggle = document.createElement('button');
     htmlToggle.textContent = 'Original HTML';
     Object.assign(htmlToggle.style, {
-      position:   'fixed',
-      top:        '10px',
-      left:       '10px',
-      zIndex:     2147483648,
-      padding:    '4px 8px',
-      background: '#444',
-      color:      '#fff',
-      border:     'none',
-      cursor:     'pointer',
+      ...commonToggleStyles,
+      top:  '10px',
+      left: '10px'
     });
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
@@ -162,15 +163,9 @@ console.log('🧩 Scraper injected on', location.href);
   const toggleBtn = document.createElement('button');
   toggleBtn.textContent = 'Original PDF';
   Object.assign(toggleBtn.style, {
-    position:   'fixed',
-    top:        '10px',
-    right:      '10px',
-    zIndex:     2147483648,
-    padding:    '4px 8px',
-    background: '#444',
-    color:      '#fff',
-    border:     'none',
-    cursor:     'pointer',
+    ...commonToggleStyles,
+    top:   '10px',
+    right: '10px'
   });
   const container = document.createElement('div');
   Object.assign(container.style, {
@@ -181,7 +176,7 @@ console.log('🧩 Scraper injected on', location.href);
     height:     '100vh',
     overflow:   'auto',
     zIndex:     2147483647,
-    background: '#fff',
+    background: '#f0f0f0',  // light grey for styled background
     border:     '2px solid #444',
     padding:    '8px',
     fontFamily: 'monospace',
@@ -211,6 +206,6 @@ console.log('🧩 Scraper injected on', location.href);
   toggleBtn.addEventListener('click', () => {
     visible = !visible;
     container.style.display = visible ? 'block' : 'none';
-    toggleBtn.textContent = visible ? 'Original PDF' : 'Styled PDF';
+    toggleBtn.textContent  = visible ? 'Original PDF' : 'Styled PDF';
   });
 })();
