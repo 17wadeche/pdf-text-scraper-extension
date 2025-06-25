@@ -1,7 +1,7 @@
 // content.js
 console.log('🧩 Scraper injected on', location.href);
 (async () => {
-  const { default: defaultStyleWords, config } = await import(
+  const { defaultStyleWords, config } = await import(
     chrome.runtime.getURL('styles.js')
   );
   let currentBU = null, currentOU = null;
