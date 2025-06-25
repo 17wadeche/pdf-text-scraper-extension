@@ -34,22 +34,23 @@ console.log('🧩 Scraper injected on', location.href);
   document.body.addEventListener('click', e => {
     const a = e.target.closest('a[href*="/sap/bc/contentserver/"]');
     if (!a) return;
-    console.log('▶️ Attachment link clicked:', a.href);
     try {
       const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
       const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
       const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
-      console.log('   extracted from GUIDE.PE → BU:', primBU?.Name, ', OU:', primOU?.Name);
-      if (primBU?.Name) {
-        localStorage.setItem('highlight_BU', primBU.Name);
-        console.log('   stored highlight_BU =', primBU.Name);
-      }
-      if (primOU?.Name) {
-        localStorage.setItem('highlight_OU', primOU.Name);
-        console.log('   stored highlight_OU =', primOU.Name);
+      const bu = primBU?.Name;
+      const ou = primOU?.Name;
+      console.log('🖱  Attachment clicked — original URL:', a.href);
+      console.log('   GUIDE.PE → BU:', bu, ', OU:', ou);
+      if (bu && ou) {
+        const u = new URL(a.href, location.href);
+        u.searchParams.set('highlight_BU', bu);
+        u.searchParams.set('highlight_OU', ou);
+        a.href = u.toString();
+        console.log('   Rewriting href →', a.href);
       }
     } catch (err) {
-      console.warn('   failed to read GUIDE.PE on click:', err);
+      console.warn('   Could not extract GUIDE.PE on click:', err);
     }
   });
   let currentBU = null, currentOU = null;
@@ -63,6 +64,28 @@ console.log('🧩 Scraper injected on', location.href);
     }
   } catch (e) {
   }
+  document.body.addEventListener('click', e => {
+    const a = e.target.closest('a[href*="/sap/bc/contentserver/"]');
+    if (!a) return;
+    try {
+      const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
+      const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
+      const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
+      const bu = primBU?.Name;
+      const ou = primOU?.Name;
+      console.log('🖱  Attachment clicked — original URL:', a.href);
+      console.log('   GUIDE.PE → BU:', bu, ', OU:', ou);
+      if (bu && ou) {
+        const u = new URL(a.href, location.href);
+        u.searchParams.set('highlight_BU', bu);
+        u.searchParams.set('highlight_OU', ou);
+        a.href = u.toString();
+        console.log('   Rewriting href →', a.href);
+      }
+    } catch (err) {
+      console.warn('   Could not extract GUIDE.PE on click:', err);
+    }
+  });
   console.log('🔍 initial GUIDE.PE → BU:', currentBU, ', OU:', currentOU);
   if (!currentBU) {
     const fromLS = localStorage.getItem('highlight_BU');
