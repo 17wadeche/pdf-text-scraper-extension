@@ -4,24 +4,19 @@ console.log('🧩 Scraper injected on', location.href);
   const { default: defaultStyleWords } = await import(
     chrome.runtime.getURL('styles.js')
   );
-  let guideObj = null;
-  if (typeof top.GUIDE !== 'undefined' && top.GUIDE.PE) {
-    guideObj = top.GUIDE;
-  } else if (window.opener && window.opener.GUIDE && window.opener.GUIDE.PE) {
-    guideObj = window.opener.GUIDE;
-  }
-  const pe = guideObj ? guideObj.PE[guideObj.PE.curPrEv] : null;
   let currentBU = null, currentOU = null;
-  if (pe) {
-    const primBUP = pe.PartnersTable.find(
-      p => p.PartnerFunction === 'BU Responsible' && p.MainPartner
-    );
-    currentBU = primBUP ? primBUP.Name : null;
-    const primOUP = pe.PartnersTable.find(
-      p => p.PartnerFunction === 'OU Responsible' && p.MainPartner
-    );
-    currentOU = primOUP ? primOUP.Name : null;
+  try {
+    if (top.GUIDE?.PE) {
+      const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
+      const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
+      currentBU = primBU?.Name || null;
+      const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
+      currentOU = primOU?.Name || null;
+    }
+  } catch (e) {
   }
+  if (!currentBU) currentBU = localStorage.getItem('highlight_BU');
+  if (!currentOU) currentOU = localStorage.getItem('highlight_OU');
   let styleWordsToUse = [];
   function updateStyleWords() {
     styleWordsToUse = [...defaultStyleWords];
@@ -46,7 +41,11 @@ console.log('🧩 Scraper injected on', location.href);
     cursor:     'pointer',
     zIndex:     2147483648,
   };
-  if (pe) {
+  let isHTMLContext = false;
+  try { isHTMLContext = !!top.GUIDE?.PE; } catch {};
+  if (isHTMLContext) {
+    localStorage.setItem('highlight_BU', currentBU || '');
+    localStorage.setItem('highlight_OU', currentOU || '');
     const controlDiv = document.createElement('div');
     Object.assign(controlDiv.style, {
       ...commonStyles, top: '10px', left: '10px', display: 'flex', gap: '8px'
@@ -76,10 +75,13 @@ console.log('🧩 Scraper injected on', location.href);
       currentOU = null;
       populateOUs();
       currentOU = ouSelect.value;
+      localStorage.setItem('highlight_BU', currentBU);
+      localStorage.setItem('highlight_OU', currentOU);
       updateStyleWords(); applyAllHighlights();
     });
     ouSelect.addEventListener('change', () => {
       currentOU = ouSelect.value;
+      localStorage.setItem('highlight_OU', currentOU);
       updateStyleWords(); applyAllHighlights();
     });
     controlDiv.append(buSelect, ouSelect);
