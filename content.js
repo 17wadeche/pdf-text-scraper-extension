@@ -1,7 +1,7 @@
 // content.js
 console.log('🧩 Scraper injected on', location.href);
 (async () => {
-  const { default: defaultStyleWords } = await import(
+  const { default: defaultStyleWords, config } = await import(
     chrome.runtime.getURL('styles.js')
   );
   let currentBU = null, currentOU = null;
@@ -28,6 +28,62 @@ console.log('🧩 Scraper injected on', location.href);
     }
   }
   updateStyleWords();
+  const controlDiv = document.createElement('div');
+  Object.assign(controlDiv.style, {
+    position:   'fixed',
+    top:        '10px',
+    left:       '10px',
+    display:    'flex',
+    gap:        '8px',
+    padding:    '6px',
+    background: '#fff',
+    border:     '1px solid #ccc',
+    zIndex:     2147483647
+  });
+  const buSelect = document.createElement('select');
+  buSelect.style.padding = '4px';
+  Object.keys(config).forEach(bu => {
+    const opt = document.createElement('option');
+    opt.value       = bu;
+    opt.textContent = bu;
+    if (bu === currentBU) opt.selected = true;
+    buSelect.appendChild(opt);
+  });
+  const ouSelect = document.createElement('select');
+  ouSelect.style.padding = '4px';
+  function populateOUs() {
+    ouSelect.innerHTML = '';
+    if (currentBU && config[currentBU]) {
+      Object.keys(config[currentBU])
+        .filter(key => key !== 'styleWords')
+        .forEach(ou => {
+          const opt = document.createElement('option');
+          opt.value       = ou;
+          opt.textContent = ou;
+          if (ou === currentOU) opt.selected = true;
+          ouSelect.appendChild(opt);
+        });
+    }
+  }
+  populateOUs();
+  buSelect.addEventListener('change', () => {
+    currentBU = buSelect.value;
+    currentOU = null;
+    populateOUs();
+    currentOU = ouSelect.value;
+    localStorage.setItem('highlight_BU', currentBU);
+    localStorage.setItem('highlight_OU', currentOU);
+    updateStyleWords();
+    applyAllHighlights();
+  });
+  ouSelect.addEventListener('change', () => {
+    currentOU = ouSelect.value;
+    localStorage.setItem('highlight_OU', currentOU);
+    updateStyleWords();
+    applyAllHighlights();
+  });
+  controlDiv.append(buSelect, ouSelect);
+  document.body.appendChild(controlDiv);
   const commonToggleStyles = {
     position:   'fixed',
     padding:    '6px 12px',

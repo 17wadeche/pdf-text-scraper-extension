@@ -515,4 +515,4 @@ const config = {
   },
 };
 
-export default defaultStyleWords;
+export { defaultStyleWords, config };
