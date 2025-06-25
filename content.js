@@ -7,11 +7,10 @@ console.log('🧩 Scraper injected on', location.href);
     window.open = function(url, target, features) {
       try {
         if (typeof url === 'string' && url.includes('/sap/bc/contentserver/')) {
-          const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
+          const pe     = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
           const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
           const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
-          const bu = primBU?.Name;
-          const ou = primOU?.Name;
+          const bu     = primBU?.Name, ou = primOU?.Name;
           if (bu && ou) {
             const u = new URL(url, location.href);
             u.searchParams.set('highlight_BU', bu);
@@ -25,6 +24,24 @@ console.log('🧩 Scraper injected on', location.href);
       }
       return origOpen.call(this, url, target, features);
     };
+    document.body.addEventListener('click', e => {
+      const a = e.target.closest('a[href*="/sap/bc/contentserver/"]');
+      if (!a) return;
+      try {
+        const pe     = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
+        const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
+        const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
+        const bu     = primBU?.Name, ou = primOU?.Name;
+        if (bu && ou) {
+          const u = new URL(a.href, location.href);
+          u.searchParams.set('highlight_BU', bu);
+          u.searchParams.set('highlight_OU', ou);
+          console.log('🖱 Rewriting <a> href to carry BU/OU →', u.toString());
+          a.href = u.toString();
+        }
+      } catch (_){}
+    });
+    return;
   }
   const styleTag = document.createElement('style');
   styleTag.textContent = `
@@ -78,25 +95,28 @@ console.log('🧩 Scraper injected on', location.href);
       console.warn('   Could not extract GUIDE.PE on click:', err);
     }
   });
-  let currentBU = null, currentOU = null;
-  const params = new URL(location.href).searchParams;
-  const pBU    = params.get('highlight_BU');
-  const pOU    = params.get('highlight_OU');
-  if (pBU || pOU) {
-    console.log('🔗 grabbed BU/OU from URL params:', pBU, pOU);
-    if (pBU) currentBU = pBU;
-    if (pOU) currentOU = pOU;
+  {
+    const params = new URL(location.href).searchParams;
+    const pBU    = params.get('highlight_BU');
+    const pOU    = params.get('highlight_OU');
+    if (pBU || pOU) {
+      console.log('🔗 grabbed BU/OU from URL params:', pBU, pOU);
+      if (pBU) currentBU = pBU;
+      if (pOU) currentOU = pOU;
+    }
   }
   try {
     if (top.GUIDE?.PE) {
-      const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
+      const pe     = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
       const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
-      currentBU = primBU?.Name || null;
       const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
-      currentOU = primOU?.Name || null;
+      if (!currentBU) currentBU = primBU?.Name;
+      if (!currentOU) currentOU = primOU?.Name;
     }
-  } catch (e) {
-  }
+  } catch (e) {}
+  if (!currentBU) currentBU = localStorage.getItem('highlight_BU');
+  if (!currentOU) currentOU = localStorage.getItem('highlight_OU');
+  console.log('✅ final currentBU/OU:', currentBU, currentOU);
   document.body.addEventListener('click', e => {
     const a = e.target.closest('a[href*="/sap/bc/contentserver/"]');
     if (!a) return;
