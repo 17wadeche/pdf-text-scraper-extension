@@ -4,11 +4,24 @@ console.log('🧩 Scraper injected on', location.href);
   const { default: defaultStyleWords } = await import(
     chrome.runtime.getURL('styles.js')
   );
-  const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
-  const primBUP = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
-  const primOUP = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
-  let currentBU = primBUP ? primBUP.Name : null;
-  let currentOU = primOUP ? primOUP.Name : null;
+  let guideObj = null;
+  if (typeof top.GUIDE !== 'undefined' && top.GUIDE.PE) {
+    guideObj = top.GUIDE;
+  } else if (window.opener && window.opener.GUIDE && window.opener.GUIDE.PE) {
+    guideObj = window.opener.GUIDE;
+  }
+  const pe = guideObj ? guideObj.PE[guideObj.PE.curPrEv] : null;
+  let currentBU = null, currentOU = null;
+  if (pe) {
+    const primBUP = pe.PartnersTable.find(
+      p => p.PartnerFunction === 'BU Responsible' && p.MainPartner
+    );
+    currentBU = primBUP ? primBUP.Name : null;
+    const primOUP = pe.PartnersTable.find(
+      p => p.PartnerFunction === 'OU Responsible' && p.MainPartner
+    );
+    currentOU = primOUP ? primOUP.Name : null;
+  }
   let styleWordsToUse = [];
   function updateStyleWords() {
     styleWordsToUse = [...defaultStyleWords];
@@ -33,43 +46,45 @@ console.log('🧩 Scraper injected on', location.href);
     cursor:     'pointer',
     zIndex:     2147483648,
   };
-  const controlDiv = document.createElement('div');
-  Object.assign(controlDiv.style, { ...commonStyles, top: '10px', left: '10px', display: 'flex', gap: '8px' });
-  const buSelect = document.createElement('select');
-  Object.assign(buSelect.style, { ...commonStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
-  Object.keys(config).forEach(bu => {
-    const opt = document.createElement('option'); opt.value = bu; opt.textContent = bu;
-    if (bu === currentBU) opt.selected = true;
-    buSelect.appendChild(opt);
-  });
-  buSelect.addEventListener('change', () => {
-    currentBU = buSelect.value;
-    ouSelect.innerHTML = '';
-    const ouKeys = Object.keys(config[currentBU]).filter(k => k !== 'styleWords');
-    ouKeys.forEach(ou => {
-      const opt = document.createElement('option'); opt.value = ou; opt.textContent = ou;
-      if (ou === currentOU) opt.selected = true;
-      ouSelect.appendChild(opt);
+  if (pe) {
+    const controlDiv = document.createElement('div');
+    Object.assign(controlDiv.style, {
+      ...commonStyles, top: '10px', left: '10px', display: 'flex', gap: '8px'
     });
-    currentOU = ouSelect.value;
-    updateStyleWords(); applyAllHighlights();
-  });
-  const ouSelect = document.createElement('select');
-  Object.assign(ouSelect.style, { ...commonStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
-  if (currentBU && config[currentBU]) {
-    Object.keys(config[currentBU]).filter(k => k !== 'styleWords').forEach(ou => {
-      const opt = document.createElement('option'); opt.value = ou; opt.textContent = ou;
-      if (ou === currentOU) opt.selected = true;
-      ouSelect.appendChild(opt);
+    const buSelect = document.createElement('select');
+    Object.assign(buSelect.style, { ...commonStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
+    Object.keys(config).forEach(bu => {
+      const opt = document.createElement('option'); opt.value = bu; opt.textContent = bu;
+      if (bu === currentBU) opt.selected = true;
+      buSelect.appendChild(opt);
     });
+    const ouSelect = document.createElement('select');
+    Object.assign(ouSelect.style, { ...commonStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
+    function populateOUs() {
+      ouSelect.innerHTML = '';
+      if (currentBU && config[currentBU]) {
+        Object.keys(config[currentBU]).filter(k => k !== 'styleWords').forEach(ou => {
+          const opt = document.createElement('option'); opt.value = ou; opt.textContent = ou;
+          if (ou === currentOU) opt.selected = true;
+          ouSelect.appendChild(opt);
+        });
+      }
+    }
+    populateOUs();
+    buSelect.addEventListener('change', () => {
+      currentBU = buSelect.value;
+      currentOU = null;
+      populateOUs();
+      currentOU = ouSelect.value;
+      updateStyleWords(); applyAllHighlights();
+    });
+    ouSelect.addEventListener('change', () => {
+      currentOU = ouSelect.value;
+      updateStyleWords(); applyAllHighlights();
+    });
+    controlDiv.append(buSelect, ouSelect);
+    document.body.appendChild(controlDiv);
   }
-  ouSelect.addEventListener('change', () => {
-    currentOU = ouSelect.value;
-    updateStyleWords(); applyAllHighlights();
-  });
-  controlDiv.appendChild(buSelect);
-  controlDiv.appendChild(ouSelect);
-  document.body.appendChild(controlDiv);
   function escapeHTML(s) {
     return s
       .replace(/&/g, '&amp;')
