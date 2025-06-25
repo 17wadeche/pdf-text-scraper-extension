@@ -254,10 +254,6 @@ console.log('🧩 Scraper injected on', location.href);
   if (isHTMLContext) {
     localStorage.setItem('highlight_BU', currentBU || '');
     localStorage.setItem('highlight_OU', currentOU || '');
-    const controlDiv = document.createElement('div');
-    Object.assign(controlDiv.style, {
-      ...commonToggleStyles, top: '10px', left: '10px', display: 'flex', gap: '8px'
-    });
     const buSelect = document.createElement('select');
     buSelect.classList.add('modern-select');
     Object.assign(buSelect.style, { ...commonToggleStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
@@ -361,11 +357,11 @@ console.log('🧩 Scraper injected on', location.href);
       if (htmlStyled) {
         unwrapHighlights();
         htmlToggle.textContent = 'Styled HTML';
-        controlDiv.style.display = 'none'; 
+        panel.style.display = 'none'; 
       } else {
         highlightHTML(styleWordsToUse);
         htmlToggle.textContent = 'Original HTML';
-        controlDiv.style.display = 'flex'; 
+        panel.style.display = 'block'; 
       }
       htmlStyled = !htmlStyled;
     });
@@ -390,11 +386,11 @@ console.log('🧩 Scraper injected on', location.href);
       if (htmlStyled) {
         unwrapHighlights();
         htmlToggle.textContent = 'Styled HTML';
-        controlDiv.style.display = 'none'; 
+        panel.style.display = 'none'; 
       } else {
         highlightHTML(styleWordsToUse);
         htmlToggle.textContent = 'Original HTML';
-        controlDiv.style.display = 'flex'; 
+        panel.style.display      = 'block'; 
       }
       htmlStyled = !htmlStyled;
     });
@@ -471,6 +467,6 @@ console.log('🧩 Scraper injected on', location.href);
     visible = !visible;
     container.style.display = visible ? 'block' : 'none';
     toggleBtn.textContent  = visible ? 'Original PDF' : 'Styled PDF';
-    controlDiv.style.display   = visible ? 'flex'  : 'none';
+    panel.style.display        = visible ? 'block' : 'none';
   });
 })();
