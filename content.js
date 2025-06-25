@@ -101,7 +101,7 @@ console.log('🧩 Scraper injected on', location.href);
     buSelect.appendChild(opt);
   });
   const ouSelect = document.createElement('select');
-  ouSelect.style.padding = '4px';
+  ouSelect.classList.add('modern-select');
   function populateOUs() {
     ouSelect.innerHTML = '';
     if (currentBU && config[currentBU]) {
