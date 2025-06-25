@@ -1,7 +1,10 @@
 // content.js
 console.log("🧩 Scraper injected on", location.href);
 (async () => {
-  if (!location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/')) {
+  if (
+    !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
+    !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
+  ) {
     console.log('⚠️ URL not in target scope—skipping scraper');
     return;
   }
@@ -89,8 +92,8 @@ console.log("🧩 Scraper injected on", location.href);
     position:   "fixed",
     top:        "50px",
     left:       "10px",
-    width:      "60vw",
-    height:     "65vh",
+    width:      "100vw",
+    height:     "100vh",
     overflow:   "auto",
     zIndex:     2147483647,
     background: "#fff",
@@ -123,6 +126,6 @@ console.log("🧩 Scraper injected on", location.href);
   toggleBtn.addEventListener('click', () => {
     visible = !visible;
     container.style.display = visible ? 'block' : 'none';
-    toggleBtn.textContent = visible ? 'Hide Highlights' : 'Show Highlights';
+    toggleBtn.textContent = visible ? 'Unformatted' : 'Formatted';
   });
 })();
