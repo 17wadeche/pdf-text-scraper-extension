@@ -30,22 +30,36 @@
       overflow: hidden;           /* hides inner content when too small */
       transition: width 0.3s ease;
       z-index: 2147483650;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     .control-panel.collapsed {
       width: 40px;                /* just enough to show the header/arrow */
     }
     .control-panel .panel-content {
-      display: block;             /* always in the flow */
+      padding: 40px 12px 12px;    /* leave room for toggle-btn */
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    .control-panel .panel-header {
-      white-space: nowrap;        /* keep header on one line */
-    }
-    .control-panel .panel-header .arrow {
-      display: inline-block;
+    .control-panel .toggle-btn {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 4px;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      cursor: pointer;
+      user-select: none;
+      font-size: 16px;
+      line-height: 1;
       transition: transform 0.3s ease;
     }
-    /* rotate the arrow when collapsed */
-    .control-panel.collapsed .panel-header .arrow {
+    .control-panel.collapsed .toggle-btn {
       transform: rotate(180deg);
     }
     .modern-select {
@@ -69,24 +83,6 @@
       outline: none;
       border-color: #4a90e2;
       box-shadow: 0 0 0 2px rgba(74,144,226,0.3);
-    }
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 12px;
-      cursor: pointer;
-      font-weight: bold;
-      user-select: none;
-    }
-    .panel-content {
-      display: flex;
-      flex-direction: column;
-      padding: 8px;
-      gap: 8px;
-    }
-    .panel-content.collapsed {
-      display: none;
     }
   `;
   document.head.appendChild(styleTag);
@@ -217,30 +213,20 @@
   document.body.classList.toggle('dark-mode', darkMode);
   const panel = document.createElement('div');
   panel.classList.add('control-panel');
-  Object.assign(panel.style, {
-    position: 'fixed',
-    top: '10px',
-    left: '10px',
-    zIndex: 2147483650,
-    width: 'auto'
-  });
-  const header = document.createElement('div');
-  header.classList.add('panel-header');
-  const arrow = document.createElement('span');
-  let collapsed = false;
-  arrow.textContent = '▾';
-  header.appendChild(arrow);
-  panel.appendChild(header);
-  const content = document.createElement('div');
-  content.classList.add('panel-content');
-  panel.appendChild(content);
-  header.addEventListener('click', () => {
-    collapsed = !collapsed;
-    content.classList.toggle('collapsed', collapsed);
-    arrow.textContent = collapsed ? '▸' : '▾';
-  });
+  const toggle = document.createElement('button');
+  toggle.classList.add('toggle-btn');
+  toggle.textContent = '▾';
+  panel.appendChild(toggle);
   const themeBtn = document.createElement('button');
   themeBtn.textContent = darkMode ? 'Light Mode' : 'Dark Mode';
+  const content = document.createElement('div');
+  content.classList.add('panel-content');
+  content.append(themeBtn, buSelect, ouSelect);
+  panel.appendChild(content);
+  toggle.addEventListener('click', () => {
+    panel.classList.toggle('collapsed');
+  });
+  document.body.appendChild(panel);
   Object.assign(themeBtn.style, {
     padding: '4px 8px',
     cursor: 'pointer',
