@@ -28,7 +28,7 @@
         "pdf.worker.mjs",
         "styles.js"
       ],
-      "matches": ["*://crm.medtronic.com/sap/bc/contentserver/*"]
+      "matches": ["<all_urls>"]
     }
   ]
 }
