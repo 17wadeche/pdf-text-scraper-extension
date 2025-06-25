@@ -233,9 +233,11 @@ console.log('🧩 Scraper injected on', location.href);
       if (htmlStyled) {
         unwrapHighlights();
         htmlToggle.textContent = 'Styled HTML';
+        controlDiv.style.display = 'none'; 
       } else {
         highlightHTML(styleWordsToUse);
         htmlToggle.textContent = 'Original HTML';
+        controlDiv.style.display = 'flex'; 
       }
       htmlStyled = !htmlStyled;
     });
@@ -260,9 +262,11 @@ console.log('🧩 Scraper injected on', location.href);
       if (htmlStyled) {
         unwrapHighlights();
         htmlToggle.textContent = 'Styled HTML';
+        controlDiv.style.display = 'none'; 
       } else {
         highlightHTML(styleWordsToUse);
         htmlToggle.textContent = 'Original HTML';
+        controlDiv.style.display = 'flex'; 
       }
       htmlStyled = !htmlStyled;
     });
@@ -339,5 +343,6 @@ console.log('🧩 Scraper injected on', location.href);
     visible = !visible;
     container.style.display = visible ? 'block' : 'none';
     toggleBtn.textContent  = visible ? 'Original PDF' : 'Styled PDF';
+    controlDiv.style.display   = visible ? 'flex'  : 'none';
   });
 })();
