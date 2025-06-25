@@ -75,7 +75,7 @@ console.log("🧩 Scraper injected on", location.href);
     fullText += lines.join("\n") + "\n\n";
   }
   const toggleBtn = document.createElement('button');
-  toggleBtn.textContent = 'Hide Highlights';
+  toggleBtn.textContent = 'Original';
   Object.assign(toggleBtn.style, {
     position: 'fixed',
     top: '10px',
@@ -126,6 +126,6 @@ console.log("🧩 Scraper injected on", location.href);
   toggleBtn.addEventListener('click', () => {
     visible = !visible;
     container.style.display = visible ? 'block' : 'none';
-    toggleBtn.textContent = visible ? 'Unformatted' : 'Formatted';
+    toggleBtn.textContent = visible ? 'Original' : 'Styled';
   });
 })();
