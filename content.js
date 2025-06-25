@@ -78,7 +78,7 @@ console.log('🧩 Scraper injected on', location.href);
     Object.assign(htmlToggle.style, {
       ...commonToggleStyles,
       top:  '10px',
-      left: '10px'
+      right: '10px'
     });
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
@@ -105,7 +105,7 @@ console.log('🧩 Scraper injected on', location.href);
     Object.assign(htmlToggle.style, {
       ...commonToggleStyles,
       top:  '10px',
-      left: '10px'
+      right: '10px'
     });
     htmlToggle.addEventListener('click', () => {
       if (htmlStyled) {
@@ -171,7 +171,7 @@ console.log('🧩 Scraper injected on', location.href);
   Object.assign(container.style, {
     position:   'fixed',
     top:        '50px',
-    left:       '10px',
+    right:       '10px',
     width:      '100vw',
     height:     '100vh',
     overflow:   'auto',
