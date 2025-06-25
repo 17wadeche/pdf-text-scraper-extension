@@ -22,6 +22,7 @@
     }
     .control-panel {
       position: fixed;
+      background-color: #f0f0f0;
       top: 10px;
       left: 10px;
       width: 240px;               /* full open width */
@@ -225,7 +226,6 @@
   });
   const header = document.createElement('div');
   header.classList.add('panel-header');
-  header.textContent = 'Settings';
   const arrow = document.createElement('span');
   let collapsed = false;
   arrow.textContent = '▾';
