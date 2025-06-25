@@ -1,6 +1,31 @@
 // content.js
 console.log('🧩 Scraper injected on', location.href);
 (async () => {
+  if (location.pathname.includes('/bsp/sap/crm_ui_start/default.htm')) {
+    console.log('🔌 Patching window.open on CRM UI to carry BU/OU into PDFs');
+    const origOpen = window.open;
+    window.open = function(url, target, features) {
+      try {
+        if (typeof url === 'string' && url.includes('/sap/bc/contentserver/')) {
+          const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
+          const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
+          const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
+          const bu = primBU?.Name;
+          const ou = primOU?.Name;
+          if (bu && ou) {
+            const u = new URL(url, location.href);
+            u.searchParams.set('highlight_BU', bu);
+            u.searchParams.set('highlight_OU', ou);
+            console.log('🛠  Rewriting PDF URL to carry BU/OU →', u.toString());
+            url = u.toString();
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ error in window.open override:', err);
+      }
+      return origOpen.call(this, url, target, features);
+    };
+  }
   const styleTag = document.createElement('style');
   styleTag.textContent = `
     /* a little reset + rounded corners + subtle shadow */
@@ -54,6 +79,14 @@ console.log('🧩 Scraper injected on', location.href);
     }
   });
   let currentBU = null, currentOU = null;
+  const params = new URL(location.href).searchParams;
+  const pBU    = params.get('highlight_BU');
+  const pOU    = params.get('highlight_OU');
+  if (pBU || pOU) {
+    console.log('🔗 grabbed BU/OU from URL params:', pBU, pOU);
+    if (pBU) currentBU = pBU;
+    if (pOU) currentOU = pOU;
+  }
   try {
     if (top.GUIDE?.PE) {
       const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
