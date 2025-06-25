@@ -431,6 +431,16 @@
   }
   const toggleBtn = document.createElement('button');
   toggleBtn.textContent = 'Original PDF';
+  let showingStyled = true;
+  toggleBtn.addEventListener('click', () => {
+    showingStyled = !showingStyled;
+    container.style.display = showingStyled ? 'block' : 'none';
+    panel.style.display = 'block';
+    document.body.classList.toggle('native-pdf', !showingStyled);
+    toggleBtn.textContent = showingStyled
+      ? 'Original PDF'
+      : 'Styled PDF';
+  });
   Object.assign(toggleBtn.style, {
     ...commonToggleStyles,
     top:   '10px',
