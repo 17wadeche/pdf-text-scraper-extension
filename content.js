@@ -29,30 +29,6 @@ console.log('🧩 Scraper injected on', location.href);
       }
     }
   }
-  let htmlStyled = false;
-  const htmlToggle = document.createElement('button');
-  htmlToggle.textContent = 'Styled';
-  Object.assign(htmlToggle.style, {
-    position: 'fixed',
-    top: '10px',
-    left: '10px',
-    zIndex: 2147483648,
-    padding: '4px 8px',
-    background: '#444',
-    color: '#fff',
-    border: 'none',
-    cursor: 'pointer'
-  });
-  htmlToggle.addEventListener('click', () => {
-    if (!htmlStyled) {
-      highlightHTML(defaultStyleWords);
-      htmlToggle.textContent = 'Original';
-    } else {
-      location.reload();
-    }
-    htmlStyled = !htmlStyled;
-  });
-  document.body.appendChild(htmlToggle);
   let embed = null;
   const viewer = document.querySelector('pdf-viewer');
   if (viewer && viewer.shadowRoot) {
@@ -66,16 +42,62 @@ console.log('🧩 Scraper injected on', location.href);
     );
   }
   if (!embed) {
-    console.log('🌐 No PDF detected — running HTML highlighter…');
-    highlightHTML(defaultStyleWords);
+    console.log('🌐 No PDF detected — setting up HTML highlighter…');
+    let htmlStyled = false;
+    const htmlToggle = document.createElement('button');
+    htmlToggle.textContent = 'Highlight HTML';
+    Object.assign(htmlToggle.style, {
+      position: 'fixed',
+      top: '10px',
+      left: '10px',
+      zIndex: 2147483648,
+      padding: '4px 8px',
+      background: '#444',
+      color: '#fff',
+      border: 'none',
+      cursor: 'pointer'
+    });
+    htmlToggle.addEventListener('click', () => {
+      if (!htmlStyled) {
+        highlightHTML(defaultStyleWords);
+        htmlToggle.textContent = 'Clear Highlights';
+      } else {
+        location.reload();
+      }
+      htmlStyled = !htmlStyled;
+    });
+    document.body.appendChild(htmlToggle);
     return;
   }
   if (
     !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
     !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
   ) {
-    console.log('⚠️ PDF embed found but URL out of PDF-scope — running HTML highlighter…');
-    highlightHTML(defaultStyleWords);
+    console.log('⚠️ PDF embed found but URL out of PDF-scope — setting up HTML highlighter…');
+    let htmlStyled = false;
+    const htmlToggle = document.createElement('button');
+    htmlToggle.textContent = 'Highlight HTML';
+    Object.assign(htmlToggle.style, {
+      position: 'fixed',
+      top: '10px',
+      left: '10px',
+      zIndex: 2147483648,
+      padding: '4px 8px',
+      background: '#444',
+      color: '#fff',
+      border: 'none',
+      cursor: 'pointer'
+    });
+    htmlToggle.addEventListener('click', () => {
+      if (!htmlStyled) {
+        highlightHTML(defaultStyleWords);
+        htmlToggle.textContent = 'Clear Highlights';
+      } else {
+        location.reload();
+      }
+      htmlStyled = !htmlStyled;
+    });
+    document.body.appendChild(htmlToggle);
     return;
   }
   console.log('📄 PDF embed detected — extracting text…');
