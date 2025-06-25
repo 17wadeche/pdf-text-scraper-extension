@@ -27,6 +27,10 @@ console.log('🧩 Scraper injected on', location.href);
       }
     }
   }
+  function applyAllHighlights() {
+    unwrapHighlights();
+    highlightHTML(styleWordsToUse);
+  }
   updateStyleWords();
   const controlDiv = document.createElement('div');
   Object.assign(controlDiv.style, {
