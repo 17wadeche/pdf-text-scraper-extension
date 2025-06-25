@@ -34,13 +34,22 @@ console.log('🧩 Scraper injected on', location.href);
   document.body.addEventListener('click', e => {
     const a = e.target.closest('a[href*="/sap/bc/contentserver/"]');
     if (!a) return;
+    console.log('▶️ Attachment link clicked:', a.href);
     try {
       const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
       const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
       const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
-      if (primBU?.Name) localStorage.setItem('highlight_BU', primBU.Name);
-      if (primOU?.Name) localStorage.setItem('highlight_OU', primOU.Name);
-    } catch (_) {
+      console.log('   extracted from GUIDE.PE → BU:', primBU?.Name, ', OU:', primOU?.Name);
+      if (primBU?.Name) {
+        localStorage.setItem('highlight_BU', primBU.Name);
+        console.log('   stored highlight_BU =', primBU.Name);
+      }
+      if (primOU?.Name) {
+        localStorage.setItem('highlight_OU', primOU.Name);
+        console.log('   stored highlight_OU =', primOU.Name);
+      }
+    } catch (err) {
+      console.warn('   failed to read GUIDE.PE on click:', err);
     }
   });
   let currentBU = null, currentOU = null;
@@ -54,18 +63,30 @@ console.log('🧩 Scraper injected on', location.href);
     }
   } catch (e) {
   }
-  if (!currentBU) currentBU = localStorage.getItem('highlight_BU');
-  if (!currentOU) currentOU = localStorage.getItem('highlight_OU');
+  console.log('🔍 initial GUIDE.PE → BU:', currentBU, ', OU:', currentOU);
+  if (!currentBU) {
+    const fromLS = localStorage.getItem('highlight_BU');
+    console.log('   no GUIDE.BU, pulling from localStorage:', fromLS);
+    currentBU = fromLS;
+  }
+  if (!currentOU) {
+    const fromLS = localStorage.getItem('highlight_OU');
+    console.log('   no GUIDE.OU, pulling from localStorage:', fromLS);
+    currentOU = fromLS;
+  }
+  console.log('✅ final currentBU/OU:', currentBU, currentOU);
   let styleWordsToUse = [];
   function updateStyleWords() {
-    styleWordsToUse = [...defaultStyleWords];
-    if (currentBU && config[currentBU]?.styleWords) {
-      styleWordsToUse = [...config[currentBU].styleWords];
-      if (currentOU && config[currentBU][currentOU]?.styleWords) {
-        styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
-      }
+  console.log('↻ updateStyleWords() with currentBU/OU =', currentBU, currentOU);
+  styleWordsToUse = [...defaultStyleWords];
+  if (currentBU && config[currentBU]?.styleWords) {
+    styleWordsToUse = [...config[currentBU].styleWords];
+    if (currentOU && config[currentBU][currentOU]?.styleWords) {
+      styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
     }
   }
+  console.log('   styleWordsToUse length:', styleWordsToUse.length);
+}
   function applyAllHighlights() {
     unwrapHighlights();
     highlightHTML(styleWordsToUse);
