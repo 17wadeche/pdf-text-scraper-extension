@@ -95,6 +95,7 @@ console.log('🧩 Scraper injected on', location.href);
       console.warn('   Could not extract GUIDE.PE on click:', err);
     }
   });
+  let currentBU = null, currentOU = null;
   {
     const params = new URL(location.href).searchParams;
     const pBU    = params.get('highlight_BU');
