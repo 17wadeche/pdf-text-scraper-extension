@@ -1,7 +1,5 @@
 // content.js
-console.log('🧩 Scraper injected on', location.href);
 (async () => {
-  // 1) Inject theme & panel styles
   const styleTag = document.createElement('style');
   styleTag.textContent = `
     /* Theme variables */
@@ -340,10 +338,8 @@ console.log('🧩 Scraper injected on', location.href);
       !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
       !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
     ) {
-      console.log('⚠️ URL not in HTML-scope — skipping HTML highlighter');
       return;
     }
-    console.log('🌐 No PDF detected — styling HTML…');
     highlightHTML(styleWordsToUse);
     let htmlStyled = true;
     const htmlToggle = document.createElement('button');
@@ -372,7 +368,6 @@ console.log('🧩 Scraper injected on', location.href);
     !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
     !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
   ) {
-    console.log('⚠️ PDF embed found but URL out of PDF-scope — styling HTML…');
     highlightHTML(styleWordsToUse);
     let htmlStyled = true;
     const htmlToggle = document.createElement('button');
@@ -397,10 +392,8 @@ console.log('🧩 Scraper injected on', location.href);
     document.body.appendChild(htmlToggle);
     return;
   }
-  console.log('📄 PDF embed detected — extracting text…');
   const orig   = embed.getAttribute('original-url');
   const pdfUrl = orig || location.href;
-  console.log('🚀 Fetching PDF from', pdfUrl);
   let data;
   try {
     data = await fetch(pdfUrl, { credentials: 'include' }).then(r => r.arrayBuffer());
@@ -462,11 +455,15 @@ console.log('🧩 Scraper injected on', location.href);
   renderPDFStyled();
   document.body.appendChild(container);
   document.body.appendChild(toggleBtn);
+  embed.style.display = 'none';
   let visible = true;
   toggleBtn.addEventListener('click', () => {
     visible = !visible;
     container.style.display = visible ? 'block' : 'none';
-    toggleBtn.textContent  = visible ? 'Original PDF' : 'Styled PDF';
-    panel.style.display        = visible ? 'block' : 'none';
+    panel.style.display     = 'block';
+    toggleBtn.textContent   = visible
+      ? 'Original PDF' 
+      : 'Styled PDF';
+    embed.style.display = visible ? 'none' : 'block';
   });
 })();
