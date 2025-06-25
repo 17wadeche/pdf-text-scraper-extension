@@ -1,7 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Attachment Formatting Tool",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "Highlight & style PDF text with draggable panel, themes & searchable selects",
+  "permissions": [
+    "storage"
+  ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -14,7 +18,9 @@
       "resources": [
         "pdf.mjs",
         "pdf.worker.mjs",
-        "styles.js"
+        "styles.js",
+        "libs/interact.min.js",
+        "libs/choices.min.js"
       ],
       "matches": ["<all_urls>"]
     }
