@@ -65,7 +65,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     let fullText = '';
     let pdfContainer = null;
-    const uint8 = new Uint8Array(arrayBuffer);
     async function renderPDFStyled(bytes) {
       const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
       pdfContainer.innerHTML = '';            // clear out old stuff
@@ -339,15 +338,14 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     const orig   = embed.getAttribute('original-url');
     const pdfUrl = orig || location.href;
     console.log('🚀 Fetching PDF from', pdfUrl);
-    let data;
+    let arrayBuffer;
     try {
-      data = await fetch(pdfUrl, { credentials: 'include' }).then(r => r.arrayBuffer());
+      arrayBuffer = await fetch(pdfUrl, { credentials: 'include' }).then(r => r.arrayBuffer());
     } catch (err) {
       console.error('❌ PDF fetch failed:', err);
       return;
     }
-    let arrayBuffer = await fetch(pdfUrl, { credentials: 'include' })
-                        .then(r => r.arrayBuffer());
+    const uint8 = new Uint8Array(arrayBuffer);
     const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       chrome.runtime.getURL('pdf.worker.mjs');
