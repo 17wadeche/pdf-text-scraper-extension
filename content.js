@@ -3,10 +3,9 @@ const ALLOWED_PREFIXES = [
   'https://crm.medtronic.com/sap/bc/contentserver/',
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/'
 ];
-if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p)));
+if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))){
 
 (async () => {
-  // 1) Inject dropdown CSS
   const styleTag = document.createElement('style');
   styleTag.textContent = `
     .modern-select {
@@ -291,3 +290,4 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p)));
   document.body.appendChild(toggleBtn);
 
 })();
+}
