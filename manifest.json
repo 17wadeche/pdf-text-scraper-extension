@@ -4,18 +4,25 @@
   "version": "0.0.1",
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "matches": [
+        "https://crm.medtronic.com/sap/bc/contentserver/*",
+        "https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/*"
+      ],
+      "js": ["html.js"],
+      "type": "module"
+    },
+    {
+      "matches": [
+        "https://crm.medtronic.com/sap/bc/contentserver/*",
+        "https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/*"
+      ],
+      "js": ["pdf.js"],
       "type": "module"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "pdf.mjs",
-        "pdf.worker.mjs",
-        "styles.js"
-      ],
+      "resources": ["pdf.mjs", "pdf.worker.mjs", "styles.js"],
       "matches": ["<all_urls>"]
     }
   ]
