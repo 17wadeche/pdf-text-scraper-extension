@@ -3,11 +3,12 @@ const ALLOWED_PREFIXES = [
   'https://crm.medtronic.com/sap/bc/contentserver/',
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/'
 ];
+
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
   (async () => {
+    // 1) Inject your styling for the <select> controls
     const styleTag = document.createElement('style');
     styleTag.textContent = `
-      /* a little reset + rounded corners + subtle shadow */
       .modern-select {
         -webkit-appearance: none;
         appearance: none;
@@ -21,9 +22,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         background-repeat: no-repeat;
         background-position: right 8px center;
         background-image: url("data:image/svg+xml;charset=UTF-8,\
-    <svg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='%23666'>\
-    <path d='M1 1l5 5 5-5'/>\
-    </svg>");
+  <svg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='%23666'>\
+  <path d='M1 1l5 5 5-5'/></svg>");
       }
       .modern-select:focus {
         outline: none;
@@ -32,22 +32,31 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     `;
     document.head.appendChild(styleTag);
+
+    // 2) Load your styling‐words config
     const { defaultStyleWords, config } = await import(
       chrome.runtime.getURL('styles.js')
     );
+
+    // 3) Figure out current BU/OU
     let currentBU = null, currentOU = null;
     try {
       if (top.GUIDE?.PE) {
         const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
-        const primBU = pe.PartnersTable.find(p => p.PartnerFunction === 'BU Responsible' && p.MainPartner);
+        const primBU = pe.PartnersTable.find(
+          p => p.PartnerFunction === 'BU Responsible' && p.MainPartner
+        );
+        const primOU = pe.PartnersTable.find(
+          p => p.PartnerFunction === 'OU Responsible' && p.MainPartner
+        );
         currentBU = primBU?.Name || null;
-        const primOU = pe.PartnersTable.find(p => p.PartnerFunction === 'OU Responsible' && p.MainPartner);
         currentOU = primOU?.Name || null;
       }
-    } catch (e) {
-    }
+    } catch {}
     if (!currentBU) currentBU = localStorage.getItem('highlight_BU');
     if (!currentOU) currentOU = localStorage.getItem('highlight_OU');
+
+    // 4) Build the styleWordsToUse array
     let styleWordsToUse = [];
     function updateStyleWords() {
       styleWordsToUse = [...defaultStyleWords];
@@ -58,93 +67,74 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         }
       }
     }
-    function applyAllHighlights() {
-      unwrapHighlights();
-      highlightHTML(styleWordsToUse);
-      renderPDFStyled(uint8);
+    updateStyleWords();
+
+    // 5) HTML‐only highlighting (if no PDF found)
+    function escapeHTML(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
-    let fullText = '';
-    let pdfContainer = null;
-    async function renderPDFStyled(bytes) {
-      const clone = new Uint8Array(bytes.buffer.slice(0));
-      const pdf   = await pdfjsLib.getDocument({ data: clone }).promise;
-      pdfContainer.innerHTML = '';            // clear out old stuff
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
-        const canvas = document.createElement('canvas');
-        canvas.width  = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d');
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        const wrapper = document.createElement('div');
-        wrapper.style.position = 'relative';
-        wrapper.appendChild(canvas);
-        const textLayerDiv = document.createElement('div');
-        textLayerDiv.className = 'textLayer';
-        Object.assign(textLayerDiv.style, {
-          position:   'absolute',
-          top:        '0',
-          left:       '0',
-          width:      `${viewport.width}px`,
-          height:     `${viewport.height}px`,
-          pointerEvents: 'none'
-        });
-        wrapper.appendChild(textLayerDiv);
-        const textContent = await page.getTextContent();
-        pdfjsLib.renderTextLayer({
-          textContent,
-          container:   textLayerDiv,
-          viewport,
-          textDivs:    []
-        });
-        styleWordsToUse.forEach(({ style, words }) => {
+    function unwrapHighlights() {
+      document.querySelectorAll('span[data-highlighted]').forEach(span =>
+        span.replaceWith(document.createTextNode(span.textContent))
+      );
+    }
+    function highlightHTML(words) {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) {
+        const original = node.textContent;
+        let html = escapeHTML(original);
+        words.forEach(({ style, words }) => {
           words.forEach(raw => {
             const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const re   = new RegExp(`\\b(${safe})\\b`, 'gi');
-            textLayerDiv.querySelectorAll('span').forEach(span => {
-              if (re.test(span.textContent)) {
-                span.style.cssText += style;
-              }
-            });
+            const re = new RegExp(`\\b(${safe})\\b`, 'gi');
+            html = html.replace(
+              re,
+              `<span style="${style}" data-highlighted="true">$1</span>`
+            );
           });
         });
-        pdfContainer.appendChild(wrapper);
+        if (html !== escapeHTML(original)) {
+          const frag = document.createRange().createContextualFragment(html);
+          node.parentNode.replaceChild(frag, node);
+        }
       }
     }
-    updateStyleWords();
+
+    // 6) Controls for BU/OU
     const controlDiv = document.createElement('div');
     Object.assign(controlDiv.style, {
-      position:   'fixed',
-      top:        '10px',
-      left:       '10px',
-      display:    'flex',
-      gap:        '8px',
-      padding:    '6px',
+      position: 'fixed',
+      top: '10px',
+      left: '10px',
+      display: 'flex',
+      gap: '8px',
+      padding: '6px',
       background: '#fff',
-      border:     '1px solid #ccc',
-      zIndex:     2147483647
+      border: '1px solid #ccc',
+      zIndex: 2147483647
     });
+
     const buSelect = document.createElement('select');
     buSelect.classList.add('modern-select');
-    buSelect.style.padding = '4px';
     Object.keys(config).forEach(bu => {
       const opt = document.createElement('option');
-      opt.value       = bu;
+      opt.value = bu;
       opt.textContent = bu;
       if (bu === currentBU) opt.selected = true;
       buSelect.appendChild(opt);
     });
+
     const ouSelect = document.createElement('select');
     ouSelect.classList.add('modern-select');
     function populateOUs() {
       ouSelect.innerHTML = '';
       if (currentBU && config[currentBU]) {
         Object.keys(config[currentBU])
-          .filter(key => key !== 'styleWords')
+          .filter(k => k !== 'styleWords')
           .forEach(ou => {
             const opt = document.createElement('option');
-            opt.value       = ou;
+            opt.value = ou;
             opt.textContent = ou;
             if (ou === currentOU) opt.selected = true;
             ouSelect.appendChild(opt);
@@ -152,6 +142,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     }
     populateOUs();
+
     buSelect.addEventListener('change', () => {
       currentBU = buSelect.value;
       currentOU = null;
@@ -168,245 +159,161 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       updateStyleWords();
       applyAllHighlights();
     });
+
     controlDiv.append(buSelect, ouSelect);
     document.body.appendChild(controlDiv);
-    const commonToggleStyles = {
-      position:   'fixed',
-      padding:    '6px 12px',
-      background: '#ff0',        // bright yellow
-      color:      '#000',        // black text for contrast
-      fontSize:   '14px',
-      fontWeight: 'bold',
-      borderRadius: '4px',
-      boxShadow:  '0 0 6px rgba(0,0,0,0.5)',
-      border:     '2px solid #000',
-      cursor:     'pointer',
-      zIndex:     2147483648,
-    };
-    let isHTMLContext = false;
-    try { isHTMLContext = !!top.GUIDE?.PE; } catch {};
-    if (isHTMLContext) {
-      localStorage.setItem('highlight_BU', currentBU || '');
-      localStorage.setItem('highlight_OU', currentOU || '');
-      const controlDiv = document.createElement('div');
-      Object.assign(controlDiv.style, {
-        ...commonStyles, top: '10px', left: '10px', display: 'flex', gap: '8px'
-      });
-      const buSelect = document.createElement('select');
-      buSelect.classList.add('modern-select');
-      Object.assign(buSelect.style, { ...commonStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
-      Object.keys(config).forEach(bu => {
-        const opt = document.createElement('option'); opt.value = bu; opt.textContent = bu;
-        if (bu === currentBU) opt.selected = true;
-        buSelect.appendChild(opt);
-      });
-      const ouSelect = document.createElement('select');
-      Object.assign(ouSelect.style, { ...commonStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
-      function populateOUs() {
-        ouSelect.innerHTML = '';
-        if (currentBU && config[currentBU]) {
-          Object.keys(config[currentBU]).filter(k => k !== 'styleWords').forEach(ou => {
-            const opt = document.createElement('option'); opt.value = ou; opt.textContent = ou;
-            if (ou === currentOU) opt.selected = true;
-            ouSelect.appendChild(opt);
-          });
-        }
-      }
-      populateOUs();
-      buSelect.addEventListener('change', () => {
-        currentBU = buSelect.value;
-        currentOU = null;
-        populateOUs();
-        currentOU = ouSelect.value;
-        localStorage.setItem('highlight_BU', currentBU);
-        localStorage.setItem('highlight_OU', currentOU);
-        updateStyleWords(); applyAllHighlights();
-      });
-      ouSelect.addEventListener('change', () => {
-        currentOU = ouSelect.value;
-        localStorage.setItem('highlight_OU', currentOU);
-        updateStyleWords(); applyAllHighlights();
-      });
-      controlDiv.append(buSelect, ouSelect);
-      document.body.appendChild(controlDiv);
-    }
-    function escapeHTML(s) {
-      return s
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-    }
-    function unwrapHighlights() {
-      document.querySelectorAll('span[data-highlighted]').forEach(span => {
-        span.replaceWith(document.createTextNode(span.textContent));
-      });
-    }
-    function highlightHTML(styleWords) {
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      let node;
-      while (node = walker.nextNode()) {
-        const originalText = node.textContent;
-        let html = escapeHTML(originalText);
-        styleWords.forEach(({ style, words }) => {
+
+    // 7) PDF.js text‐layer + canvas renderer with cloned buffers
+    let pdfContainer = null;
+    async function renderPDFStyled(bytes) {
+      // Clone so PDF.js transfer doesn’t detach the master
+      const clone = new Uint8Array(bytes.buffer.slice(0));
+      const pdf   = await pdfjsLib.getDocument({ data: clone }).promise;
+
+      pdfContainer.innerHTML = ''; // clear old pages
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const page = await pdf.getPage(n);
+        const vp   = page.getViewport({ scale: 1.5 });
+
+        // Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width  = vp.width;
+        canvas.height = vp.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+
+        // Text layer
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        wrapper.appendChild(canvas);
+
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.style.cssText = `
+          position:absolute; top:0; left:0;
+          width:${vp.width}px; height:${vp.height}px;
+          pointer-events:none;
+        `;
+        wrapper.appendChild(textLayerDiv);
+
+        const textContent = await page.getTextContent();
+        pdfjsLib.renderTextLayer({
+          textContent, container: textLayerDiv, viewport: vp, textDivs: []
+        });
+
+        // Apply highlights
+        styleWordsToUse.forEach(({ style, words }) => {
           words.forEach(raw => {
             const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const re = new RegExp('\\b(' + safe + ')\\b', 'gi');
-            html = html.replace(
-              re,
-              `<span style="${style}" data-highlighted="true">$1</span>`
-            );
+            const re   = new RegExp(`\\b(${safe})\\b`, 'gi');
+            textLayerDiv.querySelectorAll('span').forEach(span => {
+              if (re.test(span.textContent)) {
+                span.style.cssText += style;
+              }
+            });
           });
         });
-        if (html !== escapeHTML(originalText)) {
-          const frag = document.createRange().createContextualFragment(html);
-          node.parentNode.replaceChild(frag, node);
-        }
+
+        pdfContainer.appendChild(wrapper);
       }
     }
+
+    // Called when BU/OU changes
+    function applyAllHighlights() {
+      unwrapHighlights();
+      highlightHTML(styleWordsToUse);
+      renderPDFStyled(uint8);
+    }
+
+    // 8) Detect the PDF embed
     let embed = null;
     const viewer = document.querySelector('pdf-viewer');
-    if (viewer && viewer.shadowRoot) {
-      embed = viewer.shadowRoot.querySelector(
-        'embed#plugin, embed[type*="pdf"]'
-      );
+    if (viewer?.shadowRoot) {
+      embed = viewer.shadowRoot.querySelector('embed#plugin, embed[type*="pdf"]');
     }
     if (!embed) {
-      embed = document.querySelector(
-        'embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]'
-      );
+      embed = document.querySelector('embed[type="application/pdf"]');
     }
     if (!embed) {
-      if (
-        !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
-        !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
-      ) {
-        console.log('⚠️ URL not in HTML-scope — skipping HTML highlighter');
-        return;
-      }
-      console.log('🌐 No PDF detected — styling HTML…');
+      // No PDF → do HTML highlighting instead
       highlightHTML(styleWordsToUse);
-      let htmlStyled = true;
       const htmlToggle = document.createElement('button');
       htmlToggle.textContent = 'Original HTML';
       Object.assign(htmlToggle.style, {
-        ...commonToggleStyles,
-        top:  '10px',
-        right: '10px'
+        position:'fixed', top:'10px', right:'10px',
+        padding:'6px 12px', background:'#ff0', color:'#000',
+        fontSize:'14px', fontWeight:'bold', borderRadius:'4px',
+        boxShadow:'0 0 6px rgba(0,0,0,0.5)', border:'2px solid #000',
+        cursor:'pointer', zIndex:2147483648
       });
+      let htmlStyled = true;
       htmlToggle.addEventListener('click', () => {
         if (htmlStyled) {
           unwrapHighlights();
           htmlToggle.textContent = 'Styled HTML';
-          controlDiv.style.display = 'none'; 
+          controlDiv.style.display = 'none';
         } else {
           highlightHTML(styleWordsToUse);
           htmlToggle.textContent = 'Original HTML';
-          controlDiv.style.display = 'flex'; 
+          controlDiv.style.display = 'flex';
         }
         htmlStyled = !htmlStyled;
       });
       document.body.appendChild(htmlToggle);
       return;
     }
-    if (
-      !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
-      !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
-    ) {
-      highlightHTML(styleWordsToUse);
-      let htmlStyled = true;
-      const htmlToggle = document.createElement('button');
-      htmlToggle.textContent = 'Original HTML';
-      Object.assign(htmlToggle.style, {
-        ...commonToggleStyles,
-        top:  '10px',
-        left: '10px'
-      });
-      htmlToggle.addEventListener('click', () => {
-        if (htmlStyled) {
-          unwrapHighlights();
-          htmlToggle.textContent = 'Styled HTML';
-          controlDiv.style.display = 'none'; 
-        } else {
-          highlightHTML(styleWordsToUse);
-          htmlToggle.textContent = 'Original HTML';
-          controlDiv.style.display = 'flex'; 
-        }
-        htmlStyled = !htmlStyled;
-      });
-      document.body.appendChild(htmlToggle);
-      return;
-    }
-    const orig   = embed.getAttribute('original-url');
-    const pdfUrl = orig || location.href;
+
+    // 9) We have a PDF → fetch once, wrap in Uint8Array
+    const origUrl = embed.getAttribute('original-url');
+    const pdfUrl  = origUrl || location.href;
     console.log('🚀 Fetching PDF from', pdfUrl);
+
     let arrayBuffer;
     try {
-      arrayBuffer = await fetch(pdfUrl, { credentials: 'include' }).then(r => r.arrayBuffer());
+      arrayBuffer = await fetch(pdfUrl, { credentials: 'include' })
+                            .then(r => r.arrayBuffer());
     } catch (err) {
       console.error('❌ PDF fetch failed:', err);
       return;
     }
     const uint8 = new Uint8Array(arrayBuffer);
+
+    // 10) Load PDF.js
     const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      chrome.runtime.getURL('pdf.worker.mjs');
-    function extractLines(textContent) {
-      const rows = {};
-      textContent.items.forEach(item => {
-        const y = Math.round(item.transform[5] * 10) / 10;
-        rows[y] = rows[y] || [];
-        rows[y].push({ x: item.transform[4], str: item.str });
-      });
-      return Object.keys(rows)
-        .map(Number)
-        .sort((a, b) => b - a)
-        .map(y =>
-          rows[y]
-            .sort((a, b) => a.x - b.x)
-            .map(o => o.str)
-            .join(' ')
-        );
-    }
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page        = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const lines       = extractLines(textContent);
-      fullText += lines.join('\n') + '\n\n';
-    }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
+
+    // 11) Prepare styled‐PDF container + toggle
+    pdfContainer = document.createElement('div');
+    Object.assign(pdfContainer.style, {
+      position:'fixed', top:'50px', left:'10px',
+      width:'100vw', height:'100vh',
+      overflow:'auto', zIndex:2147483647,
+      background:'#f0f0f0', border:'2px solid #444',
+      padding:'8px', fontFamily:'monospace',
+      whiteSpace:'pre-wrap'
+    });
+
+    const commonToggleStyles = {
+      position:'fixed', padding:'6px 12px', background:'#ff0',
+      color:'#000', fontSize:'14px', fontWeight:'bold',
+      borderRadius:'4px', boxShadow:'0 0 6px rgba(0,0,0,0.5)',
+      border:'2px solid #000', cursor:'pointer', zIndex:2147483648
+    };
+
     const toggleBtn = document.createElement('button');
     toggleBtn.textContent = 'Original PDF';
-    Object.assign(toggleBtn.style, {
-      ...commonToggleStyles,
-      top:   '10px',
-      right: '10px'
-    });
-    const container = document.createElement('div');
-    pdfContainer = container;   
-    Object.assign(container.style, {
-      position:   'fixed',
-      top:        '50px',
-      left:       '10px',
-      width:      '100vw',
-      height:     '100vh',
-      overflow:   'auto',
-      zIndex:     2147483647,
-      background: '#f0f0f0',  // light grey for styled background
-      border:     '2px solid #444',
-      padding:    '8px',
-      fontFamily: 'monospace',
-      whiteSpace: 'pre-wrap',
-    });
-    renderPDFStyled(uint8);
-    document.body.appendChild(container);
-    document.body.appendChild(toggleBtn);
+    Object.assign(toggleBtn.style, { ...commonToggleStyles, top:'10px', right:'10px' });
+
     let visible = true;
     toggleBtn.addEventListener('click', () => {
       visible = !visible;
-      container.style.display = visible ? 'block' : 'none';
-      toggleBtn.textContent  = visible ? 'Original PDF' : 'Styled PDF';
+      pdfContainer.style.display = visible ? 'block' : 'none';
       controlDiv.style.display   = visible ? 'flex'  : 'none';
+      toggleBtn.textContent      = visible ? 'Original PDF' : 'Styled PDF';
     });
+
+    // 12) Initial render & append
+    renderPDFStyled(uint8);
+    document.body.appendChild(pdfContainer);
+    document.body.appendChild(toggleBtn);
+
   })();
 }
