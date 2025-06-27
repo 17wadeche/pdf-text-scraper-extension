@@ -61,6 +61,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     function applyAllHighlights() {
       unwrapHighlights();
       highlightHTML(styleWordsToUse);
+      const masterBytes = uint8;
       renderPDFStyled(masterBytes);
     }
     let fullText = '';
