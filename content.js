@@ -61,7 +61,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     function applyAllHighlights() {
       unwrapHighlights();
       highlightHTML(styleWordsToUse);
-      renderPDFStyled();
+      renderPDFStyled(data);
     }
     let fullText = '';
     let pdfContainer = null;
@@ -396,7 +396,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       fontFamily: 'monospace',
       whiteSpace: 'pre-wrap',
     });
-    renderPDFStyled();
+    renderPDFStyled(data);
     document.body.appendChild(container);
     document.body.appendChild(toggleBtn);
     let visible = true;
