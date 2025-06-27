@@ -366,7 +366,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             .join(' ')
         );
     }
-    const pdf = await pdfjsLib.getDocument({ data }).promise;
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
     for (let i = 1; i <= pdf.numPages; i++) {
       const page        = await pdf.getPage(i);
