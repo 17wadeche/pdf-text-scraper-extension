@@ -1,5 +1,12 @@
 // content.js
-console.log('🧩 Scraper injected on', location.href);
+const ALLOWED_PREFIXES = [
+  'https://crm.medtronic.com/sap/bc/contentserver/',
+  'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/'
+];
+if (!ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
+  console.log('⏹  Not a Content Server URL — extension disabled');
+  return;            // ⬅️ stop here; nothing else runs
+}
 (async () => {
   const styleTag = document.createElement('style');
   styleTag.textContent = `
@@ -277,7 +284,6 @@ console.log('🧩 Scraper injected on', location.href);
     !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
     !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
   ) {
-    console.log('⚠️ PDF embed found but URL out of PDF-scope — styling HTML…');
     highlightHTML(styleWordsToUse);
     let htmlStyled = true;
     const htmlToggle = document.createElement('button');
@@ -302,7 +308,6 @@ console.log('🧩 Scraper injected on', location.href);
     document.body.appendChild(htmlToggle);
     return;
   }
-  console.log('📄 PDF embed detected — extracting text…');
   const orig   = embed.getAttribute('original-url');
   const pdfUrl = orig || location.href;
   console.log('🚀 Fetching PDF from', pdfUrl);
