@@ -65,21 +65,51 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     let fullText = '';
     let pdfContainer = null;
-    function renderPDFStyled() {
-      if (!pdfContainer) return;
-      pdfContainer.innerHTML = fullText
-        .split('\n')
-        .map(line => {
-          let escaped = escapeHTML(line);
-          styleWordsToUse.forEach(({style, words}) => {
-            words.forEach(raw => {
-              const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-              const re   = new RegExp('\\b(' + safe + ')\\b','gi');
-              escaped = escaped.replace(re, `<span style="${style}">$1</span>`);
+    async function renderPDFStyled(buffer) {
+      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      pdfContainer.innerHTML = '';            // clear out old stuff
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        canvas.width  = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        wrapper.appendChild(canvas);
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'textLayer';
+        Object.assign(textLayerDiv.style, {
+          position:   'absolute',
+          top:        '0',
+          left:       '0',
+          width:      `${viewport.width}px`,
+          height:     `${viewport.height}px`,
+          pointerEvents: 'none'
+        });
+        wrapper.appendChild(textLayerDiv);
+        const textContent = await page.getTextContent();
+        pdfjsLib.renderTextLayer({
+          textContent,
+          container:   textLayerDiv,
+          viewport,
+          textDivs:    []
+        });
+        styleWordsToUse.forEach(({ style, words }) => {
+          words.forEach(raw => {
+            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const re   = new RegExp(`\\b(${safe})\\b`, 'gi');
+            textLayerDiv.querySelectorAll('span').forEach(span => {
+              if (re.test(span.textContent)) {
+                span.style.cssText += style;
+              }
             });
           });
-          return escaped;
-        }).join('<br>');
+        });
+        pdfContainer.appendChild(wrapper);
+      }
     }
     updateStyleWords();
     const controlDiv = document.createElement('div');
