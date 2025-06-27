@@ -61,12 +61,13 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     function applyAllHighlights() {
       unwrapHighlights();
       highlightHTML(styleWordsToUse);
-      renderPDFStyled(data);
+      renderPDFStyled(uint8);
     }
     let fullText = '';
     let pdfContainer = null;
-    async function renderPDFStyled(buffer) {
-      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    const uint8 = new Uint8Array(arrayBuffer);
+    async function renderPDFStyled(bytes) {
+      const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
       pdfContainer.innerHTML = '';            // clear out old stuff
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
@@ -345,6 +346,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       console.error('❌ PDF fetch failed:', err);
       return;
     }
+    let arrayBuffer = await fetch(pdfUrl, { credentials: 'include' })
+                        .then(r => r.arrayBuffer());
     const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       chrome.runtime.getURL('pdf.worker.mjs');
@@ -396,7 +399,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       fontFamily: 'monospace',
       whiteSpace: 'pre-wrap',
     });
-    renderPDFStyled(data);
+    renderPDFStyled(uint8);
     document.body.appendChild(container);
     document.body.appendChild(toggleBtn);
     let visible = true;
