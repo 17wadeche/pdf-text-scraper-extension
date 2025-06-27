@@ -61,12 +61,13 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     function applyAllHighlights() {
       unwrapHighlights();
       highlightHTML(styleWordsToUse);
-      renderPDFStyled(uint8);
+      renderPDFStyled(masterBytes);
     }
     let fullText = '';
     let pdfContainer = null;
     async function renderPDFStyled(bytes) {
-      const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+      const clone = new Uint8Array(bytes.buffer.slice(0));
+      const pdf   = await pdfjsLib.getDocument({ data: clone }).promise;
       pdfContainer.innerHTML = '';            // clear out old stuff
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
@@ -397,7 +398,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       fontFamily: 'monospace',
       whiteSpace: 'pre-wrap',
     });
-    renderPDFStyled(uint8);
+    renderPDFStyled(masterBytes);
     document.body.appendChild(container);
     document.body.appendChild(toggleBtn);
     let visible = true;
