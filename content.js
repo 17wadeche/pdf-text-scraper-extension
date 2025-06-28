@@ -336,12 +336,38 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         );
     }
     const pdf = await pdfjsLib.getDocument({ data }).promise;
-    console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
+    const scale = 1.5; // or whatever
     for (let i = 1; i <= pdf.numPages; i++) {
-      const page        = await pdf.getPage(i);
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width  = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
       const textContent = await page.getTextContent();
-      const lines       = extractLines(textContent);
-      fullText += lines.join('\n') + '\n\n';
+      textContent.items.forEach(item => {
+        const str = item.str.trim();
+        if (!str) return;
+        styleWordsToUse.forEach(({ style, words }) => {
+          if (words.some(w => w.toLowerCase() === str.toLowerCase())) {
+            const [ a, b, c, d, x, y ] = item.transform;
+            const fontHeight = Math.hypot(b, d);
+            const textWidth  = ctx.measureText(str).width * scale;
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = 
+            ctx.fillRect(
+              x * scale,
+              viewport.height - y * scale - fontHeight * scale,
+              textWidth,
+              fontHeight * scale
+            );
+            ctx.restore();
+          }
+        });
+      });
+      document.body.appendChild(canvas);
     }
     const toggleBtn = document.createElement('button');
     toggleBtn.textContent = 'Original PDF';
