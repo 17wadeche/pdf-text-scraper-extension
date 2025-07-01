@@ -250,8 +250,10 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
         !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
       ) {
+        console.log('⚠️ URL not in HTML-scope — skipping HTML highlighter');
         return;
       }
+      console.log('🌐 No PDF detected — styling HTML…');
       highlightHTML(styleWordsToUse);
       let htmlStyled = true;
       const htmlToggle = document.createElement('button');
@@ -306,10 +308,12 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     const orig   = embed.getAttribute('original-url');
     const pdfUrl = orig || location.href;
+    console.log('🚀 Fetching PDF from', pdfUrl);
     let data;
     try {
       data = await fetch(pdfUrl, { credentials: 'include' }).then(r => r.arrayBuffer());
     } catch (err) {
+      console.error('❌ PDF fetch failed:', err);
       return;
     }
     const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
@@ -333,6 +337,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         );
     }
     const pdf = await pdfjsLib.getDocument({ data }).promise;
+    console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
     for (let i = 1; i <= pdf.numPages; i++) {
       const page        = await pdf.getPage(i);
       const textContent = await page.getTextContent();
