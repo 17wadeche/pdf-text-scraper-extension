@@ -31,7 +31,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         border-color: #4a90e2;
         box-shadow: 0 0 0 2px rgba(74,144,226,0.3);
       }
-    `;
+    ;`
     document.head.appendChild(styleTag);
     const { defaultStyleWords, config } = await import(
       chrome.runtime.getURL('styles.js')
@@ -76,7 +76,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             words.forEach(raw => {
               const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
               const re   = new RegExp('\\b(' + safe + ')\\b','gi');
-              escaped = escaped.replace(re, `<span style="${style}">$1</span>`);
+              escaped = escaped.replace(re, <span style="${style}">$1</span>);
             });
           });
           return escaped;
@@ -223,7 +223,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             const re = new RegExp('\\b(' + safe + ')\\b', 'gi');
             html = html.replace(
               re,
-              `<span style="${style}" data-highlighted="true">$1</span>`
+              <span style="${style}" data-highlighted="true">$1</span>
             );
           });
         });
@@ -248,12 +248,11 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     if (!embed) {
       if (
         !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
-        !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
+        !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/') &&
+        !location.href.startsWith('https://crmstage.medtronic.com/sap/bc/contentserver/')
       ) {
-        console.log('⚠️ URL not in HTML-scope — skipping HTML highlighter');
         return;
       }
-      console.log('🌐 No PDF detected — styling HTML…');
       highlightHTML(styleWordsToUse);
       let htmlStyled = true;
       const htmlToggle = document.createElement('button');
@@ -280,7 +279,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     if (
       !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
-      !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/')
+      !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/') &&
+      !location.href.startsWith('https://crmstage.medtronic.com/sap/bc/contentserver/')
     ) {
       highlightHTML(styleWordsToUse);
       let htmlStyled = true;
@@ -308,12 +308,10 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     const orig   = embed.getAttribute('original-url');
     const pdfUrl = orig || location.href;
-    console.log('🚀 Fetching PDF from', pdfUrl);
     let data;
     try {
       data = await fetch(pdfUrl, { credentials: 'include' }).then(r => r.arrayBuffer());
     } catch (err) {
-      console.error('❌ PDF fetch failed:', err);
       return;
     }
     const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
@@ -337,7 +335,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         );
     }
     const pdf = await pdfjsLib.getDocument({ data }).promise;
-    console.log(`📄 PDF has ${pdf.numPages} pages — extracting…`);
     for (let i = 1; i <= pdf.numPages; i++) {
       const page        = await pdf.getPage(i);
       const textContent = await page.getTextContent();
