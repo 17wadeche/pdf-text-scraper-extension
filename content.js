@@ -8,7 +8,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
   (async () => {
     const styleTag = document.createElement('style');
     styleTag.textContent = `
-      /* a little reset + rounded corners + subtle shadow */
       .modern-select {
         -webkit-appearance: none;
         appearance: none;
@@ -30,8 +29,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         outline: none;
         border-color: #4a90e2;
         box-shadow: 0 0 0 2px rgba(74,144,226,0.3);
-      }
-    ;`
+      }`
     document.head.appendChild(styleTag);
     const { defaultStyleWords, config } = await import(
       chrome.runtime.getURL('styles.js')
@@ -76,7 +74,10 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             words.forEach(raw => {
               const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
               const re   = new RegExp('\\b(' + safe + ')\\b','gi');
-              escaped = escaped.replace(re, <span style="${style}">$1</span>);
+              escaped = escaped.replace(
+                re, 
+                `<span style="${style}">$1</span>`
+              );
             });
           });
           return escaped;
@@ -160,18 +161,18 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       localStorage.setItem('highlight_OU', currentOU || '');
       const controlDiv = document.createElement('div');
       Object.assign(controlDiv.style, {
-        ...commonStyles, top: '10px', left: '10px', display: 'flex', gap: '8px'
+        ...commonToggleStyles, top: '10px', left: '10px', display: 'flex', gap: '8px'
       });
       const buSelect = document.createElement('select');
       buSelect.classList.add('modern-select');
-      Object.assign(buSelect.style, { ...commonStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
+      Object.assign(buSelect.style, { ...commonToggleStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
       Object.keys(config).forEach(bu => {
         const opt = document.createElement('option'); opt.value = bu; opt.textContent = bu;
         if (bu === currentBU) opt.selected = true;
         buSelect.appendChild(opt);
       });
       const ouSelect = document.createElement('select');
-      Object.assign(ouSelect.style, { ...commonStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
+      Object.assign(ouSelect.style, { ...commonToggleStyles, padding: '4px', background: '#fff', color: '#000', fontWeight: 'normal' });
       function populateOUs() {
         ouSelect.innerHTML = '';
         if (currentBU && config[currentBU]) {
@@ -223,7 +224,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             const re = new RegExp('\\b(' + safe + ')\\b', 'gi');
             html = html.replace(
               re,
-              <span style="${style}" data-highlighted="true">$1</span>
+              `<span style="${style}" data-highlighted="true">$1</span>`
             );
           });
         });
