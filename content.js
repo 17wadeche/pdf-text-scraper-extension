@@ -1,7 +1,8 @@
 
 const ALLOWED_PREFIXES = [
   'https://crm.medtronic.com/sap/bc/contentserver/',
-  'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/'
+  'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
+  'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
 
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
