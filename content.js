@@ -41,11 +41,10 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
   try {
     if (top.GUIDE?.PE) {
       const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
-      currentBU = pe.PartnersTable.find(x => x.PartnerFunction==='BU Responsible'&&x.MainPartner)?.Name || currentBU;
-      currentOU = pe.PartnersTable.find(x => x.PartnerFunction==='OU Responsible'&&x.MainPartner)?.Name || currentOU;
+      currentBU = pe.PartnersTable.find(x=>x.PartnerFunction==='BU Responsible'&&x.MainPartner)?.Name || currentBU;
+      currentOU = pe.PartnersTable.find(x=>x.PartnerFunction==='OU Responsible'&&x.MainPartner)?.Name || currentOU;
     }
   } catch {}
-
   let styleWordsToUse = [];
   function updateStyleWords() {
     styleWordsToUse = [...defaultStyleWords];
@@ -58,80 +57,71 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
   }
   updateStyleWords();
 
-  // ───────────────────────────────────────────────────────────
-  // 3) HTML‐only highlighting fallback
-  // ───────────────────────────────────────────────────────────
+  // 3) HTML-only highlighter
   const escapeHTML = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  function unwrapHighlights() {
-    document.querySelectorAll('span[data-highlighted]').forEach(sp =>
+  function unwrapHighlights(){
+    document.querySelectorAll('span[data-highlighted]').forEach(sp=>
       sp.replaceWith(document.createTextNode(sp.textContent))
     );
   }
-  function highlightHTML(words) {
+  function highlightHTML(words){
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let node;
-    while (node = walker.nextNode()) {
-      const orig = node.textContent, esc = escapeHTML(orig);
-      let html = esc;
+    while (node=walker.nextNode()) {
+      const orig = node.textContent, esc=escapeHTML(orig);
+      let html=esc;
       words.forEach(({style,words})=>{
         words.forEach(raw=>{
-          const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-          html = html.replace(new RegExp(`\\b(${safe})\\b`,'gi'),
+          const safe=raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
+          html=html.replace(new RegExp(`\\b(${safe})\\b`,'gi'),
             `<span style="${style}" data-highlighted="true">$1</span>`
           );
         });
       });
-      if (html !== esc) {
-        const frag = document.createRange().createContextualFragment(html);
-        node.parentNode.replaceChild(frag, node);
+      if(html!==esc){
+        const frag=document.createRange().createContextualFragment(html);
+        node.parentNode.replaceChild(frag,node);
       }
     }
   }
 
-  // ───────────────────────────────────────────────────────────
-  // 4) Import PDF.js core + viewer (ensure version match!)
-  // ───────────────────────────────────────────────────────────
+  // 4) Import matching versions of PDF.js core + viewer
   const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
   const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
   pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
-
   const { PDFViewer, EventBus } = pdfjsViewer;
 
-  // ───────────────────────────────────────────────────────────
-  // 5) Find the built-in `<embed>` (or `<pdf-viewer>`)
-  // ───────────────────────────────────────────────────────────
+  // 5) Locate native PDF embed
   const viewerEl = document.querySelector('pdf-viewer');
   const embed = viewerEl?.shadowRoot
     ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
     : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
 
   if (!embed) {
-    // No PDF => HTML highlighting
+    // Fallback to HTML highlighting if no PDF
     highlightHTML(styleWordsToUse);
-    const btn = document.createElement('button');
-    btn.textContent = 'Original HTML';
+    const btn=document.createElement('button');
+    btn.textContent='Original HTML';
     Object.assign(btn.style,{
       position:'fixed',top:'10px',right:'10px',
       padding:'6px 12px',background:'#ff0',color:'#000',
       fontWeight:'bold',zIndex:2147483648,cursor:'pointer'
     });
     document.body.appendChild(btn);
-    let on = true;
-    btn.onclick = () => {
-      on ? unwrapHighlights() : highlightHTML(styleWordsToUse);
-      btn.textContent = on ? 'Styled HTML':'Original HTML';
-      on = !on;
+    let on=true;
+    btn.onclick=()=>{
+      on?unwrapHighlights():highlightHTML(styleWordsToUse);
+      btn.textContent=on?'Styled HTML':'Original HTML';
+      on=!on;
     };
     return;
   }
 
-  // ───────────────────────────────────────────────────────────
-  // 6) PDF branch: hide native embed, build our PDF.js viewer
-  // ───────────────────────────────────────────────────────────
+  // 6) PDF branch: hide native & insert PDF.js viewer
   const rect = embed.getBoundingClientRect();
-  embed.style.display = 'none';
+  embed.style.display='none';
 
-  // 6a) container for PDF.js
+  // 6a) container element
   const container = document.createElement('div');
   Object.assign(container.style,{
     position:'absolute',
@@ -143,11 +133,16 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     background:'#fff',
     zIndex:2147483647
   });
-  embed.parentNode.insertBefore(container, embed.nextSibling);
+  embed.parentNode.insertBefore(container,embed.nextSibling);
 
-  // 6b) toggle button
-  const toggle = document.createElement('button');
-  toggle.textContent = 'Original PDF';
+  // 6b) inner viewer div
+  const viewerDiv = document.createElement('div');
+  viewerDiv.className = 'pdfViewer';
+  container.appendChild(viewerDiv);
+
+  // 6c) toggle button
+  const toggle=document.createElement('button');
+  toggle.textContent='Original PDF';
   Object.assign(toggle.style,{
     position:'absolute',
     top:`${rect.top-32+window.scrollY}px`,
@@ -155,39 +150,39 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     padding:'6px 12px',background:'#ff0',color:'#000',
     fontWeight:'bold',zIndex:2147483648,cursor:'pointer'
   });
-  embed.parentNode.insertBefore(toggle, container);
+  embed.parentNode.insertBefore(toggle,container);
 
-  // 6c) fetch & load PDF
+  // 6d) fetch PDF bytes
   let data;
   try {
-    const url = embed.getAttribute('original-url') || location.href;
-    data = await fetch(url, { credentials:'include' }).then(r=>r.arrayBuffer());
+    const url=embed.getAttribute('original-url')||location.href;
+    data=await fetch(url,{credentials:'include'}).then(r=>r.arrayBuffer());
   } catch {
     console.error('Could not fetch PDF');
     return;
   }
-  const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
 
-  // 6d) init PDFViewer
+  // 6e) load PDF and render with PDFViewer
+  const pdfDoc = await pdfjsLib.getDocument({data}).promise;
   const eventBus = new EventBus();
   const pdfViewer = new PDFViewer({
     container,
+    viewer: viewerDiv,
     eventBus,
-    textLayerMode: 2,  // enable text layer
-    eventBus
+    textLayerMode:2
   });
   pdfViewer.setDocument(pdfDoc);
 
-  // 6e) once each page's text layer renders, inject your highlights
-  eventBus.on('textlayerrendered', ({ pageNumber }) => {
+  // 6f) inject highlights when each text layer renders
+  eventBus.on('textlayerrendered', ({pageNumber}) => {
     const pageView = pdfViewer._pages[pageNumber-1];
     const textLayerDiv = pageView.textLayer.textLayerDiv;
-    Array.from(textLayerDiv.querySelectorAll('div')).forEach(span => {
-      const txt = span.textContent.trim();
-      styleWordsToUse.forEach(({style,words}) => {
-        words.forEach(raw => {
-          const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-          if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
+    Array.from(textLayerDiv.querySelectorAll('div')).forEach(span=>{
+      const txt=span.textContent.trim();
+      styleWordsToUse.forEach(({style,words})=>{
+        words.forEach(raw=>{
+          const safe=raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
+          if(new RegExp(`\\b${safe}\\b`,'i').test(txt)){
             span.style.cssText += style;
           }
         });
@@ -195,20 +190,19 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     });
   });
 
-  // 6f) wire up toggle to switch back to native embed
-  let styledOn = true;
-  toggle.onclick = () => {
-    if (styledOn) {
-      container.style.display = 'none';
-      embed.style.display     = 'block';
-      toggle.textContent      = 'Styled PDF';
+  // 6g) wire toggle to switch back to embed
+  let styledOn=true;
+  toggle.onclick=()=>{
+    if(styledOn){
+      container.style.display='none';
+      embed.style.display='block';
+      toggle.textContent='Styled PDF';
     } else {
-      container.style.display = 'block';
-      embed.style.display     = 'none';
-      toggle.textContent      = 'Original PDF';
+      container.style.display='block';
+      embed.style.display='none';
+      toggle.textContent='Original PDF';
     }
-    styledOn = !styledOn;
+    styledOn=!styledOn;
   };
-
 })();
 }
