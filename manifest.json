@@ -15,6 +15,7 @@
       "resources": [
         "pdf.mjs",
         "pdf.worker.mjs",
+        "pdf_viewer.mjs",
         "styles.js"
       ],
       "matches": ["<all_urls>"]
