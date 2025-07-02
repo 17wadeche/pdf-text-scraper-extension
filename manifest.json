@@ -16,6 +16,7 @@
         "pdf.mjs",
         "pdf.worker.mjs",
         "pdf_viewer.mjs",
+        "pdf_viewer.css",
         "styles.js"
       ],
       "matches": ["<all_urls>"]
