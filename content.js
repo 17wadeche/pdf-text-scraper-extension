@@ -234,26 +234,23 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         }
       }
     }
-    let embed = null;
     const viewer = document.querySelector('pdf-viewer');
-    if (viewer && viewer.shadowRoot) {
-      embed = viewer.shadowRoot.querySelector(
-        'embed#plugin, embed[type*="pdf"]'
-      );
-    }
-    if (!embed) {
-      embed = document.querySelector(
-        'embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]'
-      );
-    }
-    if (!embed) {
-      if (
-        !location.href.startsWith('https://crm.medtronic.com/sap/bc/contentserver/') &&
-        !location.href.startsWith('https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/') &&
-        !location.href.startsWith('https://crmstage.medtronic.com/sap/bc/contentserver/')
-      ) {
+    const embed = viewer?.shadowRoot
+      ? viewer.shadowRoot.querySelector('embed[type*="pdf"], embed#plugin')
+      : document.querySelector('embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]');
+
+    if (embed) {
+      const orig   = embed.getAttribute('original-url');
+      const pdfUrl = orig || location.href;
+      let data;
+      try {
+        data = await fetch(pdfUrl, { credentials: 'include' }).then(r => r.arrayBuffer());
+      } catch {
         return;
       }
+      const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
+      pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
+    } else {
       highlightHTML(styleWordsToUse);
       let htmlStyled = true;
       const htmlToggle = document.createElement('button');
