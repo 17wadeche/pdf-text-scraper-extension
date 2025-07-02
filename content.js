@@ -346,25 +346,32 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       top:   '10px',
       right: '10px'
     });
+    embed.style.display = 'none';
+    const rect = embed.getBoundingClientRect();
     const container = document.createElement('div');
-    pdfContainer = container;   
+    pdfContainer = container;
     Object.assign(container.style, {
-      position:   'fixed',
-      top:        '50px',
-      left:       '10px',
-      width:      '100vw',
-      height:     '100vh',
+      position:   'absolute',
+      top:        rect.top + window.scrollY + 'px',
+      left:       rect.left + window.scrollX + 'px',
+      width:      rect.width + 'px',
+      height:     rect.height + 'px',
       overflow:   'auto',
       zIndex:     2147483647,
-      background: '#f0f0f0',  // light grey for styled background
+      background: '#f0f0f0',      // your styled background
       border:     '2px solid #444',
       padding:    '8px',
       fontFamily: 'monospace',
       whiteSpace: 'pre-wrap',
     });
+    embed.parentNode.insertBefore(container, embed.nextSibling);
     renderPDFStyled();
-    document.body.appendChild(container);
-    document.body.appendChild(toggleBtn);
+    Object.assign(toggleBtn.style, {
+      position: 'absolute',
+      top:      (rect.top - 32) + window.scrollY + 'px',
+      left:     rect.left + window.scrollX + 'px',
+    });
+    embed.parentNode.insertBefore(toggleBtn, container);
     let visible = true;
     toggleBtn.addEventListener('click', () => {
       visible = !visible;
