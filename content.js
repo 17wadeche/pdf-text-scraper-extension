@@ -1,4 +1,5 @@
 // content.js
+
 const ALLOWED_PREFIXES = [
   'https://crm.medtronic.com/sap/bc/contentserver/',
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
@@ -7,7 +8,9 @@ const ALLOWED_PREFIXES = [
 
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
   (async () => {
-    // 1) inject modern-select styles
+    //
+    // ── 1) Inject your “modern-select” CSS ─────────────────────────────────────
+    //
     const styleTag = document.createElement('style');
     styleTag.textContent = `
       .modern-select {
@@ -23,9 +26,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         background-repeat: no-repeat;
         background-position: right 8px center;
         background-image: url("data:image/svg+xml;charset=UTF-8,\
-    <svg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='%23666'>\
-    <path d='M1 1l5 5 5-5'/>\
-    </svg>");
+<svg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='%23666'>\
+<path d='M1 1l5 5 5-5'/>\
+</svg>");
       }
       .modern-select:focus {
         outline: none;
@@ -35,12 +38,16 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     `;
     document.head.appendChild(styleTag);
 
-    // 2) load style words
+    //
+    // ── 2) Load your styling words and config ─────────────────────────────────
+    //
     const { defaultStyleWords, config } = await import(
       chrome.runtime.getURL('styles.js')
     );
 
-    // 3) determine current BU/OU
+    //
+    // ── 3) Detect current BU/OU from GUIDE or localStorage ────────────────────
+    //
     let currentBU = null, currentOU = null;
     try {
       if (top.GUIDE?.PE) {
@@ -52,7 +59,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     if (!currentBU) currentBU = localStorage.getItem('highlight_BU');
     if (!currentOU) currentOU = localStorage.getItem('highlight_OU');
 
-    // 4) prepare styleWordsToUse
+    //
+    // ── 4) Build styleWordsToUse based on BU/OU ──────────────────────────────
+    //
     let styleWordsToUse = [];
     function updateStyleWords() {
       styleWordsToUse = [...defaultStyleWords];
@@ -63,29 +72,13 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         }
       }
     }
+    updateStyleWords();
 
-    // 5) highlight HTML-only pages
-    function highlightHTML(words) {
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      let node;
-      while (node = walker.nextNode()) {
-        const original = node.textContent;
-        let html = original
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-        words.forEach(({ style, words }) => {
-          words.forEach(raw => {
-            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const re = new RegExp(`\\b(${safe})\\b`, 'gi');
-            html = html.replace(re, `<span style="${style}" data-highlighted>${'$1'}</span>`);
-          });
-        });
-        if (html !== original.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')) {
-          const frag = document.createRange().createContextualFragment(html);
-          node.parentNode.replaceChild(frag, node);
-        }
-      }
+    //
+    // ── 5) HTML-highlighting helpers ─────────────────────────────────────────
+    //
+    function escapeHTML(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     function unwrapHighlights() {
@@ -94,31 +87,31 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       });
     }
 
-    // 6) prepare PDF logic helpers
+    function highlightHTML(words) {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let node;
+      while (node = walker.nextNode()) {
+        const original = node.textContent;
+        let html = escapeHTML(original);
+        words.forEach(({ style, words }) => {
+          words.forEach(raw => {
+            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
+            const re = new RegExp(`\\b(${safe})\\b`, 'gi');
+            html = html.replace(re, `<span style="${style}" data-highlighted="true">$1</span>`);
+          });
+        });
+        if (html !== escapeHTML(original)) {
+          const frag = document.createRange().createContextualFragment(html);
+          node.parentNode.replaceChild(frag, node);
+        }
+      }
+    }
+
+    //
+    // ── 6) PDF-rendering helpers ──────────────────────────────────────────────
+    //
     let fullText = '';
     let pdfContainer = null;
-
-    function escapeHTML(s) {
-      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    function renderPDFStyled() {
-      if (!pdfContainer) return;
-      pdfContainer.innerHTML = fullText
-        .split('\n')
-        .map(line => {
-          let escaped = escapeHTML(line);
-          styleWordsToUse.forEach(({ style, words }) => {
-            words.forEach(raw => {
-              const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-              const re   = new RegExp(`\\b(${safe})\\b`, 'gi');
-              escaped = escaped.replace(re, `<span style="${style}">$1</span>`);
-            });
-          });
-          return escaped;
-        })
-        .join('<br>');
-    }
 
     function extractLines(textContent) {
       const rows = {};
@@ -138,15 +131,27 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         );
     }
 
-    function applyAllHighlights() {
-      unwrapHighlights();
-      highlightHTML(styleWordsToUse);
-      renderPDFStyled();
+    function renderPDFStyled() {
+      if (!pdfContainer) return;
+      pdfContainer.innerHTML = fullText
+        .split('\n')
+        .map(line => {
+          let escaped = escapeHTML(line);
+          styleWordsToUse.forEach(({ style, words }) => {
+            words.forEach(raw => {
+              const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
+              const re   = new RegExp(`\\b(${safe})\\b`, 'gi');
+              escaped = escaped.replace(re, `<span style="${style}">$1</span>`);
+            });
+          });
+          return escaped;
+        })
+        .join('<br>');
     }
 
-    updateStyleWords();
-
-    // 7) build the BU/OU controls
+    //
+    // ── 7) Build BU/OU control bar ───────────────────────────────────────────
+    //
     const controlDiv = document.createElement('div');
     Object.assign(controlDiv.style, {
       position:   'fixed',
@@ -173,12 +178,13 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
 
     const ouSelect = document.createElement('select');
     ouSelect.classList.add('modern-select');
+    ouSelect.style.padding = '4px';
 
     function populateOUs() {
       ouSelect.innerHTML = '';
       if (currentBU && config[currentBU]) {
         Object.keys(config[currentBU])
-          .filter(k => k !== 'styleWords')
+          .filter(key => key !== 'styleWords')
           .forEach(ou => {
             const opt = document.createElement('option');
             opt.value = ou;
@@ -188,8 +194,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
           });
       }
     }
-
     populateOUs();
+
     buSelect.addEventListener('change', () => {
       currentBU = buSelect.value;
       currentOU = null;
@@ -198,85 +204,91 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       localStorage.setItem('highlight_BU', currentBU);
       localStorage.setItem('highlight_OU', currentOU);
       updateStyleWords();
-      applyAllHighlights();
+      unwrapHighlights();
+      highlightHTML(styleWordsToUse);
+      renderPDFStyled();
     });
 
     ouSelect.addEventListener('change', () => {
       currentOU = ouSelect.value;
       localStorage.setItem('highlight_OU', currentOU);
       updateStyleWords();
-      applyAllHighlights();
+      unwrapHighlights();
+      highlightHTML(styleWordsToUse);
+      renderPDFStyled();
     });
 
     controlDiv.append(buSelect, ouSelect);
     document.body.appendChild(controlDiv);
 
     const commonToggleStyles = {
-      position:   'absolute',
-      padding:    '6px 12px',
-      background: '#ff0',
-      color:      '#000',
-      fontSize:   '14px',
-      fontWeight: 'bold',
+      padding:      '6px 12px',
+      background:   '#ff0',
+      color:        '#000',
+      fontSize:     '14px',
+      fontWeight:   'bold',
       borderRadius: '4px',
-      boxShadow:  '0 0 6px rgba(0,0,0,0.5)',
-      border:     '2px solid #000',
-      cursor:     'pointer',
-      zIndex:     2147483648
+      boxShadow:    '0 0 6px rgba(0,0,0,0.5)',
+      border:       '2px solid #000',
+      cursor:       'pointer',
+      zIndex:       2147483648
     };
 
-    // 8) detect PDF embed vs HTML
+    //
+    // ── 8) Detect PDF embed vs. plain HTML ──────────────────────────────────
+    //
     const viewer = document.querySelector('pdf-viewer');
     const embed = viewer?.shadowRoot
       ? viewer.shadowRoot.querySelector('embed[type*="pdf"], embed#plugin')
       : document.querySelector('embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]');
 
     if (embed) {
-      // —— PDF branch ——
+      //
+      // — PDF BRANCH —
+      //
 
-      // hide native embed
+      // 8a) Measure before hiding
+      const rect = embed.getBoundingClientRect();
       embed.style.display = 'none';
 
-      // measure embed
-      const rect = embed.getBoundingClientRect();
-
-      // insert styled container
+      // 8b) Create styled container exactly over the embed
       const container = document.createElement('div');
       pdfContainer = container;
       Object.assign(container.style, {
         position:   'absolute',
-        top:        rect.top + window.scrollY + 'px',
-        left:       rect.left + window.scrollX + 'px',
-        width:      rect.width + 'px',
+        top:        rect.top    + window.scrollY + 'px',
+        left:       rect.left   + window.scrollX + 'px',
+        width:      rect.width  + 'px',
         height:     rect.height + 'px',
         overflow:   'auto',
-        zIndex:     2147483647,
         background: '#f0f0f0',
         border:     '2px solid #444',
         padding:    '8px',
         fontFamily: 'monospace',
         whiteSpace: 'pre-wrap',
+        zIndex:     2147483647
       });
       embed.parentNode.insertBefore(container, embed.nextSibling);
 
-      // insert toggle button
+      // 8c) Add “Original PDF” toggle
       const toggleBtn = document.createElement('button');
       toggleBtn.textContent = 'Original PDF';
       Object.assign(toggleBtn.style, {
-        top:  (rect.top - 32) + window.scrollY + 'px',
-        left: rect.left + window.scrollX + 'px',
+        position: 'absolute',
+        top:      (rect.top - 32) + window.scrollY + 'px',
+        left:     rect.left + window.scrollX + 'px',
         ...commonToggleStyles
       });
       embed.parentNode.insertBefore(toggleBtn, container);
 
-      // load & extract PDF text
+      // 8d) Fetch & extract PDF text
       let data;
       try {
         const orig   = embed.getAttribute('original-url');
         const pdfUrl = orig || location.href;
         data = await fetch(pdfUrl, { credentials: 'include' }).then(r => r.arrayBuffer());
       } catch {
-        console.warn('Failed to fetch PDF for styling');
+        console.warn('Could not fetch PDF for styling');
         return;
       }
 
@@ -291,7 +303,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         fullText += lines.join('\n') + '\n\n';
       }
 
-      // render and wire toggle
+      // 8e) Render styled text & wire up toggle
       renderPDFStyled();
       let visible = true;
       toggleBtn.addEventListener('click', () => {
@@ -302,14 +314,17 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       });
 
     } else {
-      // —— HTML branch ——
+      //
+      // — HTML BRANCH —
+      //
       highlightHTML(styleWordsToUse);
       let htmlStyled = true;
       const htmlToggle = document.createElement('button');
       htmlToggle.textContent = 'Original HTML';
       Object.assign(htmlToggle.style, {
-        top:   '10px',
-        right: '10px',
+        position: 'fixed',
+        top:      '10px',
+        right:    '10px',
         ...commonToggleStyles
       });
       htmlToggle.addEventListener('click', () => {
