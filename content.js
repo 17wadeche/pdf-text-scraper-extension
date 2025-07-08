@@ -189,7 +189,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     document.head.appendChild(fix);
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
-    pdfViewer.currentScaleValue = 'page-width';
     linkService.setDocument(pdfDoc, null);
     fix.textContent = `
       .textLayer, .textLayer div {
