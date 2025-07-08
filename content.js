@@ -165,24 +165,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
     const eventBus    = new EventBus();
-    eventBus.on('textlayerrendered', ({pageNumber}) => {
-      const pageView  = pdfViewer._pages[pageNumber-1];
-      const textLayer = pageView?.textLayer?.textLayerDiv;
-      if (!textLayer) return;
-      Array.from(textLayer.querySelectorAll('span')).forEach(span => {
-        const txt       = span.textContent.trim();
-        const baseStyle = span.getAttribute('style')||'';
-        span.dataset.origStyle = baseStyle;
-        styleWordsToUse.forEach(({style,words}) => {
-          words.forEach(raw => {
-            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-            if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
-              span.style.cssText = `${baseStyle};${style}`;
-            }
-          });
-        });
-      });
-    });
     const linkService = new PDFLinkService({eventBus});
     const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
     const fix = document.createElement('style');
@@ -195,9 +177,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
-    eventBus.on('pagesinit', () => {
-      renderAllHighlights();
-    });
     eventBus.on('textlayerrendered', ({pageNumber}) => {
       const pageView  = pdfViewer._pages[pageNumber-1];
       const textLayer = pageView?.textLayer?.textLayerDiv;
