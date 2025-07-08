@@ -10,6 +10,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     const styleTag = document.createElement('style');
     styleTag.textContent = `
       .modern-select {
+        color: #000;
         -webkit-appearance: none;
         appearance: none;
         padding: 6px 32px 6px 12px;
