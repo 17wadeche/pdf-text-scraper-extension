@@ -94,8 +94,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         localStorage.setItem('highlight_BU', currentBU);
         localStorage.setItem('highlight_OU', currentOU);
         updateStyleWords();
-
-        document.querySelectorAll(`[${HIGHLIGHT_ATTR}]`).forEach(span => {
+        document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
           const txt = span.textContent.trim();
           const baseStyle = span.dataset.origStyle || '';
           let styled = false;
@@ -149,21 +148,16 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
 
     let highlightsOn = true;
     const HIGHLIGHT_ATTR = 'data-hl';
-
-    // Load PDF.js
     const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
     const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
     const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
-
     const viewerEl = document.querySelector('pdf-viewer');
     const embed = viewerEl?.shadowRoot
       ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
       : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
     const rect = embed.getBoundingClientRect();
     embed.style.display = 'none';
-
-    // Viewer container
     const container = document.createElement('div');
     Object.assign(container.style, {
       position: 'absolute',
@@ -176,7 +170,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       zIndex: 2147483647
     });
     embed.parentNode.insertBefore(container, embed.nextSibling);
-
     const viewerDiv = document.createElement('div');
     viewerDiv.className = 'pdfViewer';
     container.appendChild(viewerDiv);
@@ -188,7 +181,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       console.error('Could not fetch PDF');
       return;
     }
-
     const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
     const eventBus = new EventBus();
     const linkService = new PDFLinkService({ eventBus });
@@ -211,17 +203,14 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     `;
     document.head.appendChild(visibilityFix);
-
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
-
     eventBus.on('textlayerrendered', ({ pageNumber }) => {
       const pageView = pdfViewer._pages[pageNumber - 1];
       const textLayerEl = pageView?.textLayer?.textLayerDiv;
       if (!textLayerEl) return;
-
-      Array.from(textLayerEl.querySelectorAll('div')).forEach(span => {
+      Array.from(textLayerEl.querySelectorAll('span')).forEach(span => {
         const txt = span.textContent.trim();
         const baseStyle = span.getAttribute('style') || '';
         styleWordsToUse.forEach(({ style, words }) => {
@@ -240,9 +229,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       });
     });
-
     toggle.onclick = () => {
-      document.querySelectorAll(`[${HIGHLIGHT_ATTR}]`).forEach(span => {
+      document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
         span.setAttribute(
           'style',
           highlightsOn ? span.dataset.origStyle : span.dataset.hlStyle
