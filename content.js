@@ -4,10 +4,8 @@ const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
-
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
   (async () => {
-    // ───── Insert our dropdown styling ─────
     const styleTag = document.createElement('style');
     styleTag.textContent = `
       .modern-select {
@@ -34,21 +32,14 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     `;
     document.head.appendChild(styleTag);
-
-    // ───── PDF.js CSS ─────
     const link = document.createElement('link');
     link.rel  = 'stylesheet';
     link.href = chrome.runtime.getURL('pdf_viewer.css');
     document.head.appendChild(link);
-
-    // ─── load your config ───────────────────
     const { defaultStyleWords, config } = await import(chrome.runtime.getURL('styles.js'));
-
-    // ─── state ──────────────────────────────
     let currentBU = localStorage.getItem('highlight_BU') || '';
     let currentOU = localStorage.getItem('highlight_OU') || '';
     let styleWordsToUse = [];
-
     function updateStyleWords() {
       styleWordsToUse = [];
       if (currentBU && config[currentBU]?.styleWords) {
@@ -59,22 +50,16 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     }
     updateStyleWords();
-
-    // ─── build controls ──────────────────────
     const buSelect = document.createElement('select');
     const ouSelect = document.createElement('select');
     const toggle   = document.createElement('button');
     [buSelect, ouSelect].forEach(s => s.className = 'modern-select');
     toggle.textContent = 'Original';
-
-    // populate BU
     buSelect.innerHTML =
       `<option value="">-- Select BU --</option>` +
       Object.keys(config)
             .map(bu => `<option value="${bu}" ${bu===currentBU?'selected':''}>${bu}</option>`)
             .join('');
-
-    // populate OU
     function updateOuOptions() {
       const ous = Object.keys(config[buSelect.value]||{}).filter(k=>'styleWords'!==k);
       ouSelect.innerHTML =
@@ -82,11 +67,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         ous.map(ou => `<option value="${ou}" ${ou===currentOU?'selected':''}>${ou}</option>`).join('');
     }
     updateOuOptions();
-
-    // change handlers
     function renderAllHighlights() {
       document.querySelectorAll('.textLayer span').forEach(span => {
-        // reset to original
         span.style.cssText = span.dataset.origStyle || '';
         const txt = span.textContent.trim();
         styleWordsToUse.forEach(({style,words}) => {
@@ -99,7 +81,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       });
     }
-
     buSelect.onchange = () => {
       currentBU = buSelect.value;
       localStorage.setItem('highlight_BU', currentBU);
@@ -115,8 +96,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       updateStyleWords();
       renderAllHighlights();
     };
-
-    // insert controls
     Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
     Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'190px', zIndex:2147483648 });
     Object.assign(toggle.style, {
@@ -125,37 +104,40 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       padding:'6px 12px', zIndex:2147483648, cursor:'pointer'
     });
     document.body.append(buSelect, ouSelect, toggle);
-
-    // ─── PDF.js setup ───────────────────────
     const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
     const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
     const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
-
-    // find & hide the native embed
     const viewerEl = document.querySelector('pdf-viewer');
     const embed    = viewerEl?.shadowRoot
       ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
       : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
     const rect = embed.getBoundingClientRect();
     embed.style.display = 'none';
-
-    // create our overlay container
     const container = document.createElement('div');
     Object.assign(container.style, {
-      position:'absolute',
+      position:'fixed',
       top:   `${rect.top}px`,
       left:  `${rect.left}px`,
       width: `${rect.width}px`,
       height:`${rect.height}px`,
-      overflow:'auto', background:'#fff', zIndex:2147483647
+      overflow:'auto', 
+      background:'#fff', 
+      zIndex:2147483647
     });
     embed.parentNode.insertBefore(container, embed.nextSibling);
     const viewerDiv = document.createElement('div');
     viewerDiv.className = 'pdfViewer';
     container.appendChild(viewerDiv);
-
-    // keep overlay in sync on scroll/resize
+    window.addEventListener('resize', () => {
+      const r = embed.getBoundingClientRect();
+      Object.assign(container.style, {
+        top:   `${r.top}px`,
+        left:  `${r.left}px`,
+        width: `${r.width}px`,
+        height:`${r.height}px`,
+      });
+    });
     function updateContainer() {
       const r = embed.getBoundingClientRect();
       Object.assign(container.style, {
@@ -167,8 +149,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     window.addEventListener('scroll', updateContainer);
     window.addEventListener('resize', updateContainer);
-
-    // fetch & load PDF
     let data;
     try {
       const url = embed.getAttribute('original-url')||location.href;
@@ -181,8 +161,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     const eventBus    = new EventBus();
     const linkService = new PDFLinkService({eventBus});
     const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
-
-    // reveal textLayer
     const fix = document.createElement('style');
     fix.textContent = `
       .textLayer, .textLayer div {
@@ -190,12 +168,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     `;
     document.head.appendChild(fix);
-
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
-
-    // on render, stash origin and apply highlight
     eventBus.on('textlayerrendered', ({pageNumber}) => {
       const pageView  = pdfViewer._pages[pageNumber-1];
       const textLayer = pageView?.textLayer?.textLayerDiv;
@@ -214,8 +189,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       });
     });
-
-    // toggle
     let showingStyled = true;
     toggle.onclick = () => {
       showingStyled = !showingStyled;
