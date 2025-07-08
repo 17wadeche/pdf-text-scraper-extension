@@ -193,10 +193,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     linkService.setDocument(pdfDoc, null);
     let _initialPassDone = false;
     eventBus.on('textlayerrendered', ({ pageNumber }) => {
-      if (!_initialPassDone) {
-        renderAllHighlights();
-        _initialPassDone = true;
-      }
       const pageView  = pdfViewer._pages[pageNumber - 1];
       const textLayer = pageView?.textLayer?.textLayerDiv;
       if (!textLayer) return;
@@ -212,6 +208,10 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             }
           });
         });
+        if (!_initialPassDone) {
+          renderAllHighlights();
+          _initialPassDone = true;
+        }
       });
     });
     let showingStyled = true;
