@@ -135,7 +135,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     embed.style.display = 'none';
     const container = document.createElement('div');
     Object.assign(container.style, {
-      position:'fixed',
+      position:'absolute',
       top:   `${rect.top}px`,
       left:  `${rect.left}px`,
       width: `${rect.width}px`,
