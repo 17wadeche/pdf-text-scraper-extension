@@ -40,10 +40,10 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     let currentBU = localStorage.getItem('highlight_BU') || '';
     let currentOU = localStorage.getItem('highlight_OU') || '';
     let styleWordsToUse = [];
-    function updateStyleWords() {
-      styleWordsToUse = [];
+    function updateStyleWords () {
+      styleWordsToUse = [...defaultStyleWords];
       if (currentBU && config[currentBU]?.styleWords) {
-        styleWordsToUse = [...config[currentBU].styleWords];
+        styleWordsToUse.push(...config[currentBU].styleWords);
       }
       if (currentBU && currentOU && config[currentBU][currentOU]?.styleWords) {
         styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
@@ -82,13 +82,14 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     updateOuOptions();
     function renderAllHighlights() {
       document.querySelectorAll('.textLayer span').forEach(span => {
-        span.style.cssText = span.dataset.origStyle || '';
+        if (!span.dataset.origStyle) return;
+        span.style.cssText = span.dataset.origStyle;
         const txt = span.textContent.trim();
         styleWordsToUse.forEach(({style,words}) => {
           words.forEach(raw => {
             const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
             if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
-              span.style.cssText = `${span.dataset.origStyle};${style}`;
+              span.style.cssText += `;${style}`; 
             }
           });
         });
