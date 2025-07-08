@@ -158,10 +158,11 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     container.appendChild(viewerDiv);
     let data;
     try {
-      const url = embed.getAttribute('original-url') || location.href;
-      data = await fetch(url, { credentials:'include' }).then(r=>r.arrayBuffer());
-    } catch {
-      console.error('Could not fetch PDF');
+      const resp = await fetch(url, { credentials: 'include' });
+      if (!resp.ok) throw new Error(`status ${resp.status}`);
+      data = await resp.arrayBuffer();
+    } catch (e) {
+      console.error('Could not fetch PDF →', e);
       return;
     }
     const pdfDoc = await pdfjsLib.getDocument({data}).promise;
@@ -175,8 +176,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       textLayerMode: 2
     });
     linkService.setViewer(pdfViewer);
-    pdfViewer.setDocument(pdfDoc);
-    linkService.setDocument(pdfDoc, null);
     eventBus.on("textlayerrendered", ({ pageNumber }) => {
       const pageView   = pdfViewer._pages[pageNumber - 1];
       const textLayer  = pageView?.textLayer?.textLayerDiv;
@@ -211,6 +210,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       });
     });
+    pdfViewer.setDocument(pdfDoc);
+    linkService.setDocument(pdfDoc, null);
     toggle.onclick = () => {
       document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`)
               .forEach(span => {
