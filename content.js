@@ -176,14 +176,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       console.error('Could not fetch PDF');
       return;
     }
-    pdfjsLib.disableFontFace = false; 
     const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
-    const cssFontRules = await pdfDoc.getFonts();   // returns an array of @font-face rules
-    cssFontRules.forEach(css => {
-      const s = document.createElement('style');
-      s.textContent = css;
-      document.head.appendChild(s);
-    });
     const eventBus    = new EventBus();
     const linkService = new PDFLinkService({eventBus});
     const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
