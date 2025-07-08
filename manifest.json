@@ -7,7 +7,10 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "type": "module"
+      "type": "module",
+      "all_frames":  true,
+      "match_about_blank": true,
+      "run_at":      "document_idle"
     }
   ],
   "web_accessible_resources": [
