@@ -15,9 +15,9 @@ function waitForPdfEmbed() {
   const embed = isPdfEmbedPresent();
   if (embed) {
     initialized = true;
-    main(); // 👈 Run the main logic
+    main();
   } else {
-    setTimeout(waitForPdfEmbed, 500); // ⏱ Keep checking every 500ms
+    setTimeout(waitForPdfEmbed, 200);
   }
 }
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
