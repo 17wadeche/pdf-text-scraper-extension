@@ -204,7 +204,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     document.head.appendChild(fix);
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
-    eventBus.once('pagesloaded', () => {
+    eventBus.on('pagesloaded', () => {
       renderAllHighlights();
     });
     linkService.setDocument(pdfDoc, null);
