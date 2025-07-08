@@ -179,11 +179,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       .textLayer {
         opacity: 1 !important;
         pointer-events: auto !important;
-        color: inherit !important;
       }
       .textLayer div {
         opacity: 1 !important;
-        color: inherit !important;
       }
     `;
     document.head.appendChild(visibilityFix);
