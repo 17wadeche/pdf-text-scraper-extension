@@ -2,6 +2,7 @@ const defaultStyleWords = [
   {
     style: 'font-weight:bold',
     words: [
+      'HOSPITALIZATION',
       'RESULT',
       'Work Order',
       'This is a test of the interface details font weight',
@@ -94,7 +95,7 @@ const defaultStyleWords = [
     ]
   },
   {
-    style: 'color:green',
+    style: 'color:transparent; text-shadow: green 0px 0px 1px !important',
     words: [
       'Work Order',
       'workorderNumber',
@@ -115,7 +116,7 @@ const defaultStyleWords = [
     ]
   },
   {
-    style: 'color:blue',
+    style: 'color:transparent; text-shadow: blue 0px 0px 1px !important',
     words: [
       'When Issue Occurred',
       'Length of Extended Surgical Time',
@@ -137,7 +138,7 @@ const defaultStyleWords = [
     ]
   },
   {
-    style: 'color:red',
+    style: 'color:transparent; text-shadow: red 0px 0px 1px !important',
     words: [
       'Was Medtronic Imaging Aborted',
       'This is a test of the interface details font color',
@@ -161,7 +162,7 @@ const defaultStyleWords = [
     ]
   },
   {
-    style: 'color:purple',
+    style: 'color:transparent; text-shadow: purple 0px 0px 1px !important',
     words: [
       'Contact Name',
       'Facility ID',
