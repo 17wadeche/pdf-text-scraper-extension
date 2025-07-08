@@ -151,7 +151,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     window.addEventListener('resize', () => {
       const r = embed.getBoundingClientRect();
       Object.assign(container.style, {
-        top:   `${r.top}px`,
+        top:   `10px`,
         left:  `${r.left}px`,
         width: `${r.width}px`,
         height:`${r.height}px`,
