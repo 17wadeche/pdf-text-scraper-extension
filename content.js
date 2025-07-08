@@ -6,7 +6,11 @@ const ALLOWED_PREFIXES = [
 ];
 console.log('[Highlight] page URL =', location.href);
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
-  console.log('[Highlight] URL did *not* match any allowed prefix – exiting.');
+  if (!ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
+    console.log('[Highlight] URL did NOT match any allowed prefix — exiting.');
+    return;
+  }
+  console.log('[Highlight] URL matches — starting PDF hook…');
   (async () => {
     console.log('[Highlight] → inside IIFE');
     const HIGHLIGHT_ATTR = 'data-hl';
