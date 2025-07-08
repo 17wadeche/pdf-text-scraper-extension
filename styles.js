@@ -2,6 +2,7 @@ const defaultStyleWords = [
   {
     style: 'font-weight:bold',
     words: [
+      'RESULT',
       'Work Order',
       'This is a test of the interface details font weight',
       'Text Weight Result:',
