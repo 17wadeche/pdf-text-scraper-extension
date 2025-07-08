@@ -117,6 +117,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       padding:'6px 12px', zIndex:2147483648, cursor:'pointer'
     });
     document.body.append(buSelect, ouSelect, toggle);
+    if (currentBU) {
+      buSelect.onchange();
+    }
     const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
     const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
