@@ -176,14 +176,25 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       console.error('Could not fetch PDF');
       return;
     }
+    const pdfViewer   = new PDFViewer({
+      container, 
+      viewer:viewerDiv, 
+      eventBus, 
+      linkService,
+      useOnlyCssZoom: true
+    });
     const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
     const eventBus    = new EventBus();
     const linkService = new PDFLinkService({eventBus});
-    const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
     const fix = document.createElement('style');
-    fix.textContent = `
-      .textLayer, .textLayer div {
-        opacity:1 !important; pointer-events:auto !important;
+      fix.textContent = `
+        .textLayer, .textLayer div {
+        opacity:1 !important;
+        pointer-events:auto !important;
+      }
+      .pdfViewer .page {
+        width: 100% !important;
+        height: auto !important;
       }
     `;
     document.head.appendChild(fix);
