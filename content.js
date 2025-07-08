@@ -66,36 +66,42 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         `<option value="">-- Select OU --</option>` +
         ous.map(ou => `<option value="${ou}" ${ou===currentOU?'selected':''}>${ou}</option>`).join('');
     }
-    updateOuOptions();
-    function renderAllHighlights() {
-      document.querySelectorAll('.textLayer span').forEach(span => {
-        span.style.cssText = span.dataset.origStyle || '';
-        const txt = span.textContent.trim();
-        styleWordsToUse.forEach(({style,words}) => {
-          words.forEach(raw => {
-            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-            if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
-              span.style.cssText = `${span.dataset.origStyle};${style}`;
-            }
-          });
-        });
-      });
-    }
-    buSelect.onchange = () => {
+    buSelect.addEventListener('change', () => {
       currentBU = buSelect.value;
       localStorage.setItem('highlight_BU', currentBU);
       currentOU = '';
       localStorage.removeItem('highlight_OU');
       updateOuOptions();
       updateStyleWords();
-      renderAllHighlights();
-    };
-    ouSelect.onchange = () => {
+      document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
+        const base = span.dataset.origStyle || '';
+        span.style.cssText = base;
+      });
+    });
+    ouSelect.addEventListener('change', () => {
       currentOU = ouSelect.value;
       localStorage.setItem('highlight_OU', currentOU);
       updateStyleWords();
-      renderAllHighlights();
-    };
+      document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
+        const txt  = span.textContent.trim();
+        const base = span.dataset.origStyle || '';
+        let applied = false;
+        styleWordsToUse.forEach(({ style, words }) => {
+          words.forEach(raw => {
+            const safe = raw.replace(/[-/\\^$*?.()|[\]{}]/g, '\\$&');
+            if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
+              span.dataset.hlStyle = `${base};${style};opacity:1;pointer-events:auto;`;
+              if (highlightsOn) span.style.cssText = span.dataset.hlStyle;
+              applied = true;
+            }
+          });
+        });
+        if (!applied) {
+          span.style.cssText = base;
+        }
+      });
+    });
+    updateOuOptions();
     Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
     Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'190px', zIndex:2147483648 });
     Object.assign(toggle.style, {
@@ -189,6 +195,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
+    eventBus.on('pagesinit', () => {
+      renderAllHighlights();
+    });
     eventBus.on('textlayerrendered', ({pageNumber}) => {
       const pageView  = pdfViewer._pages[pageNumber-1];
       const textLayer = pageView?.textLayer?.textLayerDiv;
