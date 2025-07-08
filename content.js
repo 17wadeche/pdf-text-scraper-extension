@@ -75,6 +75,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       localStorage.removeItem('highlight_OU');
       updateOuOptions();
       updateStyleWords();
+      window._highlighter.applyHighlights();
       document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
         const base = span.dataset.origStyle || '';
         span.style.cssText = base; 
@@ -84,6 +85,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       currentOU = ouSelect.value;
       localStorage.setItem('highlight_OU', currentOU);
       updateStyleWords();
+      window._highlighter.applyHighlights();
       document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
         const txt  = span.textContent.trim();
         const base = span.dataset.origStyle || '';
@@ -104,6 +106,13 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       });
     });
     updateOuOptions();
+    console.log(
+      'BU:',  _highlighter.buSelect.value,
+      'OU:',  _highlighter.ouSelect.value
+    );
+    _highlighter.updateStyleWords();
+    console.log(_highlighter.styleWordsToUse);
+    _highlighter.applyHighlights();
     Object.assign(buSelect.style, {
       position: 'fixed',
       top: '16px',
