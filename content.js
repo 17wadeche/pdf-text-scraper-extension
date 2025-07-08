@@ -52,6 +52,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     updateStyleWords();
     const buSelect = document.createElement('select');
     const ouSelect = document.createElement('select');
+    ouSelect.disabled = true;
     const toggle   = document.createElement('button');
     [buSelect, ouSelect].forEach(s => s.className = 'modern-select');
     toggle.textContent = 'Original';
@@ -61,10 +62,22 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             .map(bu => `<option value="${bu}" ${bu===currentBU?'selected':''}>${bu}</option>`)
             .join('');
     function updateOuOptions() {
-      const ous = Object.keys(config[buSelect.value]||{}).filter(k=>'styleWords'!==k);
-      ouSelect.innerHTML =
-        `<option value="">-- Select OU --</option>` +
-        ous.map(ou => `<option value="${ou}" ${ou===currentOU?'selected':''}>${ou}</option>`).join('');
+      ouSelect.options.length = 0;
+      ouSelect.add(new Option('-- Select OU --', ''));
+      const selectedBU = buSelect.value;
+      if (!selectedBU) {
+        ouSelect.disabled = true;
+        return;
+      }
+      ouSelect.disabled = false;
+      const ous = Object
+        .keys(config[selectedBU])
+        .filter(key => key !== 'styleWords');
+      for (const ou of ous) {
+        const opt = new Option(ou, ou);
+        if (ou === currentOU) opt.selected = true;
+        ouSelect.add(opt);
+      }
     }
     updateOuOptions();
     function renderAllHighlights() {
