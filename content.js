@@ -3,18 +3,10 @@ const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
-
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
   (async () => {
-    // ─────────────────────────────────────────────
-    // 1) GLOBAL FLAGS
-    // ─────────────────────────────────────────────
     const HIGHLIGHT_ATTR = 'data-hl';
     let highlightsOn = true;
-
-    // ─────────────────────────────────────────────
-    // 2) CONTROLS CSS (dropdown + toggle)
-    // ─────────────────────────────────────────────
     const css = document.createElement('style');
     css.textContent = `
       .modern-select {
@@ -52,28 +44,16 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     `;
     document.head.appendChild(css);
-
-    // ─────────────────────────────────────────────
-    // 3) PDF.js VIEWER CSS
-    // ─────────────────────────────────────────────
     const pdfCss = document.createElement('link');
     pdfCss.rel = 'stylesheet';
     pdfCss.href = chrome.runtime.getURL('pdf_viewer.css');
     document.head.appendChild(pdfCss);
-
-    // ─────────────────────────────────────────────
-    // 4) FORCE TEXT-LAYER VISIBLE
-    // ─────────────────────────────────────────────
     const override = document.createElement('style');
     override.textContent = `
       .textLayer span           { opacity: 1 !important; pointer-events: auto !important; }
       .textLayer span:not([${HIGHLIGHT_ATTR}]) { color: black; }   /* default only for non-highlights */
     `;
     document.head.appendChild(override);
-
-    // ─────────────────────────────────────────────
-    // 5) LOAD YOUR WORD-LISTS + CONFIG
-    // ─────────────────────────────────────────────
     const { defaultStyleWords, config } = await import(
       chrome.runtime.getURL('styles.js')
     );
@@ -97,10 +77,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     }
     updateStyleWords();
-
-    // ─────────────────────────────────────────────
-    // 6) BUILD & POSITION CONTROLS
-    // ─────────────────────────────────────────────
     const buSelect = document.createElement('select');
     buSelect.className = 'modern-select';
     buSelect.innerHTML =
@@ -108,7 +84,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       Object.keys(config).map(bu => 
         `<option value="${bu}" ${bu===currentBU?'selected':''}>${bu}</option>`
       ).join('');
-
     const ouSelect = document.createElement('select');
     ouSelect.className = 'modern-select';
     function refreshOU() {
@@ -120,12 +95,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         ).join('');
     }
     refreshOU();
-
     const toggle = document.createElement('button');
     toggle.className = 'pdf-toggle';
     toggle.textContent = 'Original';
-
-    // onchange handlers
     [buSelect, ouSelect].forEach(sel=>{
       sel.onchange = ()=>{
         currentBU = buSelect.value;
@@ -133,7 +105,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         localStorage.setItem('highlight_BU', currentBU);
         localStorage.setItem('highlight_OU', currentOU);
         updateStyleWords();
-        // re-apply
         document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span=>{
           const txt = span.textContent.trim();
           const base = span.dataset.origStyle||'';
@@ -155,30 +126,20 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       };
     });
-
-    // fixed-corner layout
     Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
     Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'200px', zIndex:2147483648 });
     Object.assign(toggle.style,  { position:'fixed', top:'16px', left:'380px', zIndex:2147483648 });
     document.body.append(buSelect, ouSelect, toggle);
-
-    // ─────────────────────────────────────────────
-    // 7) LOAD PDF.js MODULES
-    // ─────────────────────────────────────────────
     const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
     const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
     const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
-
-    // find & hide the native embed
     const viewerEl = document.querySelector('pdf-viewer');
     const embed    = viewerEl?.shadowRoot
       ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
       : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
     const rect = embed.getBoundingClientRect();
     embed.style.display = 'none';
-
-    // create our container + viewer DIV
     const container = document.createElement('div');
     container.className = 'viewerContainer';
     Object.assign(container.style, {
@@ -192,14 +153,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       zIndex:2147483647
     });
     embed.parentNode.insertBefore(container, embed.nextSibling);
-
     const viewerDiv = document.createElement('div');
     viewerDiv.className = 'pdfViewer';
     container.appendChild(viewerDiv);
-
-    // ─────────────────────────────────────────────
-    // 8) RENDER & HIGHLIGHT
-    // ─────────────────────────────────────────────
     let data;
     try {
       const url = embed.getAttribute('original-url') || location.href;
@@ -209,7 +165,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       return;
     }
     const pdfDoc = await pdfjsLib.getDocument({data}).promise;
-
     const eventBus    = new EventBus();
     const linkService = new PDFLinkService({ eventBus });
     const pdfViewer   = new PDFViewer({
@@ -219,36 +174,43 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       linkService,
       textLayerMode: 2
     });
-
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
-
-    eventBus.on('textlayerrendered', ({pageNumber}) => {
-      const pageView  = pdfViewer._pages[pageNumber-1];
-      const textLayer = pageView?.textLayer?.textLayerDiv;
+    eventBus.on("textlayerrendered", ({ pageNumber }) => {
+      const pageView   = pdfViewer._pages[pageNumber - 1];
+      const textLayer  = pageView?.textLayer?.textLayerDiv;
       if (!textLayer) return;
-
-      Array.from(textLayer.querySelectorAll('span')).forEach(span => {
-        const txt = span.textContent.trim();
-        const base = span.getAttribute('style') || '';
-        styleWordsToUse.forEach(({style, words})=>{
-          words.forEach(raw=>{
-            const rx = new RegExp(`\\b${raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&')}\\b`, 'i');
-            if (rx.test(txt)) {
-              span.dataset.origStyle = base;
-              span.dataset.hlStyle   = `${base};${style};opacity:1;pointer-events:auto`;
-              span.setAttribute('style', span.dataset.hlStyle);
-              span.setAttribute(HIGHLIGHT_ATTR, '');
-            }
-          });
+      const spans      = Array.from(textLayer.querySelectorAll("span"));
+      const fullText   = spans.map(s => s.textContent).join(""); // one long string
+      const lowerText  = fullText.toLowerCase();                 // for case-insensitive search
+      let pos = 0;
+      const spanRanges = spans.map(s => {
+        const start = pos;
+        pos += s.textContent.length;
+        return { span: s, start, end: pos };
+      });
+      styleWordsToUse.forEach(({ style, words }) => {
+        words.forEach(raw => {
+          const needle = raw.toLowerCase();
+          let idx = lowerText.indexOf(needle);
+          while (idx !== -1) {
+            const hitStart = idx;
+            const hitEnd   = idx + needle.length;
+            spanRanges.forEach(({ span, start, end }) => {
+              if (end > hitStart && start < hitEnd) {
+                const base = span.getAttribute("style") || "";
+                if (!span.dataset.origStyle) span.dataset.origStyle = base;
+                span.dataset.hlStyle = `${base};${style};opacity:1;pointer-events:auto`;
+                span.setAttribute("style", span.dataset.hlStyle);
+                span.setAttribute(HIGHLIGHT_ATTR, "");
+              }
+            });
+            idx = lowerText.indexOf(needle, hitEnd);  // look for next occurrence
+          }
         });
       });
     });
-
-    // ─────────────────────────────────────────────
-    // 9) TOGGLE ORIGINAL / STYLED
-    // ─────────────────────────────────────────────
     toggle.onclick = () => {
       document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`)
               .forEach(span => {
