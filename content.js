@@ -9,7 +9,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     const HIGHLIGHT_ATTR = 'data-hl';
     let highlightsOn = true;
 
-    // ─── inject your UI styles ───────────────────────────────────────────────────
+    // ─── UI STYLES ───────────────────────────────────────────────────────────────
     const css = document.createElement('style');
     css.textContent = `
       .modern-select {
@@ -53,44 +53,50 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     pdfCss.href = chrome.runtime.getURL('pdf_viewer.css');
     document.head.appendChild(pdfCss);
 
+    // ensure textLayer is visible & non–highlights stay black
     const override = document.createElement('style');
     override.textContent = `
       .textLayer span { opacity: 1 !important; pointer-events: auto !important; }
-      .textLayer span:not([${HIGHLIGHT_ATTR}]) { color: black; }
+      .textLayer span:not([${HIGHLIGHT_ATTR}]) { color: black !important; }
+      /* hide the underlying canvas so text is sharp */
+      .canvasWrapper canvas { display: none !important; }
     `;
     document.head.appendChild(override);
     // ──────────────────────────────────────────────────────────────────────────────
 
-    // load your default style word lists and config
+    // load your word-lists
     const { defaultStyleWords, config } = await import(
       chrome.runtime.getURL('styles.js')
     );
 
-    // determine current BU/OU from localStorage or GUIDE.PE
+    // figure out which BU/OU to use
     let currentBU = localStorage.getItem('highlight_BU') || '';
     let currentOU = localStorage.getItem('highlight_OU') || '';
     try {
       if (top.GUIDE?.PE) {
         const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
         currentBU = pe.PartnersTable.find(x => x.PartnerFunction==='BU Responsible' && x.MainPartner)?.Name || currentBU;
-        currentOU = pe.PartnersTable.find(x => x.PartnerFunction==='OU Responsible'&&x.MainPartner)?.Name || currentOU;
+        currentOU = pe.PartnersTable.find(x => x.PartnerFunction==='OU Responsible' && x.MainPartner)?.Name || currentOU;
       }
     } catch {}
 
-    // build initial styleWordsToUse
+    // ─── updateStyleWords: now picks nested OU even if BU has no styleWords ─────
     let styleWordsToUse = [];
     function updateStyleWords() {
       styleWordsToUse = [...defaultStyleWords];
       if (currentBU && config[currentBU]?.styleWords) {
+        // BU-level override
         styleWordsToUse = [...config[currentBU].styleWords];
-        if (currentOU && config[currentBU][currentOU]?.styleWords) {
-          styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
-        }
+      }
+      if (currentBU && currentOU && config[currentBU][currentOU]?.styleWords) {
+        // OU-level override
+        styleWordsToUse = [...config[currentBU][currentOU].styleWords];
       }
     }
     updateStyleWords();
+    // ──────────────────────────────────────────────────────────────────────────────
 
-    // create BU / OU selectors and toggle button
+    // build BU/OU selectors + toggle
     const buSelect = document.createElement('select');
     buSelect.className = 'modern-select';
     buSelect.innerHTML =
@@ -122,6 +128,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         localStorage.setItem('highlight_OU', currentOU);
         updateStyleWords();
 
+        // re-apply highlighting immediately
         document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
           const txt  = span.textContent.replace(/\s+/g, ' ').toLowerCase();
           const base = span.dataset.origStyle || '';
@@ -131,7 +138,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             words.forEach(raw => {
               if (txt.includes(raw.toLowerCase())) {
                 span.dataset.hlStyle = `${base};${style};opacity:1;pointer-events:auto`;
-                if (highlightsOn) span.setAttribute('style', span.dataset.hlStyle);
+                if (highlightsOn) span.style.cssText = span.dataset.hlStyle;
                 hit = true;
               }
             });
@@ -139,7 +146,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
 
           if (!hit) {
             span.removeAttribute(HIGHLIGHT_ATTR);
-            span.setAttribute('style', base);
+            span.style.cssText = base;
           }
         });
       };
@@ -150,13 +157,12 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     Object.assign(toggle.style, { position:'fixed', top:'16px', left:'380px', zIndex:2147483648 });
     document.body.append(buSelect, ouSelect, toggle);
 
-    // ─── locate the PDF element & extract a real http(s) URL ─────────────────────
+    // ─── find the real PDF URL ───────────────────────────────────────────────────
     const objectEl = document.querySelector('object[type="application/pdf"]');
     const embed    = objectEl?.querySelector('embed[type*="pdf"]')
                    || document.querySelector('embed[type*="pdf"]');
-
     if (!embed) {
-      console.error('Could not find PDF embed/object on the page.');
+      console.error('Could not find PDF embed/object');
       return;
     }
 
@@ -168,13 +174,14 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     } else if (embed.getAttribute('original-url')?.startsWith('http')) {
       url = embed.getAttribute('original-url');
     } else {
-      url = location.href;  // last resort
+      url = location.href;
     }
     // ──────────────────────────────────────────────────────────────────────────────
 
-    // hide the built-in PDF plugin & create our container
+    // hide Chrome’s plugin and wire up our PDF.js container
     const rect = embed.getBoundingClientRect();
     embed.style.display = 'none';
+
     const container = document.createElement('div');
     container.className = 'viewerContainer';
     Object.assign(container.style, {
@@ -184,15 +191,16 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       width:  `${rect.width}px`,
       height: `${rect.height}px`,
       overflow: 'auto',
-      background:'#fff',
-      zIndex:2147483647
+      background: '#fff',
+      zIndex: 2147483647
     });
     embed.parentNode.insertBefore(container, embed.nextSibling);
+
     const viewerDiv = document.createElement('div');
     viewerDiv.className = 'pdfViewer';
     container.appendChild(viewerDiv);
 
-    // ─── fetch the PDF bytes ─────────────────────────────────────────────────────
+    // ─── fetch PDF bytes ─────────────────────────────────────────────────────────
     let data;
     try {
       const resp = await fetch(url, { credentials: 'include' });
@@ -204,12 +212,12 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     // ──────────────────────────────────────────────────────────────────────────────
 
-    // initialize PDF.js
+    // ─── initialize PDF.js ───────────────────────────────────────────────────────
     const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
     const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
-    const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
 
+    const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
     const eventBus    = new EventBus();
     const linkService = new PDFLinkService({ eventBus });
     const pdfViewer   = new PDFViewer({
@@ -221,14 +229,14 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     });
     linkService.setViewer(pdfViewer);
 
-    // ─── listen for every page’s textLayer before loading doc ────────────────────
-    eventBus.on("textlayerrendered", ({ pageNumber }) => {
+    // catch *every* page render
+    eventBus.on('textlayerrendered', ({ pageNumber }) => {
       const pageView  = pdfViewer._pages[pageNumber - 1];
       const textLayer = pageView?.textLayer?.textLayerDiv;
       if (!textLayer) return;
 
-      const spans     = Array.from(textLayer.querySelectorAll("span"));
-      const fullText  = spans.map(s => s.textContent).join("");
+      const spans     = Array.from(textLayer.querySelectorAll('span'));
+      const fullText  = spans.map(s => s.textContent).join('');
       const lowerText = fullText.toLowerCase();
 
       let pos = 0;
@@ -246,11 +254,11 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             const hitStart = idx, hitEnd = idx + needle.length;
             spanRanges.forEach(({ span, start, end }) => {
               if (end > hitStart && start < hitEnd) {
-                const base = span.getAttribute("style") || "";
+                const base = span.getAttribute('style') || '';
                 if (!span.dataset.origStyle) span.dataset.origStyle = base;
                 span.dataset.hlStyle = `${base};${style};opacity:1;pointer-events:auto`;
-                span.setAttribute("style", span.dataset.hlStyle);
-                span.setAttribute(HIGHLIGHT_ATTR, "");
+                span.style.cssText = span.dataset.hlStyle;
+                span.setAttribute(HIGHLIGHT_ATTR, '');
               }
             });
             idx = lowerText.indexOf(needle, hitEnd);
@@ -258,23 +266,23 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       });
     });
-    // ──────────────────────────────────────────────────────────────────────────────
 
-    // load the PDF into PDF.js
+    // load the PDF document
     const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
 
-    // wire up the toggle
+    // toggle between original & styled
     toggle.onclick = () => {
       document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
-        span.setAttribute(
-          'style',
-          highlightsOn ? span.dataset.origStyle : span.dataset.hlStyle
-        );
+        span.style.cssText = highlightsOn
+          ? span.dataset.origStyle
+          : span.dataset.hlStyle;
       });
       toggle.textContent = highlightsOn ? 'Styled' : 'Original';
       highlightsOn = !highlightsOn;
     };
+    // ──────────────────────────────────────────────────────────────────────────────
+
   })();
 }
