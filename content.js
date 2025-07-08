@@ -103,7 +103,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             words.forEach(raw => {
               const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
               if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
-                span.dataset.hlStyle = `${baseStyle};${style}`;
+                span.dataset.hlStyle = `${baseStyle};${style};opacity:1;pointer-events:auto;`;
                 if (highlightsOn) span.setAttribute('style', span.dataset.hlStyle);
                 styled = true;
               }
@@ -230,6 +230,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
               span.dataset.origStyle = baseStyle;
               span.dataset.hlStyle = `${baseStyle};${style}`;
+              span.style.opacity = '1';
+              span.style.color = 'black'; // fallback if no color is applied
+              span.style.pointerEvents = 'auto';
               span.setAttribute('style', span.dataset.hlStyle);
               span.setAttribute(HIGHLIGHT_ATTR, '');
             }
