@@ -171,6 +171,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
+    eventBus.on('pagesinit', () => {
+      renderAllHighlights();
+    });
     eventBus.on('textlayerrendered', ({pageNumber}) => {
       const pageView  = pdfViewer._pages[pageNumber-1];
       const textLayer = pageView?.textLayer?.textLayerDiv;
@@ -195,13 +198,17 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       if (showingStyled) {
         container.style.display = '';
         embed.style.display     = 'none';
+        buSelect.style.display  = '';    // show the selects
+        ouSelect.style.display  = '';
         renderAllHighlights();
+        toggle.textContent = 'Original';
       } else {
         container.style.display = 'none';
         embed.style.display     = '';
+        buSelect.style.display  = 'none'; // hide the selects
+        ouSelect.style.display  = 'none';
+        toggle.textContent = 'Styled';
       }
-      toggle.textContent = showingStyled ? 'Original' : 'Styled';
     };
-
   })();
 }
