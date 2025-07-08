@@ -190,6 +190,18 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
+    fix.textContent = `
+      .textLayer, .textLayer div {
+        opacity:1 !important;
+        pointer-events:auto !important;
+      }
+
+      /* force the rendered PDF page canvases to be 100% of their wrapper */
+      .pdfViewer .page {
+        width: 100% !important;
+        height: auto !important;
+      }
+    `;
     let _initialPassDone = false;
     eventBus.on('textlayerrendered', ({ pageNumber }) => {
       if (!_initialPassDone) {
