@@ -37,201 +37,189 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
 
     // ───── PDF.js CSS ─────
     const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = chrome.runtime.getURL('pdf_viewer.css');
-    document.head.appendChild(link);
+  link.rel = 'stylesheet';
+  link.href = chrome.runtime.getURL('pdf_viewer.css');
+  document.head.appendChild(link);
 
-    // ───── Load configuration ─────
-    const { defaultStyleWords, config } = await import(chrome.runtime.getURL('styles.js'));
+  // — load your styles.js config —
+  const { defaultStyleWords, config } = await import(chrome.runtime.getURL('styles.js'));
 
-    // ───── State ─────
-    let currentBU = localStorage.getItem('highlight_BU') || '';
-    let currentOU = localStorage.getItem('highlight_OU') || '';
-    let styleWordsToUse = [];
+  // — state —
+  let currentBU = localStorage.getItem('highlight_BU') || '';
+  let currentOU = localStorage.getItem('highlight_OU') || '';
+  let styleWordsToUse = [];
 
-    // ───── Refined BU/OU merging ─────
-    function updateStyleWords() {
-      styleWordsToUse = [];
-      // BU-level
-      if (currentBU && config[currentBU]?.styleWords) {
-        styleWordsToUse = [...config[currentBU].styleWords];
-      }
-      // OU-level
-      if (currentBU && currentOU && config[currentBU][currentOU]?.styleWords) {
-        styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
-      }
+  // — build merged list BU + OU —
+  function updateStyleWords() {
+    styleWordsToUse = [];
+    if (currentBU && config[currentBU]?.styleWords) {
+      styleWordsToUse = [...config[currentBU].styleWords];
     }
-    updateStyleWords();
-
-    // ───── Create controls ─────
-    const toggle   = document.createElement('button');
-    toggle.textContent = 'Original';
-
-    const buSelect = document.createElement('select');
-    const ouSelect = document.createElement('select');
-    [buSelect, ouSelect].forEach(el => el.className = 'modern-select');
-
-    // HIGHLIGHT_ATTR
-    const HIGHLIGHT_ATTR = 'data-hl';
-
-    // ───── Debug/helper object ─────
-    window._highlighter = {
-      config,
-      defaultStyleWords,
-      get styleWordsToUse() { return styleWordsToUse; },
-      updateStyleWords,
-      buSelect,
-      ouSelect,
-      applyHighlights: () => {
-        document.querySelectorAll('.textLayer span').forEach(span => {
-          const txt  = span.textContent.trim();
-          const base = span.dataset.origStyle || '';
-          let applied = false;
-          styleWordsToUse.forEach(({ style, words }) => {
-            words.forEach(raw => {
-              const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-              if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
-                span.style.cssText = `${base};${style} !important`;
-                applied = true;
-              }
-            });
-          });
-          if (!applied) span.style.cssText = base;
-        });
-      }
-    };
-
-    // ───── Populate BU dropdown ─────
-    buSelect.innerHTML = `<option value="">-- Select BU --</option>` +
-      Object.keys(config)
-            .map(bu => `<option value="${bu}" ${bu === currentBU ? 'selected' : ''}>${bu}</option>`)
-            .join('');
-
-    // ───── Dynamically populate OU ─────
-    function updateOuOptions() {
-      const ous = Object.keys(config[buSelect.value] || {})
-                        .filter(k => k !== 'styleWords');
-      ouSelect.innerHTML = `<option value="">-- Select OU --</option>` +
-        ous.map(ou => `<option value="${ou}" ${ou === currentOU ? 'selected' : ''}>${ou}</option>`)
-           .join('');
+    if (currentBU && currentOU && config[currentBU][currentOU]?.styleWords) {
+      styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
     }
+  }
+  updateStyleWords();
+
+  // — create controls —
+  const buSelect = document.createElement('select');
+  const ouSelect = document.createElement('select');
+  const toggle   = document.createElement('button');
+  [buSelect, ouSelect].forEach(s => s.className = 'modern-select');
+  toggle.textContent = 'Original';
+
+  // — populate BU —
+  buSelect.innerHTML =
+    `<option value="">-- Select BU --</option>` +
+    Object.keys(config)
+      .map(bu => `<option value="${bu}" ${bu===currentBU?'selected':''}>${bu}</option>`)
+      .join('');
+
+  // — populate OU dynamically —
+  function updateOuOptions() {
+    const ous = Object.keys(config[buSelect.value]||{}).filter(k=>'styleWords'!==k);
+    ouSelect.innerHTML =
+      `<option value="">-- Select OU --</option>` +
+      ous.map(ou=>`<option value="${ou}" ${ou===currentOU?'selected':''}>${ou}</option>`).join('');
+  }
+  updateOuOptions();
+
+  // — handlers —
+  buSelect.onchange = () => {
+    currentBU = buSelect.value;
+    localStorage.setItem('highlight_BU', currentBU);
+    currentOU = '';
+    localStorage.removeItem('highlight_OU');
     updateOuOptions();
+    updateStyleWords();
+    renderAllHighlights();
+  };
+  ouSelect.onchange = () => {
+    currentOU = ouSelect.value;
+    localStorage.setItem('highlight_OU', currentOU);
+    updateStyleWords();
+    renderAllHighlights();
+  };
 
-    // ───── Handlers ─────
-    buSelect.onchange = () => {
-      currentBU = buSelect.value;
-      localStorage.setItem('highlight_BU', currentBU);
-      currentOU = '';
-      localStorage.removeItem('highlight_OU');
-      updateOuOptions();
-      updateStyleWords();
-      window._highlighter.applyHighlights();
-    };
+  // — insert controls —
+  Object.assign(buSelect.style, { position:'fixed',top:'16px',left:'16px',zIndex:2147483648 });
+  Object.assign(ouSelect.style, { position:'fixed',top:'16px',left:'190px',zIndex:2147483648 });
+  Object.assign(toggle.style, {
+    position:'fixed', top:'16px', right:'16px',
+    background:'#ff0', color:'#000', fontWeight:'bold',
+    padding:'6px 12px', zIndex:2147483648, cursor:'pointer'
+  });
+  document.body.append(buSelect, ouSelect, toggle);
 
-    ouSelect.onchange = () => {
-      currentOU = ouSelect.value;
-      localStorage.setItem('highlight_OU', currentOU);
-      updateStyleWords();
-      window._highlighter.applyHighlights();
-    };
+  // — PDF.js setup —
+  const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
+  const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
+  pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
+  const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
 
-    // ───── Position and insert controls ─────
-    Object.assign(buSelect.style, { position: 'fixed', top: '16px', left: '16px', zIndex: 2147483648 });
-    Object.assign(ouSelect.style, { position: 'fixed', top: '16px', left: '190px', zIndex: 2147483648 });
-    Object.assign(toggle.style, {
-      position: 'fixed', top: '16px', right: '16px',
-      background: '#ff0', color: '#000', fontWeight: 'bold',
-      padding: '6px 12px', zIndex: 2147483648, cursor: 'pointer'
-    });
+  // — hide native embed & create our own container —
+  const viewerEl = document.querySelector('pdf-viewer');
+  const embed    = viewerEl?.shadowRoot
+    ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
+    : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
+  const r = embed.getBoundingClientRect();
+  embed.style.display = 'none';
 
-    document.body.append(buSelect, ouSelect, toggle);
+  const container = document.createElement('div');
+  Object.assign(container.style, {
+    position:'absolute',
+    top:`${r.top+window.scrollY}px`,
+    left:`${r.left+window.scrollX}px`,
+    width:`${r.width}px`,
+    height:`${r.height}px`,
+    overflow:'auto',background:'#fff',zIndex:2147483647
+  });
+  embed.parentNode.insertBefore(container, embed.nextSibling);
+  const viewerDiv = document.createElement('div');
+  viewerDiv.className = 'pdfViewer';
+  container.appendChild(viewerDiv);
 
-    // ───── Setup PDF.js viewer ─────
-    const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
-    const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
-    pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
-    const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
+  let data;
+  try {
+    const url = embed.getAttribute('original-url')||location.href;
+    data = await fetch(url,{credentials:'include'}).then(r=>r.arrayBuffer());
+  } catch {
+    console.error('Could not fetch PDF');
+    return;
+  }
 
-    // find and hide the native embed
-    const viewerEl = document.querySelector('pdf-viewer');
-    const embed    = viewerEl?.shadowRoot
-      ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
-      : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
-    const rect = embed.getBoundingClientRect();
-    embed.style.display = 'none';
+  const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
+  const eventBus    = new EventBus();
+  const linkService = new PDFLinkService({eventBus});
+  const pdfViewer   = new PDFViewer({container,viewer:viewerDiv,eventBus,linkService});
 
-    // create our container
-    const container = document.createElement('div');
-    Object.assign(container.style, {
-      position:   'absolute',
-      top:        `${rect.top + window.scrollY}px`,
-      left:       `${rect.left + window.scrollX}px`,
-      width:      `${rect.width}px`,
-      height:     `${rect.height}px`,
-      overflow:   'auto',
-      background: '#fff',
-      zIndex:     2147483647
-    });
-    embed.parentNode.insertBefore(container, embed.nextSibling);
-    const viewerDiv = document.createElement('div');
-    viewerDiv.className = 'pdfViewer';
-    container.appendChild(viewerDiv);
-    let data;
-    try {
-      const url = embed.getAttribute('original-url') || location.href;
-      data = await fetch(url, { credentials: 'include' }).then(r => r.arrayBuffer());
-    } catch {
-      console.error('Could not fetch PDF');
-      return;
+  // — ensure textLayer visible/clickable —
+  const fix = document.createElement('style');
+  fix.textContent = `
+    .textLayer, .textLayer div {
+      opacity:1 !important; pointer-events:auto !important;
     }
-    const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
-    const eventBus   = new EventBus();
-    const linkService = new PDFLinkService({ eventBus });
-    const pdfViewer   = new PDFViewer({ container, viewer: viewerDiv, eventBus, linkService });
-    const visibilityFix = document.createElement('style');
-    visibilityFix.textContent = `
-      .textLayer,
-      .textLayer div {
-        opacity: 1 !important;
-        pointer-events: auto !important;
-      }
-    `;
-    document.head.appendChild(visibilityFix);
-    linkService.setViewer(pdfViewer);
-    pdfViewer.setDocument(pdfDoc);
-    linkService.setDocument(pdfDoc, null);
-    eventBus.on('textlayerrendered', ({ pageNumber }) => {
-      const pageView   = pdfViewer._pages[pageNumber - 1];
-      const textLayer  = pageView?.textLayer?.textLayerDiv;
-      if (!textLayer) return;
-      Array.from(textLayer.querySelectorAll('span')).forEach(span => {
-        const txt       = span.textContent.trim();
-        const baseStyle = span.getAttribute('style') || '';
-        defaultStyleWords.concat(styleWordsToUse).forEach(({ style, words }) => {
-          words.forEach(raw => {
-            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-            if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
-              span.dataset.origStyle = baseStyle;
-              span.dataset.hlStyle   = `${baseStyle};${style} !important`;
-              span.setAttribute(HIGHLIGHT_ATTR, '');
-            }
-          });
+  `;
+  document.head.appendChild(fix);
+
+  linkService.setViewer(pdfViewer);
+  pdfViewer.setDocument(pdfDoc);
+  linkService.setDocument(pdfDoc,null);
+
+  // — when a page renders, annotate and style every span —
+  eventBus.on('textlayerrendered', ({pageNumber}) => {
+    const pageView  = pdfViewer._pages[pageNumber-1];
+    const textLayer = pageView?.textLayer?.textLayerDiv;
+    if (!textLayer) return;
+
+    // stash original style, then apply BU+OU
+    textLayer.querySelectorAll('span').forEach(span => {
+      const txt       = span.textContent.trim();
+      const baseStyle = span.getAttribute('style') || '';
+      span.dataset.origStyle = baseStyle;
+
+      // check each styleWordsToUse
+      styleWordsToUse.forEach(({style,words}) => {
+        words.forEach(raw => {
+          const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
+          if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
+            span.style.cssText = `${span.dataset.origStyle};${style}`;
+          }
         });
       });
-      window._highlighter.applyHighlights();
     });
-    let highlightsOn = true;
-    toggle.onclick = () => {
-      highlightsOn = !highlightsOn;
-      if (highlightsOn) {
-        container.style.display = '';
-        embed.style.display     = 'none';
-        window._highlighter.applyHighlights();
-      } else {
-        container.style.display = 'none';
-        embed.style.display     = '';
-      }
-      toggle.textContent = highlightsOn ? 'Original' : 'Styled';
-    };
-  })();
+  });
+
+  function renderAllHighlights() {
+    document.querySelectorAll('.textLayer span').forEach(span => {
+      // reset
+      span.style.cssText = span.dataset.origStyle||'';
+      const txt = span.textContent.trim();
+      styleWordsToUse.forEach(({style,words}) => {
+        words.forEach(raw => {
+          const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
+          if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
+            span.style.cssText = `${span.dataset.origStyle};${style}`;
+          }
+        });
+      });
+    });
+  }
+
+  // — toggle Original/Styled —
+  let showingStyled = true;
+  toggle.onclick = () => {
+    showingStyled = !showingStyled;
+    if (showingStyled) {
+      container.style.display = '';
+      embed.style.display     = 'none';
+      renderAllHighlights();
+    } else {
+      container.style.display = 'none';
+      embed.style.display     = '';
+    }
+    toggle.textContent = showingStyled ? 'Original' : 'Styled';
+  };
+
+})();
 }
