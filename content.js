@@ -183,6 +183,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
 
     // create our container + viewer DIV
     const container = document.createElement('div');
+    container.className = 'viewerContainer';
     Object.assign(container.style, {
       position:'absolute',
       top:  `${rect.top+scrollY}px`,
