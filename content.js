@@ -36,7 +36,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     // Add PDF.js CSS
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = chrome.runtime.getURL('pdfjs/pdf_viewer.css');
+    link.href = chrome.runtime.getURL('pdf_viewer.css');
     document.head.appendChild(link);
 
     // Import configuration
@@ -69,9 +69,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     const HIGHLIGHT_ATTR = 'data-hl';
 
     // Load PDF.js
-    const pdfjsLib = await import(chrome.runtime.getURL('pdfjs/pdf.mjs'));
-    const pdfjsViewer = await import(chrome.runtime.getURL('pdfjs/pdf_viewer.mjs'));
-    pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdfjs/pdf.worker.mjs');
+    const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
+    const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
+    pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
     const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
 
     const viewerEl = document.querySelector('pdf-viewer');
