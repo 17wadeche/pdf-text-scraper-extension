@@ -34,7 +34,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     document.head.appendChild(styleTag);
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = chrome.runtime.getURL('pdfjs/pdf_viewer.css');
+    link.href = chrome.runtime.getURL('pdf_viewer.css');
     document.head.appendChild(link);
     const { defaultStyleWords, config } = await import(
       chrome.runtime.getURL('styles.js')
@@ -59,9 +59,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
   }
   updateStyleWords();
-  const pdfjsLib    = await import(chrome.runtime.getURL('pdfjs/pdf.mjs'));
-  const pdfjsViewer = await import(chrome.runtime.getURL('pdfjs/pdf_viewer.mjs'));
-  pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdfjs/pdf.worker.mjs');
+  const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
+  const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
+  pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
   const { PDFViewer, EventBus } = pdfjsViewer;
   const viewerEl = document.querySelector('pdf-viewer');
   const embed = viewerEl?.shadowRoot
@@ -139,6 +139,5 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     styledOn = !styledOn;
   };
-
 })();
 }
