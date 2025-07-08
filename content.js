@@ -64,7 +64,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     }
     updateStyleWords();
-    // ========== CONTROL ELEMENTS ========== //
     const toggle = document.createElement('button');
     toggle.textContent = 'Original';
 
@@ -86,7 +85,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         ).join('');
     }
     updateOuOptions();
-
     [buSelect, ouSelect].forEach(select => {
       select.onchange = () => {
         currentBU = buSelect.value;
@@ -115,8 +113,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       };
     });
-
-    // ========== FIXED POSITION (Always visible) ========== //
     Object.assign(buSelect.style, {
       position: 'fixed',
       top: '16px',
@@ -140,12 +136,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       zIndex: 2147483648,
       cursor: 'pointer'
     });
-
     document.body.appendChild(buSelect);
     document.body.appendChild(ouSelect);
     document.body.appendChild(toggle);
-
-
     let highlightsOn = true;
     const HIGHLIGHT_ATTR = 'data-hl';
     const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
@@ -230,14 +223,28 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       });
     });
     toggle.onclick = () => {
-      document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
-        span.setAttribute(
-          'style',
-          highlightsOn ? span.dataset.origStyle : span.dataset.hlStyle
-        );
-      });
-      toggle.textContent = highlightsOn ? 'Styled' : 'Original';
       highlightsOn = !highlightsOn;
+      if (highlightsOn) {
+        container.style.display = '';
+        embed.style.display     = 'none';
+      } else {
+        container.style.display = 'none';
+        embed.style.display     = '';
+      }
+      document
+        .querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`)
+        .forEach(span => {
+          span.setAttribute(
+            'style',
+            highlightsOn ? span.dataset.origStyle : span.dataset.hlStyle
+          );
+          span.style.cssText = highlightsOn
+            ? span.dataset.hlStyle    // styled
+            : span.dataset.origStyle; // original
+        });
+      toggle.textContent = highlightsOn
+        ? 'Original' 
+        : 'Styled';  
     };
   })();
 }
