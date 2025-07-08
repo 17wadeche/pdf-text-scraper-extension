@@ -191,28 +191,20 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     pdfViewer.setDocument(pdfDoc);
     pdfViewer.currentScaleValue = 'page-width';
     linkService.setDocument(pdfDoc, null);
-    let _initialPassDone = false;
     eventBus.on('textlayerrendered', ({ pageNumber }) => {
       const pageView  = pdfViewer._pages[pageNumber - 1];
       const textLayer = pageView?.textLayer?.textLayerDiv;
       if (!textLayer) return;
+
+      // Capture original styles *once* per span
       Array.from(textLayer.querySelectorAll('span')).forEach(span => {
-        const txt       = span.textContent.trim();
-        const baseStyle = span.getAttribute('style') || '';
-        span.dataset.origStyle = baseStyle;
-        styleWordsToUse.forEach(({ style, words }) => {
-          words.forEach(raw => {
-            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-            if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
-              span.style.cssText = `${baseStyle};${style}`;
-            }
-          });
-        });
-        if (!_initialPassDone) {
-          renderAllHighlights();
-          _initialPassDone = true;
+        if (!span.dataset.origStyle) {
+          span.dataset.origStyle = span.getAttribute('style') || '';
         }
       });
+
+      // Now apply highlights (transform will be preserved)
+      renderAllHighlights();
     });
     let showingStyled = true;
     toggle.onclick = () => {
