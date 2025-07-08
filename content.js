@@ -64,46 +64,10 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     }
     updateStyleWords();
-
-    let highlightsOn = true;
-    const HIGHLIGHT_ATTR = 'data-hl';
-
-    // Load PDF.js
-    const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
-    const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
-    pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
-    const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
-
-    const viewerEl = document.querySelector('pdf-viewer');
-    const embed = viewerEl?.shadowRoot
-      ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
-      : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
-    const rect = embed.getBoundingClientRect();
-    embed.style.display = 'none';
-
-    // Viewer container
-    const container = document.createElement('div');
-    Object.assign(container.style, {
-      position: 'absolute',
-      top: `${rect.top + window.scrollY}px`,
-      left: `${rect.left + window.scrollX}px`,
-      width: `${rect.width}px`,
-      height: `${rect.height}px`,
-      overflow: 'auto',
-      background: '#fff',
-      zIndex: 2147483647
-    });
-    embed.parentNode.insertBefore(container, embed.nextSibling);
-
-    const viewerDiv = document.createElement('div');
-    viewerDiv.className = 'pdfViewer';
-    container.appendChild(viewerDiv);
-
-    // Toggle button
+    // ========== CONTROL ELEMENTS ========== //
     const toggle = document.createElement('button');
     toggle.textContent = 'Original';
 
-    // BU/OU dropdowns
     const buSelect = document.createElement('select');
     const ouSelect = document.createElement('select');
     [buSelect, ouSelect].forEach(el => el.className = 'modern-select');
@@ -153,25 +117,69 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       };
     });
 
-    // Position controls
-    const topOffset = rect.top - 32 + window.scrollY;
-    const leftOffset = rect.left + window.scrollX;
-    [buSelect, ouSelect, toggle].forEach((el, i) => {
-      Object.assign(el.style, {
-        position: 'absolute',
-        top: `${topOffset}px`,
-        left: `${leftOffset + i * 160}px`,
-        padding: '6px 12px',
-        zIndex: 2147483648,
-        background: '#fff',
-        fontWeight: 'bold',
-        fontSize: '14px',
-        cursor: 'pointer'
-      });
-      document.body.appendChild(el);
+    // ========== FIXED POSITION (Always visible) ========== //
+    Object.assign(buSelect.style, {
+      position: 'fixed',
+      top: '16px',
+      left: '16px',
+      zIndex: 2147483648
+    });
+    Object.assign(ouSelect.style, {
+      position: 'fixed',
+      top: '16px',
+      left: '190px',
+      zIndex: 2147483648
+    });
+    Object.assign(toggle.style, {
+      position: 'fixed',
+      top: '16px',
+      left: '364px',
+      background: '#ff0',
+      color: '#000',
+      fontWeight: 'bold',
+      padding: '6px 12px',
+      zIndex: 2147483648,
+      cursor: 'pointer'
     });
 
-    // Load PDF
+    document.body.appendChild(buSelect);
+    document.body.appendChild(ouSelect);
+    document.body.appendChild(toggle);
+
+
+    let highlightsOn = true;
+    const HIGHLIGHT_ATTR = 'data-hl';
+
+    // Load PDF.js
+    const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
+    const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
+    pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
+    const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
+
+    const viewerEl = document.querySelector('pdf-viewer');
+    const embed = viewerEl?.shadowRoot
+      ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
+      : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
+    const rect = embed.getBoundingClientRect();
+    embed.style.display = 'none';
+
+    // Viewer container
+    const container = document.createElement('div');
+    Object.assign(container.style, {
+      position: 'absolute',
+      top: `${rect.top + window.scrollY}px`,
+      left: `${rect.left + window.scrollX}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+      overflow: 'auto',
+      background: '#fff',
+      zIndex: 2147483647
+    });
+    embed.parentNode.insertBefore(container, embed.nextSibling);
+
+    const viewerDiv = document.createElement('div');
+    viewerDiv.className = 'pdfViewer';
+    container.appendChild(viewerDiv);
     let data;
     try {
       const url = embed.getAttribute('original-url') || location.href;
