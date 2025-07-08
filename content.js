@@ -178,24 +178,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
     const eventBus    = new EventBus();
-    eventBus.on('textlayerrendered', ({pageNumber}) => {
-      const pageView  = pdfViewer._pages[pageNumber-1];
-      const textLayer = pageView?.textLayer?.textLayerDiv;
-      if (!textLayer) return;
-      Array.from(textLayer.querySelectorAll('span')).forEach(span => {
-        const txt       = span.textContent.trim();
-        const baseStyle = span.getAttribute('style')||'';
-        span.dataset.origStyle = baseStyle;
-        styleWordsToUse.forEach(({style,words}) => {
-          words.forEach(raw => {
-            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-            if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
-              span.style.cssText = `${baseStyle};${style}`;
-            }
-          });
-        });
-      });
-    });
     const linkService = new PDFLinkService({eventBus});
     const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
     const fix = document.createElement('style');
@@ -207,24 +189,24 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     document.head.appendChild(fix);
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
-    function onFirstLoad() {
-      renderAllHighlights();
-      eventBus.off('pagesloaded', onFirstLoad);
-    }
-    eventBus.on('pagesloaded', onFirstLoad);
     linkService.setDocument(pdfDoc, null);
-    eventBus.on('textlayerrendered', ({pageNumber}) => {
-      const pageView  = pdfViewer._pages[pageNumber-1];
+    let _initialPassDone = false;
+    eventBus.on('textlayerrendered', ({ pageNumber }) => {
+      if (!_initialPassDone) {
+        renderAllHighlights();
+        _initialPassDone = true;
+      }
+      const pageView  = pdfViewer._pages[pageNumber - 1];
       const textLayer = pageView?.textLayer?.textLayerDiv;
       if (!textLayer) return;
       Array.from(textLayer.querySelectorAll('span')).forEach(span => {
         const txt       = span.textContent.trim();
-        const baseStyle = span.getAttribute('style')||'';
+        const baseStyle = span.getAttribute('style') || '';
         span.dataset.origStyle = baseStyle;
-        styleWordsToUse.forEach(({style,words}) => {
+        styleWordsToUse.forEach(({ style, words }) => {
           words.forEach(raw => {
-            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-            if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
+            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+            if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
               span.style.cssText = `${baseStyle};${style}`;
             }
           });
