@@ -178,6 +178,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
     const eventBus    = new EventBus();
+    const linkService = new PDFLinkService({eventBus});
     const pdfViewer   = new PDFViewer({
       container, 
       viewer:viewerDiv, 
@@ -185,7 +186,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       linkService,
       useOnlyCssZoom: true
     });
-    const linkService = new PDFLinkService({eventBus});
     const fix = document.createElement('style');
       fix.textContent = `
         .textLayer, .textLayer div {
