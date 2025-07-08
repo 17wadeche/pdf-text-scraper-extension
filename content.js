@@ -200,7 +200,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
             const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
             if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
               span.dataset.origStyle = baseStyle;
-              span.dataset.hlStyle = `${baseStyle};${style}`;
+              span.dataset.hlStyle = `${baseStyle};${style} !important`;
               span.style.opacity = '1';
               span.style.color = 'black'; // fallback if no color is applied
               span.style.pointerEvents = 'auto';
