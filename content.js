@@ -128,7 +128,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     Object.assign(toggle.style, {
       position: 'fixed',
       top: '16px',
-      right: 'px16',
+      right: '16px',
       background: '#ff0',
       color: '#000',
       fontWeight: 'bold',
