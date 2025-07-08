@@ -128,7 +128,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     Object.assign(toggle.style, {
       position: 'fixed',
       top: '16px',
-      left: '364px',
+      right: 'px16',
       background: '#ff0',
       color: '#000',
       fontWeight: 'bold',
@@ -231,6 +231,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         container.style.display = 'none';
         embed.style.display     = '';
       }
+      const display = highlightsOn ? '' : 'none';
+      buSelect.style.display = display;
+      ouSelect.style.display = display;
       document
         .querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`)
         .forEach(span => {
