@@ -9,7 +9,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     const HIGHLIGHT_ATTR = 'data-hl';
     let highlightsOn = true;
 
-    // ─── UI STYLES ───────────────────────────────────────────────────────────────
+    // ─── inject your UI styles ───────────────────────────────────────────────────
     const css = document.createElement('style');
     css.textContent = `
       .modern-select {
@@ -53,13 +53,21 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     pdfCss.href = chrome.runtime.getURL('pdf_viewer.css');
     document.head.appendChild(pdfCss);
 
-    // ensure textLayer is visible & non–highlights stay black
+    // ensure textLayer is visible & non–highlight spans stay black;
+    // also keep the PDF canvas (for charts/graphics) intact, but put it behind the text
     const override = document.createElement('style');
     override.textContent = `
-      .textLayer span { opacity: 1 !important; pointer-events: auto !important; }
-      .textLayer span:not([${HIGHLIGHT_ATTR}]) { color: black !important; }
-      /* hide the underlying canvas so text is sharp */
-      .canvasWrapper canvas { display: none !important; }
+      .viewerContainer canvas {
+        z-index: 1;
+      }
+      .textLayer, .textLayer span {
+        z-index: 2 !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+      .textLayer span:not([${HIGHLIGHT_ATTR}]) {
+        color: black !important;
+      }
     `;
     document.head.appendChild(override);
     // ──────────────────────────────────────────────────────────────────────────────
@@ -80,21 +88,18 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     } catch {}
 
-    // ─── updateStyleWords: now picks nested OU even if BU has no styleWords ─────
+    // build initial styleWordsToUse
     let styleWordsToUse = [];
     function updateStyleWords() {
       styleWordsToUse = [...defaultStyleWords];
       if (currentBU && config[currentBU]?.styleWords) {
-        // BU-level override
         styleWordsToUse = [...config[currentBU].styleWords];
       }
       if (currentBU && currentOU && config[currentBU][currentOU]?.styleWords) {
-        // OU-level override
         styleWordsToUse = [...config[currentBU][currentOU].styleWords];
       }
     }
     updateStyleWords();
-    // ──────────────────────────────────────────────────────────────────────────────
 
     // build BU/OU selectors + toggle
     const buSelect = document.createElement('select');
@@ -128,12 +133,11 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         localStorage.setItem('highlight_OU', currentOU);
         updateStyleWords();
 
-        // re-apply highlighting immediately
+        // re-apply highlighting on all rendered spans
         document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
           const txt  = span.textContent.replace(/\s+/g, ' ').toLowerCase();
           const base = span.dataset.origStyle || '';
           let hit = false;
-
           styleWordsToUse.forEach(({ style, words }) => {
             words.forEach(raw => {
               if (txt.includes(raw.toLowerCase())) {
@@ -143,7 +147,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
               }
             });
           });
-
           if (!hit) {
             span.removeAttribute(HIGHLIGHT_ATTR);
             span.style.cssText = base;
@@ -154,13 +157,14 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
 
     Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
     Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'200px', zIndex:2147483648 });
-    Object.assign(toggle.style, { position:'fixed', top:'16px', left:'380px', zIndex:2147483648 });
+    Object.assign(toggle.style,  { position:'fixed', top:'16px', left:'380px', zIndex:2147483648 });
     document.body.append(buSelect, ouSelect, toggle);
 
-    // ─── find the real PDF URL ───────────────────────────────────────────────────
+    // ─── locate the PDF element & pick the real PDF URL ─────────────────────────
     const objectEl = document.querySelector('object[type="application/pdf"]');
     const embed    = objectEl?.querySelector('embed[type*="pdf"]')
                    || document.querySelector('embed[type*="pdf"]');
+
     if (!embed) {
       console.error('Could not find PDF embed/object');
       return;
@@ -178,7 +182,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
     // ──────────────────────────────────────────────────────────────────────────────
 
-    // hide Chrome’s plugin and wire up our PDF.js container
+    // hide Chrome’s built-in PDF plugin & build our PDF.js container
     const rect = embed.getBoundingClientRect();
     embed.style.display = 'none';
 
@@ -216,8 +220,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
     const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
-
     const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
+
     const eventBus    = new EventBus();
     const linkService = new PDFLinkService({ eventBus });
     const pdfViewer   = new PDFViewer({
@@ -229,7 +233,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     });
     linkService.setViewer(pdfViewer);
 
-    // catch *every* page render
+    // catch every page’s textLayer render
     eventBus.on('textlayerrendered', ({ pageNumber }) => {
       const pageView  = pdfViewer._pages[pageNumber - 1];
       const textLayer = pageView?.textLayer?.textLayerDiv;
