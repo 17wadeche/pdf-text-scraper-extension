@@ -14,6 +14,7 @@
     {
       "resources": [
         "pdf.mjs",
+        "images/loading-icon.gif",
         "pdf.worker.mjs",
         "pdf_viewer.mjs",
         "pdf_viewer.css",

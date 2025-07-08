@@ -111,8 +111,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
           let hit = false;
           styleWordsToUse.forEach(({style, words})=>{
             words.forEach(raw=>{
-              const rx = new RegExp(`\\b${raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&')}\\b`, 'i');
-              if (rx.test(txt)) {
+              if ( txt.replace(/\s+/g,' ').toLowerCase()
+                .includes(raw.toLowerCase()) ) {
                 span.dataset.hlStyle = `${base};${style};opacity:1;pointer-events:auto`;
                 if (highlightsOn) span.setAttribute('style',span.dataset.hlStyle);
                 hit = true;
