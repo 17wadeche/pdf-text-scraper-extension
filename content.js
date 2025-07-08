@@ -1,11 +1,14 @@
+console.log('%c[Highlight] content.js loaded','background:#222;color:#0f0;font-weight:bold;');
 const ALLOWED_PREFIXES = [
   'https://crm.medtronic.com/sap/bc/contentserver/',
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
-
+console.log('[Highlight] page URL =', location.href);
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
+  console.log('[Highlight] URL did *not* match any allowed prefix – exiting.');
   (async () => {
+    console.log('[Highlight] → inside IIFE');
     const HIGHLIGHT_ATTR = 'data-hl';
     let highlightsOn = true;
 
