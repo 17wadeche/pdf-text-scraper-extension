@@ -36,7 +36,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     // Add PDF.js CSS
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = chrome.runtime.getURL('pdf_viewer.css');
+    link.href = chrome.runtime.getURL('pdfjs/pdf_viewer.css');
     document.head.appendChild(link);
 
     // Import configuration
@@ -64,18 +64,24 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     }
     updateStyleWords();
-    let highlightsOn = true;            // current state
+
+    let highlightsOn = true;
     const HIGHLIGHT_ATTR = 'data-hl';
-    const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
-    const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
-    pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
+
+    // Load PDF.js
+    const pdfjsLib = await import(chrome.runtime.getURL('pdfjs/pdf.mjs'));
+    const pdfjsViewer = await import(chrome.runtime.getURL('pdfjs/pdf_viewer.mjs'));
+    pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdfjs/pdf.worker.mjs');
     const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
+
     const viewerEl = document.querySelector('pdf-viewer');
     const embed = viewerEl?.shadowRoot
       ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
       : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
     const rect = embed.getBoundingClientRect();
     embed.style.display = 'none';
+
+    // Viewer container
     const container = document.createElement('div');
     Object.assign(container.style, {
       position: 'absolute',
@@ -88,23 +94,84 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       zIndex: 2147483647
     });
     embed.parentNode.insertBefore(container, embed.nextSibling);
+
     const viewerDiv = document.createElement('div');
     viewerDiv.className = 'pdfViewer';
     container.appendChild(viewerDiv);
+
+    // Toggle button
     const toggle = document.createElement('button');
     toggle.textContent = 'Original';
-    Object.assign(toggle.style, {
-      position: 'absolute',
-      top: `${rect.top - 32 + window.scrollY}px`,
-      left: `${rect.left + window.scrollX}px`,
-      padding: '6px 12px',
-      background: '#ff0',
-      color: '#000',
-      fontWeight: 'bold',
-      zIndex: 2147483648,
-      cursor: 'pointer'
+
+    // BU/OU dropdowns
+    const buSelect = document.createElement('select');
+    const ouSelect = document.createElement('select');
+    [buSelect, ouSelect].forEach(el => el.className = 'modern-select');
+
+    buSelect.innerHTML = `<option value="">-- Select BU --</option>` +
+      Object.keys(config).map(bu =>
+        `<option value="${bu}" ${bu === currentBU ? 'selected' : ''}>${bu}</option>`
+      ).join('');
+
+    function updateOuOptions() {
+      const selectedBU = buSelect.value;
+      const ous = Object.keys(config[selectedBU] || {}).filter(k => k !== 'styleWords');
+      ouSelect.innerHTML = `<option value="">-- Select OU --</option>` +
+        ous.map(ou =>
+          `<option value="${ou}" ${ou === currentOU ? 'selected' : ''}>${ou}</option>`
+        ).join('');
+    }
+    updateOuOptions();
+
+    [buSelect, ouSelect].forEach(select => {
+      select.onchange = () => {
+        currentBU = buSelect.value;
+        currentOU = ouSelect.value;
+        localStorage.setItem('highlight_BU', currentBU);
+        localStorage.setItem('highlight_OU', currentOU);
+        updateStyleWords();
+
+        document.querySelectorAll(`[${HIGHLIGHT_ATTR}]`).forEach(span => {
+          const txt = span.textContent.trim();
+          const baseStyle = span.dataset.origStyle || '';
+          let styled = false;
+          styleWordsToUse.forEach(({ style, words }) => {
+            words.forEach(raw => {
+              const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+              if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
+                span.dataset.hlStyle = `${baseStyle};${style}`;
+                if (highlightsOn) span.setAttribute('style', span.dataset.hlStyle);
+                styled = true;
+              }
+            });
+          });
+          if (!styled) {
+            span.removeAttribute(HIGHLIGHT_ATTR);
+            span.setAttribute('style', baseStyle);
+          }
+        });
+      };
     });
-    embed.parentNode.insertBefore(toggle, container);
+
+    // Position controls
+    const topOffset = rect.top - 32 + window.scrollY;
+    const leftOffset = rect.left + window.scrollX;
+    [buSelect, ouSelect, toggle].forEach((el, i) => {
+      Object.assign(el.style, {
+        position: 'absolute',
+        top: `${topOffset}px`,
+        left: `${leftOffset + i * 160}px`,
+        padding: '6px 12px',
+        zIndex: 2147483648,
+        background: '#fff',
+        fontWeight: 'bold',
+        fontSize: '14px',
+        cursor: 'pointer'
+      });
+      document.body.appendChild(el);
+    });
+
+    // Load PDF
     let data;
     try {
       const url = embed.getAttribute('original-url') || location.href;
@@ -113,6 +180,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       console.error('Could not fetch PDF');
       return;
     }
+
     const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
     const eventBus = new EventBus();
     const linkService = new PDFLinkService({ eventBus });
@@ -122,22 +190,25 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       eventBus,
       linkService
     });
+
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
+
     eventBus.on('textlayerrendered', ({ pageNumber }) => {
       const pageView = pdfViewer._pages[pageNumber - 1];
       const textLayerEl = pageView?.textLayer?.textLayerDiv;
       if (!textLayerEl) return;
+
       Array.from(textLayerEl.querySelectorAll('div')).forEach(span => {
         const txt = span.textContent.trim();
-        const baseStyle  = span.getAttribute('style') || '';
+        const baseStyle = span.getAttribute('style') || '';
         styleWordsToUse.forEach(({ style, words }) => {
           words.forEach(raw => {
             const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
             if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
               span.dataset.origStyle = baseStyle;
-              span.dataset.hlStyle   = `${baseStyle};${style}`;
+              span.dataset.hlStyle = `${baseStyle};${style}`;
               span.setAttribute('style', span.dataset.hlStyle);
               span.setAttribute(HIGHLIGHT_ATTR, '');
             }
@@ -145,6 +216,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       });
     });
+
     toggle.onclick = () => {
       document.querySelectorAll(`[${HIGHLIGHT_ATTR}]`).forEach(span => {
         span.setAttribute(
