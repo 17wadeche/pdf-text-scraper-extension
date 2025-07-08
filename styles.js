@@ -1,3 +1,5 @@
+// styles.js
+
 const defaultStyleWords = [
   {
     style: 'font-weight:bold',
@@ -37,11 +39,6 @@ const defaultStyleWords = [
       'Patient Weight Units',
       'Patient Date of Birth',
       'PEI',
-      'Contact Name',
-      'Facility ID',
-      'Contact',
-      'Account',
-      'Surgeon',
       'MNAV Comment ID:',
       'MNAV Comment Subject:',
       'MNAV Comment:',
@@ -70,7 +67,6 @@ const defaultStyleWords = [
       'Failure Mechanism',
       'Methodology',
       'Tested By Date',
-      'Surgeon',
       'Lot #',
       'Cause Code Description',
       'Cause Code',
@@ -102,7 +98,6 @@ const defaultStyleWords = [
       'Date Completed',
       'CasePart',
       'AFC',
-      'Date Completed',
       'Does the System Perform as Intended?',
       'Imaging Modalities Failure',
       'Imaging Summary of Failure(s)',
@@ -134,7 +129,6 @@ const defaultStyleWords = [
       'PASS',
       'YES',
       'Return Item Status'
-
     ]
   },
   {
@@ -186,9 +180,7 @@ const defaultStyleWords = [
       'This is a test of the interface update details font background color',
       'This is a test of interface update details font background color',
       'This is a test of the as reported event description font background color',
-      'This is a test of the interface details font background color',
       'This is a test of the interface details background color',
-      'This is a test of interface details font background color',
       'Event confirmed?',
       'Symptom',
       'Most Probable Cause',
@@ -216,246 +208,108 @@ const defaultStyleWords = [
       'WEBMREMOTEWS'
     ]
   }
-]
+];
 
 const config = {
-  MNAV: { //BU
+  MNAV: {
     styleWords: defaultStyleWords,
-    'Cranial and Spinal Technologies': { // OU 
-      styleWords: defaultStyleWords,
-    },
-    'Ear / Nose / Throat': { // OU 
-      styleWords: defaultStyleWords,
-    }
+    'Cranial and Spinal Technologies': { styleWords: defaultStyleWords },
+    'Ear / Nose / Throat':           { styleWords: defaultStyleWords }
   },
-  MAE: { // BU
+  MAE: {
     styleWords: defaultStyleWords,
-    'Cranial and Spinal Technologies': { //OU
-      styleWords: defaultStyleWords,
-    }
+    'Cranial and Spinal Technologies': { styleWords: defaultStyleWords }
   },
-  PSS: { // BU
+  PSS: {
     styleWords: [
-      {
-        style: 'background:yellow',
-        words: ['Date']
-      }
+      { style: 'background:yellow', words: ['Date'] }
     ],
-    'Cranial and Spinal Technologies': { //OU
-      styleWords: defaultStyleWords,
-    }
+    'Cranial and Spinal Technologies': { styleWords: defaultStyleWords }
   },
-  Xomed: { // BU
+  Xomed: {
     styleWords: [
-      {
-        style: 'font-weight:bold',
+      { style: 'font-weight:bold',
         words: [
-          'Subject Code',
-          'Damage Code',
-          'Cause Code',
-          'Object Part Code',
-          'Date of Pick Up',
-          'Email',
-          'E-mail',
-          'email',
-          'e-mail',
-          'To the following address',
-          'Complaint Source',
+          'Subject Code','Damage Code','Cause Code','Object Part Code',
+          'Date of Pick Up','Email','E-mail','email','e-mail',
+          'To the following address','Complaint Source',
           'What symptoms were observed / why is service being requested?'
         ]
       },
-      {
-        style: 'color:blue',
-        words: ['Attachment Received']
-      },
-      {
-        style: 'color:red',
+      { style: 'color:transparent; text-shadow: blue 0px 0px 1px !important',
+        words: ['Attachment Received'] },
+      { style: 'color:transparent; text-shadow: red  0px 0px 1px !important',
         words: [
-          'Subject Code',
-          'Damage Code',
-          'Cause Code',
-          'Object Part Code',
-          'Date of Pick Up',
-          'Email',
-          'E-mail',
-          'email',
-          'e-mail',
-          'To the following address',
-          'Complaint Source',
+          'Subject Code','Damage Code','Cause Code','Object Part Code',
+          'Date of Pick Up','Email','E-mail','email','e-mail',
+          'To the following address','Complaint Source',
           'What symptoms were observed / why is service being requested?',
-          'EMAIL',
-          'E-MAIL'
+          'EMAIL','E-MAIL'
         ]
       },
-      {
-        style: 'color:purple',
+      { style: 'color:transparent; text-shadow: purple 0px 0px 1px !important',
         words: [
-          'Contact',
-          'contact',
-          'Facility ID',
-          'facility ID',
-          'Account',
-          'account',
-          'Surgeon',
-          'surgeon',
-          'Initial Reporter',
-          'initial reporter',
-          'Initial reporter',
-          'Physician',
-          'physician'
+          'Contact','contact','Facility ID','facility ID',
+          'Account','account','Surgeon','surgeon',
+          'Initial Reporter','initial reporter','Initial reporter',
+          'Physician','physician'
         ]
       },
-      {
-        style: 'background:yellow',
+      { style: 'background:yellow',
         words: [
-          'Heat',
-          'heat',
-          'Hot',
-          'hot',
-          'Heated',
-          'heated',
-          'Broke',
-          'broke',
-          'Break',
-          'break',
-          'Fragments',
-          'fragments',
-          'Methodology',
-          'Death',
-          'death',
-          'Injury',
-          'injury',
-          'HOT',
-          'HEAT',
-          'warm',
-          'WARM',
-          'Warm',
-          'BROKE',
-          'BREAK',
-          'FRAGMENT',
-          'DEATH',
-          'INJURY',
-          'Notify',
-          'NOTIFY',
-          'notify',
-          'Notified',
-          'NOTIFIED',
-          'notified',
-          'Aware',
-          'AWARE',
-          'aware',
-          'Correct',
-          'CORRECT',
-          'correct',
-          'Deletion flag is set for the notification'
+          'Heat','heat','Hot','hot','Heated','heated','Broke','broke',
+          'Break','break','Fragments','fragments','Methodology','Death',
+          'death','Injury','injury','HOT','HEAT','warm','WARM','Warm',
+          'BROKE','BREAK','FRAGMENT','DEATH','INJURY','Notify','NOTIFY',
+          'notify','Notified','NOTIFIED','notified','Aware','AWARE','aware',
+          'Correct','CORRECT','correct','Deletion flag is set for the notification'
         ]
       }
     ],
-    'Cranial and Spinal Technologies': { // OU
-      styleWords: defaultStyleWords,
-    }
+    'Cranial and Spinal Technologies': { styleWords: defaultStyleWords }
   },
   CRDM: {
     styleWords: [
-      {
-        style: 'background:yellow',  
-        words: ['MRI']
-      },
-      {
-        style: 'color:red',           
-        words: ['motor stall']
-      },
-      {
-        style: 'font-weight:bold',   
-        words: ['recovery']
-      }
+      { style: 'background:yellow', words: ['MRI'] },
+      { style: 'color:transparent; text-shadow: red 0px 0px 1px !important', words: ['motor stall'] },
+      { style: 'font-weight:bold', words: ['recovery'] }
     ],
     'Cardiac Rhythm Management': {
       styleWords: [
-        {
-          style: 'background:yellow',
-          words: ['infection']
-        },
-        {
-          style: 'font-weight:bold',  
-          words: ['erosion']
-        },
-        {
-          style: 'color:red',      
-          words: ['explant']
-        }
+        { style: 'background:yellow', words: ['infection'] },
+        { style: 'font-weight:bold',  words: ['erosion'] },
+        { style: 'color:transparent; text-shadow: red 0px 0px 1px !important', words: ['explant'] }
       ]
     },
-    'Cardiovascular Diagnostics & Services': { // OU
-      styleWords: defaultStyleWords,
-    },
-    'Mechanical Circulatory Support': { // OU
-      styleWords: defaultStyleWords,
-    }
+    'Cardiovascular Diagnostics & Services': { styleWords: defaultStyleWords },
+    'Mechanical Circulatory Support':         { styleWords: defaultStyleWords }
   },
-  Cryocath: { // BU
-    'Cardiac Ablation Solutions': { // OU
-      styleWords: defaultStyleWords,
-    }
+  Cryocath: { 'Cardiac Ablation Solutions': { styleWords: defaultStyleWords } },
+  'CV-GALWAY': {
+    'Coronary & Renal Denervation':    { styleWords: defaultStyleWords },
+    'Peripheral Vascular Health':      { styleWords: defaultStyleWords }
   },
-  'CV-GALWAY': { // BU
-    'Coronary & Renal Denervation': { // OU
-      styleWords: defaultStyleWords,
-    },
-    'Peripheral Vascular Health': { // OU
-      styleWords: defaultStyleWords,
-    }
+  'CV-SH': {
+    'Cardiac Surgery':                 { styleWords: defaultStyleWords },
+    'Structural Heart and Aortic':     { styleWords: defaultStyleWords }
   },
-  'CV-SH': { // BU
-    'Cardiac Surgery': { // OU
-      styleWords: defaultStyleWords,
-    },
-    'Structural Heart and Aortic': { // OU
-      styleWords: defaultStyleWords,
-    }
-  },
-  'CV-SR': { // BU
-    'Structural Heart and Aortic': { // OU
-      styleWords: defaultStyleWords,
-    }
-  },
-  MITG: { // BU
+  'CV-SR': { 'Structural Heart and Aortic': { styleWords: defaultStyleWords } },
+  MITG: {
     styleWords: defaultStyleWords,
-    'Acute Care & Monitoring': { // OU
-      styleWords: defaultStyleWords,
-    },
-    Endoscopy: { // OU
-      styleWords: defaultStyleWords,
-    },
-    Gastrointestinal: { // OU
-      styleWords: defaultStyleWords,
-    },
-    'Patient Monitoring': { // OU
-      styleWords: defaultStyleWords,
-    },
-    'Pelvic Health': { // OU
-      styleWords: defaultStyleWords,
-    },
-    'Renal Care Solutions': { // OU
-      styleWords: defaultStyleWords,
-    },
-    'Respiratory Interventions': { // OU
-      styleWords: defaultStyleWords,
-    },
-    Surgical: { // OU
-      styleWords: defaultStyleWords,
-    },
-    'Surgical Innovations': { // OU
-      styleWords: defaultStyleWords,
-    },
-    'Surgical Robotics': { // OU
-      styleWords: defaultStyleWords,
-    }
+    'Acute Care & Monitoring':         { styleWords: defaultStyleWords },
+    Endoscopy:                         { styleWords: defaultStyleWords },
+    Gastrointestinal:                  { styleWords: defaultStyleWords },
+    'Patient Monitoring':              { styleWords: defaultStyleWords },
+    'Pelvic Health':                   { styleWords: defaultStyleWords },
+    'Renal Care Solutions':            { styleWords: defaultStyleWords },
+    'Respiratory Interventions':       { styleWords: defaultStyleWords },
+    Surgical:                          { styleWords: defaultStyleWords },
+    'Surgical Innovations':            { styleWords: defaultStyleWords },
+    'Surgical Robotics':               { styleWords: defaultStyleWords }
   },
-  NEUROMOD: { // BU
+  NEUROMOD: {
     styleWords: [
-      {
-        style: 'color:red',
+      { style: 'color:transparent; text-shadow: red 0px 0px 1px !important',
         words: [
           'This is a test of the interface details font color',
           'Text Color Outcome:',
@@ -463,8 +317,7 @@ const config = {
           'This is a test of the as reported event description font color'
         ]
       },
-      {
-        style: 'font-weight:bold',
+      { style: 'font-weight:bold',
         words: [
           'This is a test of the interface details font weight',
           'Text Weight Result:',
@@ -473,8 +326,7 @@ const config = {
           'BU test'
         ]
       },
-      {
-        style: 'background:yellow',
+      { style: 'background:yellow',
         words: [
           'Highlighted Text Name:',
           'This is a test of the interface details font background color',
@@ -482,39 +334,19 @@ const config = {
           'This is a test of the interface update details font background color',
           'This is a test of interface update details font background color',
           'This is a test of the as reported event description font background color',
-          'This is a test of the interface details font background color',
-          'This is a test of the interface details background color',
-          'This is a test of interface details font background color',
+          'This is a test of the interface details background color'
         ]
       }
     ],
-    Neuromodulation: { // OU
+    Neuromodulation: {
       styleWords: [
-        {
-          style: 'color:red',
-          words: ['OU test']
-        }
+        { style: 'color:transparent; text-shadow: red 0px 0px 1px !important', words: ['OU test'] }
       ]
     }
   },
-  NeuroSurgery: { // BU
-    styleWords: defaultStyleWords,
-    'Cranial and Spinal Technologies': { // OU
-      styleWords: defaultStyleWords,
-    }
-  },
-  NV: { // BU
-    styleWords: defaultStyleWords,
-    Neurovascular: { // OU
-      styleWords: defaultStyleWords,
-    }
-  },
-  Spinal: { // BU
-    styleWords: defaultStyleWords,
-    'Cranial and Spinal Technologies': { // OU
-      styleWords: defaultStyleWords,
-    }
-  },
+  NeuroSurgery:          { styleWords: defaultStyleWords, 'Cranial and Spinal Technologies': { styleWords: defaultStyleWords } },
+  NV:                     { styleWords: defaultStyleWords, Neurovascular: { styleWords: defaultStyleWords } },
+  Spinal: { styleWords: defaultStyleWords, 'Cranial and Spinal Technologies': { styleWords: defaultStyleWords } }
 };
 
 export { defaultStyleWords, config };
