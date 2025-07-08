@@ -32,27 +32,13 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     `;
     document.head.appendChild(styleTag);
-
-    // Add PDF.js CSS
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = chrome.runtime.getURL('pdf_viewer.css');
     document.head.appendChild(link);
-
-    // Import configuration
     const { defaultStyleWords, config } = await import(chrome.runtime.getURL('styles.js'));
-
     let currentBU = localStorage.getItem('highlight_BU');
     let currentOU = localStorage.getItem('highlight_OU');
-
-    try {
-      if (top.GUIDE?.PE) {
-        const pe = top.GUIDE.PE[top.GUIDE.PE.curPrEv];
-        currentBU = pe.PartnersTable.find(x => x.PartnerFunction === 'BU Responsible' && x.MainPartner)?.Name || currentBU;
-        currentOU = pe.PartnersTable.find(x => x.PartnerFunction === 'OU Responsible' && x.MainPartner)?.Name || currentOU;
-      }
-    } catch {}
-
     let styleWordsToUse = [];
     function updateStyleWords() {
       styleWordsToUse = [...defaultStyleWords];
@@ -66,16 +52,13 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     updateStyleWords();
     const toggle = document.createElement('button');
     toggle.textContent = 'Original';
-
     const buSelect = document.createElement('select');
     const ouSelect = document.createElement('select');
     [buSelect, ouSelect].forEach(el => el.className = 'modern-select');
-
     buSelect.innerHTML = `<option value="">-- Select BU --</option>` +
       Object.keys(config).map(bu =>
         `<option value="${bu}" ${bu === currentBU ? 'selected' : ''}>${bu}</option>`
       ).join('');
-
     function updateOuOptions() {
       const selectedBU = buSelect.value;
       const ous = Object.keys(config[selectedBU] || {}).filter(k => k !== 'styleWords');
@@ -84,35 +67,42 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
           `<option value="${ou}" ${ou === currentOU ? 'selected' : ''}>${ou}</option>`
         ).join('');
     }
-    updateOuOptions();
-    [buSelect, ouSelect].forEach(select => {
-      select.onchange = () => {
-        currentBU = buSelect.value;
-        currentOU = ouSelect.value;
-        localStorage.setItem('highlight_BU', currentBU);
-        localStorage.setItem('highlight_OU', currentOU);
-        updateStyleWords();
-        document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
-          const txt = span.textContent.trim();
-          const baseStyle = span.dataset.origStyle || '';
-          let styled = false;
-          styleWordsToUse.forEach(({ style, words }) => {
-            words.forEach(raw => {
-              const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-              if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
-                span.dataset.hlStyle = `${baseStyle};${style};opacity:1;pointer-events:auto;`;
-                if (highlightsOn) span.setAttribute('style', span.dataset.hlStyle);
-                styled = true;
-              }
-            });
-          });
-          if (!styled) {
-            span.removeAttribute(HIGHLIGHT_ATTR);
-            span.setAttribute('style', baseStyle);
-          }
-        });
-      };
+    buSelect.addEventListener('change', () => {
+      currentBU = buSelect.value;
+      localStorage.setItem('highlight_BU', currentBU);
+      currentOU = '';
+      localStorage.removeItem('highlight_OU');
+      updateOuOptions();
+      updateStyleWords();
+      document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
+        const base = span.dataset.origStyle || '';
+        span.style.cssText = base; 
+      });
     });
+    ouSelect.addEventListener('change', () => {
+      currentOU = ouSelect.value;
+      localStorage.setItem('highlight_OU', currentOU);
+      updateStyleWords();
+      document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
+        const txt  = span.textContent.trim();
+        const base = span.dataset.origStyle || '';
+        let applied = false;
+        styleWordsToUse.forEach(({ style, words }) => {
+          words.forEach(raw => {
+            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+            if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
+              span.dataset.hlStyle = `${base};${style};opacity:1;pointer-events:auto;`;
+              if (highlightsOn) span.style.cssText = span.dataset.hlStyle;
+              applied = true;
+            }
+          });
+        });
+        if (!applied) {
+          span.style.cssText = base;
+        }
+      });
+    });
+    updateOuOptions();
     Object.assign(buSelect.style, {
       position: 'fixed',
       top: '16px',
