@@ -198,6 +198,19 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       eventBus,
       linkService
     });
+    const visibilityFix = document.createElement('style');
+    visibilityFix.textContent = `
+      .textLayer {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        color: inherit !important;
+      }
+      .textLayer div {
+        opacity: 1 !important;
+        color: inherit !important;
+      }
+    `;
+    document.head.appendChild(visibilityFix);
 
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
