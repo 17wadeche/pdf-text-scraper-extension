@@ -138,6 +138,10 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     const embed    = viewerEl?.shadowRoot
       ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
       : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
+    const url = embed.src
+           || embed.getAttribute('original-url')
+           || embed.getAttribute('data-original-url')
+           || location.href;
     const rect = embed.getBoundingClientRect();
     embed.style.display = 'none';
     const container = document.createElement('div');
