@@ -3,8 +3,10 @@ const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
+
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
   (async () => {
+    // Style for dropdown
     const styleTag = document.createElement('style');
     styleTag.textContent = `
       .modern-select {
@@ -62,7 +64,89 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     }
     updateStyleWords();
-    let highlightsOn = true;            // current state
+    // ========== CONTROL ELEMENTS ========== //
+    const toggle = document.createElement('button');
+    toggle.textContent = 'Original';
+
+    const buSelect = document.createElement('select');
+    const ouSelect = document.createElement('select');
+    [buSelect, ouSelect].forEach(el => el.className = 'modern-select');
+
+    buSelect.innerHTML = `<option value="">-- Select BU --</option>` +
+      Object.keys(config).map(bu =>
+        `<option value="${bu}" ${bu === currentBU ? 'selected' : ''}>${bu}</option>`
+      ).join('');
+
+    function updateOuOptions() {
+      const selectedBU = buSelect.value;
+      const ous = Object.keys(config[selectedBU] || {}).filter(k => k !== 'styleWords');
+      ouSelect.innerHTML = `<option value="">-- Select OU --</option>` +
+        ous.map(ou =>
+          `<option value="${ou}" ${ou === currentOU ? 'selected' : ''}>${ou}</option>`
+        ).join('');
+    }
+    updateOuOptions();
+
+    [buSelect, ouSelect].forEach(select => {
+      select.onchange = () => {
+        currentBU = buSelect.value;
+        currentOU = ouSelect.value;
+        localStorage.setItem('highlight_BU', currentBU);
+        localStorage.setItem('highlight_OU', currentOU);
+        updateStyleWords();
+        document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
+          const txt = span.textContent.trim();
+          const baseStyle = span.dataset.origStyle || '';
+          let styled = false;
+          styleWordsToUse.forEach(({ style, words }) => {
+            words.forEach(raw => {
+              const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+              if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
+                span.dataset.hlStyle = `${baseStyle};${style};opacity:1;pointer-events:auto;`;
+                if (highlightsOn) span.setAttribute('style', span.dataset.hlStyle);
+                styled = true;
+              }
+            });
+          });
+          if (!styled) {
+            span.removeAttribute(HIGHLIGHT_ATTR);
+            span.setAttribute('style', baseStyle);
+          }
+        });
+      };
+    });
+
+    // ========== FIXED POSITION (Always visible) ========== //
+    Object.assign(buSelect.style, {
+      position: 'fixed',
+      top: '16px',
+      left: '16px',
+      zIndex: 2147483648
+    });
+    Object.assign(ouSelect.style, {
+      position: 'fixed',
+      top: '16px',
+      left: '190px',
+      zIndex: 2147483648
+    });
+    Object.assign(toggle.style, {
+      position: 'fixed',
+      top: '16px',
+      left: '364px',
+      background: '#ff0',
+      color: '#000',
+      fontWeight: 'bold',
+      padding: '6px 12px',
+      zIndex: 2147483648,
+      cursor: 'pointer'
+    });
+
+    document.body.appendChild(buSelect);
+    document.body.appendChild(ouSelect);
+    document.body.appendChild(toggle);
+
+
+    let highlightsOn = true;
     const HIGHLIGHT_ATTR = 'data-hl';
     const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
     const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
@@ -89,20 +173,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     const viewerDiv = document.createElement('div');
     viewerDiv.className = 'pdfViewer';
     container.appendChild(viewerDiv);
-    const toggle = document.createElement('button');
-    toggle.textContent = 'Original';
-    Object.assign(toggle.style, {
-      position: 'absolute',
-      top: `${rect.top - 32 + window.scrollY}px`,
-      left: `${rect.left + window.scrollX}px`,
-      padding: '6px 12px',
-      background: '#ff0',
-      color: '#000',
-      fontWeight: 'bold',
-      zIndex: 2147483648,
-      cursor: 'pointer'
-    });
-    embed.parentNode.insertBefore(toggle, container);
     let data;
     try {
       const url = embed.getAttribute('original-url') || location.href;
@@ -120,6 +190,19 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       eventBus,
       linkService
     });
+    const visibilityFix = document.createElement('style');
+    visibilityFix.textContent = `
+      .textLayer {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        color: inherit !important;
+      }
+      .textLayer div {
+        opacity: 1 !important;
+        color: inherit !important;
+      }
+    `;
+    document.head.appendChild(visibilityFix);
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
@@ -127,15 +210,18 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       const pageView = pdfViewer._pages[pageNumber - 1];
       const textLayerEl = pageView?.textLayer?.textLayerDiv;
       if (!textLayerEl) return;
-      Array.from(textLayerEl.querySelectorAll('div')).forEach(span => {
+      Array.from(textLayerEl.querySelectorAll('span')).forEach(span => {
         const txt = span.textContent.trim();
-        const baseStyle  = span.getAttribute('style') || '';
+        const baseStyle = span.getAttribute('style') || '';
         styleWordsToUse.forEach(({ style, words }) => {
           words.forEach(raw => {
             const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
             if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
               span.dataset.origStyle = baseStyle;
-              span.dataset.hlStyle   = `${baseStyle};${style}`;
+              span.dataset.hlStyle = `${baseStyle};${style}`;
+              span.style.opacity = '1';
+              span.style.color = 'black'; // fallback if no color is applied
+              span.style.pointerEvents = 'auto';
               span.setAttribute('style', span.dataset.hlStyle);
               span.setAttribute(HIGHLIGHT_ATTR, '');
             }
@@ -144,7 +230,7 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       });
     });
     toggle.onclick = () => {
-      document.querySelectorAll(`[${HIGHLIGHT_ATTR}]`).forEach(span => {
+      document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`).forEach(span => {
         span.setAttribute(
           'style',
           highlightsOn ? span.dataset.origStyle : span.dataset.hlStyle
