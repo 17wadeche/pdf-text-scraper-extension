@@ -209,6 +209,7 @@ async function main() {
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
+  renderAllHighlights();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
     const pageView  = pdfViewer._pages[pageNumber - 1];
     const textLayer = pageView?.textLayer?.textLayerDiv;
