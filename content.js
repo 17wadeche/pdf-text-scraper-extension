@@ -68,6 +68,31 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
           `<option value="${ou}" ${ou === currentOU ? 'selected' : ''}>${ou}</option>`
         ).join('');
     }
+    window._highlighter = {
+      config,
+      defaultStyleWords,
+      get styleWordsToUse() { return styleWordsToUse },
+      updateStyleWords,
+      buSelect,
+      ouSelect,
+      applyHighlights: () => {
+        document.querySelectorAll(`.textLayer span`).forEach(span => {
+          const txt  = span.textContent.trim();
+          const base = span.dataset.origStyle || '';
+          let applied = false;
+          styleWordsToUse.forEach(({ style, words }) => {
+            words.forEach(raw => {
+              const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
+              if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
+                span.style.cssText = `${base};${style} !important`;
+                applied = true;
+              }
+            });
+          });
+          if (!applied) span.style.cssText = base;
+        });
+      }
+    };
     buSelect.addEventListener('change', () => {
       currentBU = buSelect.value;
       localStorage.setItem('highlight_BU', currentBU);
@@ -247,30 +272,5 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         ? 'Original' 
         : 'Styled';  
     };
-    window._highlighter = {
-    config,
-    defaultStyleWords,
-    get styleWordsToUse() { return styleWordsToUse },
-    updateStyleWords,
-    buSelect,
-    ouSelect,
-    applyHighlights: () => {
-      document.querySelectorAll(`.textLayer span`).forEach(span => {
-        const txt  = span.textContent.trim();
-        const base = span.dataset.origStyle || '';
-        let applied = false;
-        styleWordsToUse.forEach(({ style, words }) => {
-          words.forEach(raw => {
-            const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-            if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
-              span.style.cssText = `${base};${style} !important`;
-              applied = true;
-            }
-          });
-        });
-        if (!applied) span.style.cssText = base;
-      });
-    }
-  };
   })();
 }
