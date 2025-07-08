@@ -64,21 +64,18 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       }
     }
     updateStyleWords();
-
-    // Load PDF.js
+    let highlightsOn = true;            // current state
+    const HIGHLIGHT_ATTR = 'data-hl';
     const pdfjsLib = await import(chrome.runtime.getURL('pdf.mjs'));
     const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
     const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
-
     const viewerEl = document.querySelector('pdf-viewer');
     const embed = viewerEl?.shadowRoot
       ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
       : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
-
     const rect = embed.getBoundingClientRect();
     embed.style.display = 'none';
-
     const container = document.createElement('div');
     Object.assign(container.style, {
       position: 'absolute',
@@ -91,11 +88,9 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       zIndex: 2147483647
     });
     embed.parentNode.insertBefore(container, embed.nextSibling);
-
     const viewerDiv = document.createElement('div');
     viewerDiv.className = 'pdfViewer';
     container.appendChild(viewerDiv);
-
     const toggle = document.createElement('button');
     toggle.textContent = 'Original';
     Object.assign(toggle.style, {
@@ -110,7 +105,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       cursor: 'pointer'
     });
     embed.parentNode.insertBefore(toggle, container);
-
     let data;
     try {
       const url = embed.getAttribute('original-url') || location.href;
@@ -119,52 +113,47 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       console.error('Could not fetch PDF');
       return;
     }
-
     const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
     const eventBus = new EventBus();
     const linkService = new PDFLinkService({ eventBus });
-
     const pdfViewer = new PDFViewer({
       container,
       viewer: viewerDiv,
       eventBus,
       linkService
     });
-
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
-
     eventBus.on('textlayerrendered', ({ pageNumber }) => {
       const pageView = pdfViewer._pages[pageNumber - 1];
       const textLayerEl = pageView?.textLayer?.textLayerDiv;
       if (!textLayerEl) return;
-
       Array.from(textLayerEl.querySelectorAll('div')).forEach(span => {
         const txt = span.textContent.trim();
+        const baseStyle  = span.getAttribute('style') || '';
         styleWordsToUse.forEach(({ style, words }) => {
           words.forEach(raw => {
             const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
             if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
-              span.style.cssText += style;
+              span.dataset.origStyle = baseStyle;
+              span.dataset.hlStyle   = `${baseStyle};${style}`;
+              span.setAttribute('style', span.dataset.hlStyle);
+              span.setAttribute(HIGHLIGHT_ATTR, '');
             }
           });
         });
       });
     });
-
-    let styledOn = true;
     toggle.onclick = () => {
-      if (styledOn) {
-        container.style.display = 'none';
-        embed.style.display = 'block';
-        toggle.textContent = 'Styled';
-      } else {
-        container.style.display = 'block';
-        embed.style.display = 'none';
-        toggle.textContent = 'Original';
-      }
-      styledOn = !styledOn;
+      document.querySelectorAll(`[${HIGHLIGHT_ATTR}]`).forEach(span => {
+        span.setAttribute(
+          'style',
+          highlightsOn ? span.dataset.origStyle : span.dataset.hlStyle
+        );
+      });
+      toggle.textContent = highlightsOn ? 'Styled' : 'Original';
+      highlightsOn = !highlightsOn;
     };
   })();
 }
