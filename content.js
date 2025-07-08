@@ -1,5 +1,4 @@
 // content.js
-
 const ALLOWED_PREFIXES = [
   'https://crm.medtronic.com/sap/bc/contentserver/',
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
@@ -49,7 +48,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       currentOU = pe.PartnersTable.find(x => x.PartnerFunction==='OU Responsible'&&x.MainPartner)?.Name || currentOU;
     }
   } catch {}
-
   let styleWordsToUse = [];
   function updateStyleWords() {
     styleWordsToUse = [...defaultStyleWords];
@@ -61,82 +59,16 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     }
   }
   updateStyleWords();
-
-  // ───────────────────────────────────────────────────────────
-  // 3) Fallback HTML-only highlighter
-  // ───────────────────────────────────────────────────────────
-  const escapeHTML = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  function unwrapHighlights() {
-    document.querySelectorAll('span[data-highlighted]').forEach(sp =>
-      sp.replaceWith(document.createTextNode(sp.textContent))
-    );
-  }
-  function highlightHTML(words) {
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    let node;
-    while (node = walker.nextNode()) {
-      const orig = node.textContent, esc = escapeHTML(orig);
-      let html = esc;
-      words.forEach(({ style, words }) => {
-        words.forEach(raw => {
-          const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-          html = html.replace(new RegExp(`\\b(${safe})\\b`, 'gi'),
-            `<span style="${style}" data-highlighted="true">$1</span>`
-          );
-        });
-      });
-      if (html !== esc) {
-        node.parentNode.replaceChild(
-          document.createRange().createContextualFragment(html),
-          node
-        );
-      }
-    }
-  }
-
-  // ───────────────────────────────────────────────────────────
-  // 4) Import PDF.js core + viewer (same version!)
-  // ───────────────────────────────────────────────────────────
   const pdfjsLib    = await import(chrome.runtime.getURL('pdfjs/pdf.mjs'));
   const pdfjsViewer = await import(chrome.runtime.getURL('pdfjs/pdf_viewer.mjs'));
   pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdfjs/pdf.worker.mjs');
   const { PDFViewer, EventBus } = pdfjsViewer;
-
-  // ───────────────────────────────────────────────────────────
-  // 5) Find the native <embed> (or <pdf-viewer>)
-  // ───────────────────────────────────────────────────────────
   const viewerEl = document.querySelector('pdf-viewer');
   const embed = viewerEl?.shadowRoot
     ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
     : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
-
-  if (!embed) {
-    // HTML-only
-    highlightHTML(styleWordsToUse);
-    const btn = document.createElement('button');
-    btn.textContent = 'Original HTML';
-    Object.assign(btn.style, {
-      position:'fixed',top:'10px',right:'10px',
-      padding:'6px 12px',background:'#ff0',color:'#000',
-      fontWeight:'bold',zIndex:2147483648,cursor:'pointer'
-    });
-    document.body.appendChild(btn);
-    let on = true;
-    btn.onclick = () => {
-      on ? unwrapHighlights() : highlightHTML(styleWordsToUse);
-      btn.textContent = on ? 'Styled HTML' : 'Original HTML';
-      on = !on;
-    };
-    return;
-  }
-
-  // ───────────────────────────────────────────────────────────
-  // 6) PDF Branch: hide native, build PDF.js viewer
-  // ───────────────────────────────────────────────────────────
   const rect = embed.getBoundingClientRect();
   embed.style.display = 'none';
-
-  // 6a) outer scroll container
   const container = document.createElement('div');
   Object.assign(container.style, {
     position:'absolute',
@@ -149,15 +81,11 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     zIndex:2147483647
   });
   embed.parentNode.insertBefore(container, embed.nextSibling);
-
-  // 6b) inner viewer element
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
-
-  // 6c) toggle button
   const toggle = document.createElement('button');
-  toggle.textContent = 'Original PDF';
+  toggle.textContent = 'Original';
   Object.assign(toggle.style, {
     position:'absolute',
     top:`${rect.top-32+window.scrollY}px`,
@@ -166,8 +94,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     fontWeight:'bold',zIndex:2147483648,cursor:'pointer'
   });
   embed.parentNode.insertBefore(toggle, container);
-
-  // 6d) fetch the PDF bytes
   let data;
   try {
     const url = embed.getAttribute('original-url') || location.href;
@@ -176,8 +102,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     console.error('Could not fetch PDF');
     return;
   }
-
-  // 6e) initialize PDFViewer
   const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
   const eventBus = new EventBus();
   const pdfViewer = new PDFViewer({
@@ -187,8 +111,6 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     textLayerMode: 2
   });
   pdfViewer.setDocument(pdfDoc);
-
-  // 6f) apply highlights whenever a page's text layer is rendered
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
     const pageView    = pdfViewer._pages[pageNumber - 1];
     const textLayerEl = pageView.textLayer.textLayerDiv;
@@ -204,18 +126,16 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
       });
     });
   });
-
-  // 6g) toggle back to native embed
   let styledOn = true;
   toggle.onclick = () => {
     if (styledOn) {
       container.style.display = 'none';
       embed.style.display     = 'block';
-      toggle.textContent      = 'Styled PDF';
+      toggle.textContent      = 'Styled';
     } else {
       container.style.display = 'block';
       embed.style.display     = 'none';
-      toggle.textContent      = 'Original PDF';
+      toggle.textContent      = 'Original';
     }
     styledOn = !styledOn;
   };
