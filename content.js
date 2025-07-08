@@ -189,19 +189,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     document.head.appendChild(fix);
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
+    pdfViewer.currentScaleValue = 'page-width';
     linkService.setDocument(pdfDoc, null);
-    fix.textContent = `
-      .textLayer, .textLayer div {
-        opacity:1 !important;
-        pointer-events:auto !important;
-      }
-
-      /* force the rendered PDF page canvases to be 100% of their wrapper */
-      .pdfViewer .page {
-        width: 100% !important;
-        height: auto !important;
-      }
-    `;
     let _initialPassDone = false;
     eventBus.on('textlayerrendered', ({ pageNumber }) => {
       if (!_initialPassDone) {
