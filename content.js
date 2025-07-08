@@ -66,11 +66,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     // ─────────────────────────────────────────────
     const override = document.createElement('style');
     override.textContent = `
-      .textLayer span {
-        color: black !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-      }
+      .textLayer span           { opacity: 1 !important; pointer-events: auto !important; }
+      .textLayer span:not([${HIGHLIGHT_ATTR}]) { color: black; }   /* default only for non-highlights */
     `;
     document.head.appendChild(override);
 
