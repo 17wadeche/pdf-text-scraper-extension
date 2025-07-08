@@ -186,14 +186,12 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     `;
     document.head.appendChild(visibilityFix);
     linkService.setViewer(pdfViewer);
-    pdfViewer.setDocument(pdfDoc);
-    linkService.setDocument(pdfDoc, null);
     eventBus.on('textlayerrendered', ({ pageNumber }) => {
       const pageView = pdfViewer._pages[pageNumber - 1];
       const textLayerEl = pageView?.textLayer?.textLayerDiv;
       if (!textLayerEl) return;
       Array.from(textLayerEl.querySelectorAll('span')).forEach(span => {
-        const txt = span.textContent.trim();
+        const txt       = span.textContent.trim();
         const baseStyle = span.getAttribute('style') || '';
         styleWordsToUse.forEach(({ style, words }) => {
           words.forEach(raw => {
@@ -211,6 +209,8 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       });
     });
+    pdfViewer.setDocument(pdfDoc);
+    linkService.setDocument(pdfDoc, null);
     toggle.onclick = () => {
       highlightsOn = !highlightsOn;
       if (highlightsOn) {
