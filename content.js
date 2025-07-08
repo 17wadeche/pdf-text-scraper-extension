@@ -126,80 +126,70 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
         });
       };
     });
+    Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
+    Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'200px', zIndex:2147483648 });
+    Object.assign(toggle.style,  { position:'fixed', top:'16px', left:'380px', zIndex:2147483648 });
+    document.body.append(buSelect, ouSelect, toggle);
     const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
     const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
     pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
-
     const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
-
-    /* locate the native <embed> that Chrome created */
     const viewerEl = document.querySelector('pdf-viewer');
-    const embed = viewerEl?.shadowRoot
+    const embed    = viewerEl?.shadowRoot
       ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
       : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
-
     const rect = embed.getBoundingClientRect();
     embed.style.display = 'none';
-
-    /* container to host pdf.js viewer */
     const container = document.createElement('div');
     container.className = 'viewerContainer';
     Object.assign(container.style, {
-      position: 'absolute',
-      top : `${rect.top  + scrollY}px`,
-      left: `${rect.left + scrollX}px`,
-      width : `${rect.width }px`,
-      height: `${rect.height}px`,
-      overflow: 'auto',
-      background: '#fff',
-      zIndex: 2147483647
+      position:'absolute',
+      top:  `${rect.top+scrollY}px`,
+      left: `${rect.left+scrollX}px`,
+      width:`${rect.width}px`,
+      height:`${rect.height}px`,
+      overflow:'auto',
+      background:'#fff',
+      zIndex:2147483647
     });
     embed.parentNode.insertBefore(container, embed.nextSibling);
-
     const viewerDiv = document.createElement('div');
     viewerDiv.className = 'pdfViewer';
     container.appendChild(viewerDiv);
-
-    /* fetch PDF bytes */
-    const url  = embed.getAttribute('original-url') || location.href;
-    const data = await fetch(url, { credentials: 'include' }).then(r => r.arrayBuffer());
-    const pdfDoc = await pdfjsLib.getDocument({ data }).promise;
-
-    /* ───────── 5.  EVENT BUS **before** setDocument ───────── */
+    let data;
+    try {
+      const url = embed.getAttribute('original-url') || location.href;
+      data = await fetch(url, { credentials:'include' }).then(r=>r.arrayBuffer());
+    } catch {
+      console.error('Could not fetch PDF');
+      return;
+    }
+    const pdfDoc = await pdfjsLib.getDocument({data}).promise;
     const eventBus    = new EventBus();
-    eventBus.on('textlayerrendered', onTextLayerRendered);   // <-- listener first!
-
     const linkService = new PDFLinkService({ eventBus });
     const pdfViewer   = new PDFViewer({
       container,
-      viewer : viewerDiv,
+      viewer: viewerDiv,
       eventBus,
       linkService,
       textLayerMode: 2
     });
-
     linkService.setViewer(pdfViewer);
-    pdfViewer.setDocument(pdfDoc);          // <-- now safe: listener already attached
+    pdfViewer.setDocument(pdfDoc);
     linkService.setDocument(pdfDoc, null);
-
-    /* ───────── 6.  HIGHLIGHTER ───────── */
-    function onTextLayerRendered({ pageNumber }) {
-      const pageView  = pdfViewer._pages[pageNumber - 1];
-      const textLayer = pageView?.textLayer?.textLayerDiv;
+    eventBus.on("textlayerrendered", ({ pageNumber }) => {
+      const pageView   = pdfViewer._pages[pageNumber - 1];
+      const textLayer  = pageView?.textLayer?.textLayerDiv;
       if (!textLayer) return;
-
-      const spans     = Array.from(textLayer.querySelectorAll('span'));
-      const fullText  = spans.map(s => s.textContent).join('');
-      const lowerText = fullText.toLowerCase();
-
-      /* map each span to its [start,end) offsets in fullText */
+      const spans      = Array.from(textLayer.querySelectorAll("span"));
+      const fullText   = spans.map(s => s.textContent).join(""); // one long string
+      const lowerText  = fullText.toLowerCase();                 // for case-insensitive search
       let pos = 0;
-      const spanRanges = spans.map(span => {
+      const spanRanges = spans.map(s => {
         const start = pos;
-        pos += span.textContent.length;
-        return { span, start, end: pos };
+        pos += s.textContent.length;
+        return { span: s, start, end: pos };
       });
-
       styleWordsToUse.forEach(({ style, words }) => {
         words.forEach(raw => {
           const needle = raw.toLowerCase();
@@ -207,30 +197,29 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
           while (idx !== -1) {
             const hitStart = idx;
             const hitEnd   = idx + needle.length;
-
             spanRanges.forEach(({ span, start, end }) => {
               if (end > hitStart && start < hitEnd) {
-                const base = span.getAttribute('style') || '';
+                const base = span.getAttribute("style") || "";
                 if (!span.dataset.origStyle) span.dataset.origStyle = base;
                 span.dataset.hlStyle = `${base};${style};opacity:1;pointer-events:auto`;
-                span.setAttribute('style', span.dataset.hlStyle);
-                span.setAttribute(HIGHLIGHT_ATTR, '');
+                span.setAttribute("style", span.dataset.hlStyle);
+                span.setAttribute(HIGHLIGHT_ATTR, "");
               }
             });
-            idx = lowerText.indexOf(needle, hitEnd); // look for next occurrence
+            idx = lowerText.indexOf(needle, hitEnd);  // look for next occurrence
           }
         });
       });
-    }
-
-    /* ───────── 7.  TOGGLE ORIGINAL / STYLED ───────── */
-    toggleBtn.onclick = () => {
+    });
+    toggle.onclick = () => {
       document.querySelectorAll(`.textLayer span[${HIGHLIGHT_ATTR}]`)
-        .forEach(span => span.setAttribute(
+              .forEach(span => {
+        span.setAttribute(
           'style',
           highlightsOn ? span.dataset.origStyle : span.dataset.hlStyle
-        ));
-      toggleBtn.textContent = highlightsOn ? 'Styled' : 'Original';
+        );
+      });
+      toggle.textContent = highlightsOn ? 'Styled' : 'Original';
       highlightsOn = !highlightsOn;
     };
   })();
