@@ -204,9 +204,11 @@ if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
     document.head.appendChild(fix);
     linkService.setViewer(pdfViewer);
     pdfViewer.setDocument(pdfDoc);
-    eventBus.on('pagesloaded', () => {
+    function onFirstLoad() {
       renderAllHighlights();
-    });
+      eventBus.off('pagesloaded', onFirstLoad);
+    }
+    eventBus.on('pagesloaded', onFirstLoad);
     linkService.setDocument(pdfDoc, null);
     eventBus.on('textlayerrendered', ({pageNumber}) => {
       const pageView  = pdfViewer._pages[pageNumber-1];
