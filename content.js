@@ -138,11 +138,14 @@ async function main() {
               textNode.__highlightId = Symbol();
             }
             const key = `${String(textNode.__highlightId)}|${m.index}|${m[0].length}`;
+            const before = text[m.index - 1];
+            const shift  = before === '*' || (before === ' ' && text[m.index - 2] === '*');
             jobsByKey[key] = {
               node:  textNode,
               start: m.index,
               end:   m.index + m[0].length,
-              style: rule.style
+              style: rule.style,
+              shift
             };
             console.log('[Highlight] Matched:', m[0], 'with style:', rule.style);
           }
@@ -186,6 +189,8 @@ async function main() {
         const after  = node.splitText(end);
         const target = node.splitText(start);
         const wrap   = document.createElement('span');
+        wrap.classList.add('styled-word');
+        if (jobs.shift) wrap.classList.add('shift-left');
         wrap.className = 'styled-word';
         wrap.style.cssText = style +
           (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
@@ -305,6 +310,16 @@ async function main() {
       position: absolute;
       pointer-events: none;
       mix-blend-mode: multiply;  
+    }
+  `;
+  fix.textContent += `
+    .word-highlight.shift-left {
+      transform: translateX(-1px);
+    }
+    .styled-word.shift-left {
+      position: relative !important;
+      left: -1px !important;
+      display: inline-block !important;
     }
   `;
   document.head.appendChild(fix);
