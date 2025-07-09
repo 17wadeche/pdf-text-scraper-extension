@@ -203,7 +203,9 @@ async function main() {
   }
   function renderAllHighlights() {
     clearHighlights();
-    container.querySelectorAll('.page').forEach(page => {
+    pdfViewer._pages.forEach((pageView, index) => {
+      if (!renderedPages.has(index + 1)) return;
+      const page = pageView.div;
       page.style.position = 'relative';
       page.querySelectorAll('.textLayer span').forEach(span => {
         const txt = span.textContent.trim();
