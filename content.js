@@ -143,7 +143,7 @@ async function main() {
               end:   m.index + m[0].length,
               style: rule.style
             };
-            console.log('[Highlight] Matched:', m[0], 'with style:', rules.style);
+            console.log('[Highlight] Matched:', m[0], 'with style:', rule.style);
           }
         }
       }
@@ -164,8 +164,10 @@ async function main() {
           const box = document.createElement('div');
           box.className = 'word-highlight';
           box.style.cssText = `${style};
-            left:${r.left  + window.scrollX}px;
-            top:${r.top   + window.scrollY}px;
+            position:absolute;
+            z-index: 10000;   
+            left:${r.left - container.getBoundingClientRect().left}px;
+            top:${r.top  - container.getBoundingClientRect().top }px;
             width:${r.width}px;height:${r.height}px`;
           document.body.appendChild(box);
         }
