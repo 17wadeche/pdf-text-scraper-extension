@@ -200,12 +200,29 @@ async function main() {
   const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
   const fix = document.createElement('style');
   fix.textContent = `
-    .textLayer, .textLayer div {
-      opacity:1 !important; pointer-events:auto !important;
+    .textLayer {
+      transform: none !important;
+      text-align: initial !important;
+      line-height: 1 !important;
+      pointer-events: auto !important;
+      opacity: 1 !important;
+    }
+    .textLayer span {
+      display: inline !important;
+      position: absolute !important;
+      white-space: pre !important;
+      transform-origin: 0 0 !important;
+    }
+    .pdfViewer {
+      position: relative;
+    }
+    .page {
+      position: relative;
     }
   `;
   document.head.appendChild(fix);
   linkService.setViewer(pdfViewer);
+  await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
