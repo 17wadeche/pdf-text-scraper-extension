@@ -208,6 +208,9 @@ async function main() {
         pointer-events: auto !important;
         opacity: 1 !important;
     }
+    .textLayer span {
+      mix-blend-mode: multiply;
+    }
   `;
   document.head.appendChild(fix);
   linkService.setViewer(pdfViewer);
