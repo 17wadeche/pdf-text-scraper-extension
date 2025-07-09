@@ -168,8 +168,8 @@ async function main() {
         for (const r of range.getClientRects()) {
           const box = document.createElement('div');
           box.className = 'word-highlight';
-          const x = (r.left - pageRect.left - 20) / scale;
-          const y = (r.top  - pageRect.top ) / scale;
+          const x = (r.left - pageRect.left - 8) / scale;
+          const y = (r.top  - pageRect.top - 8) / scale;
           box.style.cssText = `${style};
             position:absolute;
             left:${x}px;
