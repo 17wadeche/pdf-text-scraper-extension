@@ -77,6 +77,7 @@ async function main() {
     console.log('[Highlight] Active BU:', currentBU);
     console.log('[Highlight] Active OU:', currentOU);
     console.log('[Highlight] Using rules:', styleWordsToUse.map(r => ({ words: r.words, style: r.style })));
+    window._styleWordsToUse = styleWordsToUse;
   }
   updateStyleWords();
   const buSelect = document.createElement('select');
@@ -405,7 +406,6 @@ async function main() {
     renderedPages.add(pageNumber);
   });
   let showingStyled = true;
-  window._styleWordsToUse = styleWordsToUse;
   toggle.onclick = () => {
     showingStyled = !showingStyled;
     if (showingStyled) {
