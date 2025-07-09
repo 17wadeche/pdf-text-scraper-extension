@@ -209,12 +209,18 @@ async function main() {
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
+  eventBus.on('pagesloaded', () => {
+    setTimeout(() => {
+      renderAllHighlights();
+    }, 300);
+  });
   renderAllHighlights();
   eventBus.on('pagesloaded', () => {
     renderAllHighlights();
   });
+  const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
-    const pageView  = pdfViewer._pages[pageNumber - 1];
+    const pageView = pdfViewer._pages[pageNumber - 1];
     const textLayer = pageView?.textLayer?.textLayerDiv;
     if (!textLayer) return;
     Array.from(textLayer.querySelectorAll('span')).forEach(span => {
@@ -222,6 +228,7 @@ async function main() {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
     });
+    renderedPages.add(pageNumber);
     renderAllHighlights();
   });
   let showingStyled = true;
