@@ -304,7 +304,7 @@ async function main() {
   const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
   const eventBus    = new EventBus();
   const linkService = new PDFLinkService({eventBus});
-  const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
+  const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService, textLayerMode: 2 });
   const fix = document.createElement('style');
   fix.textContent = `
     .textLayer span {
