@@ -202,10 +202,23 @@ async function main() {
     }
   }
   function renderAllHighlights() {
-    clearHighlights(); 
+    clearHighlights();
     container.querySelectorAll('.page').forEach(page => {
       page.style.position = 'relative';
       page.querySelectorAll('.textLayer span').forEach(span => {
+        const txt = span.textContent.trim();
+        if (txt.startsWith('* ')) {
+          const firstWord = txt.slice(2).split(/\s+/)[0];
+          const rx = new RegExp(
+            `(?<![\\p{L}\\p{N}])${esc(firstWord)}(?![\\p{L}\\p{N}])`,
+            'g'
+          );
+          highlightSpan(span, [{
+            _regexes: [ rx ],
+            style: 'background: yellow; color: black;'
+          }], page);
+          return;
+        }
         highlightSpan(span, styleWordsToUse, page);
       });
     });
