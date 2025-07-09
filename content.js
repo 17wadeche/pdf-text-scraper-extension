@@ -202,7 +202,8 @@ async function main() {
     }
   }
   function renderAllHighlights() {
-    clearHighlights();
+    if (!container) return;
+    clearHighlights(container);
     container.querySelectorAll('.page').forEach(page => {
       page.style.position = 'relative';
       page.querySelectorAll('.textLayer span').forEach(span => {
@@ -226,12 +227,14 @@ async function main() {
     localStorage.removeItem('highlight_OU');
     updateOuOptions();
     updateStyleWords();
+    clearHighlights(container); 
     renderAllHighlights();
   };
   ouSelect.onchange = () => {
     currentOU = ouSelect.value;
     localStorage.setItem('highlight_OU', currentOU);
     updateStyleWords();
+    clearHighlights(container); 
     renderAllHighlights();
   };
   Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
