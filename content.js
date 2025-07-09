@@ -161,22 +161,24 @@ async function main() {
         const range = document.createRange();
         range.setStart(node, start);
         range.setEnd  (node, end);
-        const contRect = container.getBoundingClientRect();
+        const pageRect = page.getBoundingClientRect();
         let   scale    = 1;
         const m = page.style.transform.match(/scale\(([^)]+)\)/);
         if (m) scale = parseFloat(m[1]);
         for (const r of range.getClientRects()) {
           const box = document.createElement('div');
           box.className = 'word-highlight';
-          const x = (r.left - contRect.left + container.scrollLeft) / scale;
-          const y = (r.top  - contRect.top  + container.scrollTop ) / scale;
+          const x = (r.left - pageRect.left) / scale;
+          const y = (r.top  - pageRect.top ) / scale;
           box.style.cssText = `${style};
             position:absolute;
             left:${x}px;
             top:${y}px;
             width:${r.width  / scale}px;
             height:${r.height / scale}px;
-            pointer-events:none;mix-blend-mode:multiply;z-index:5`;
+            pointer-events:none;
+            mix-blend-mode:
+            multiply;z-index:5`;
             page.appendChild(box);   
         }
         range.detach();
