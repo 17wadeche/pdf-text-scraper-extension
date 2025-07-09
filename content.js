@@ -118,7 +118,6 @@ async function main() {
       styleWordsToUse.forEach(({style, _regexes }) => {
         const needsTextColour = !/color\s*:/.test(style);
         _regexes.forEach(rx => {
-          const gRx = new RegExp(rx.source, rx.flags.includes('g') ? rx.flags : rx.flags + 'g');
           html = html.replace(rx, `<span style="${style}${needsTextColour?FORCE_TEXT_VISIBLE:''}">$&</span>`);
         });
       });
