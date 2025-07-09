@@ -146,6 +146,7 @@ async function main() {
             Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;
     });
     for (const { node, start, end, style } of jobs) {
+      if (end > node.length) continue;
       if (/background\s*:/.test(style)) {
         const range = document.createRange();
         range.setStart(node, start);
