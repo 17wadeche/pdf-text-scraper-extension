@@ -13,7 +13,7 @@ function isPdfEmbedPresent() {
 function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function makeRegex(word) {
   const p = esc(word.trim());
-  return new RegExp(`(^|[^\\p{L}\\p{N}])(${p})([^\\p{L}\\p{N}]|$)`, 'iu');
+  return new RegExp(`(?<![\\p{L}\\p{N}])(${p})(?![\\p{L}\\p{N}])`, 'giu');
 }
 const FORCE_TEXT_VISIBLE = ';color:#000 !important;-webkit-text-fill-color:#000 !important;';
 function waitForPdfEmbed() {
@@ -124,11 +124,7 @@ async function main() {
         const needsTextColour = !/color\s*:/.test(style);
         _regexes.forEach(rx => {
           const gRx = new RegExp(rx.source, rx.flags.includes('g') ? rx.flags : rx.flags + 'g');
-          html = html.replace(gRx, (_m, left, hit, right) => {
-            const wrapped =
-              `<span style="${style}${needsTextColour ? FORCE_TEXT_VISIBLE : ''}">${hit}</span>`;
-            return `${left}${wrapped}${right}`;
-          });
+          html = html.replace(rx, `<span style="${style}${needsTextColour?FORCE_TEXT_VISIBLE:''}">$&</span>`);
         });
       });
       if (html !== orig) span.innerHTML = html;
@@ -222,12 +218,11 @@ async function main() {
   const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
   const fix = document.createElement('style');
   fix.textContent = `
-      .textLayer,
-      .textLayer span {
-        pointer-events: auto !important;
-        opacity: 1 !important;
-    }
     .textLayer span {
+      display: inline-block !important;
+      white-space: pre !important;
+      pointer-events: auto !important;
+      opacity: 1 !important;
       mix-blend-mode: multiply;
     }
   `;
