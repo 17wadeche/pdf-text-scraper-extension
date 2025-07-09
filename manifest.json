@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Attachment Formatting Tool",
   "description": "Formatting Tool for that highlights, bolds and colors words based on the configuration selected for PDF files.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
