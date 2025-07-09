@@ -320,7 +320,7 @@ async function main() {
     }
     .styled-word.shift-left {
       position: relative !important;
-      left: -1.5px !important;
+      left: -2px !important;
       display: inline-block !important;
     }
   `;
