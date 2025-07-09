@@ -112,19 +112,14 @@ async function main() {
       if (!span.dataset.origStyle) {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
-      span.style.cssText = span.dataset.origStyle;
-      const orig = span.textContent;
-      let html   = orig;  
-      styleWordsToUse.forEach(({style, _regexes }) => {
-        const needsTextColour = !/color\s*:/.test(style);
-        _regexes.forEach(rx => {
-          html = html.replace(
-            rx, 
-            `<span class="styled-word" style="${style}${needsTextColour?FORCE_TEXT_VISIBLE:''}">$&</span>`
-          );
-        });
-      });
-      if (html !== orig) span.innerHTML = html;
+      span.style.cssText = span.dataset.origStyle;   // clear previous highlight
+      for (const { style, _regexes } of styleWordsToUse) {
+        if (_regexes.some(rx => rx.test(span.textContent))) {
+          span.style.cssText += ';' + style +
+            (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
+          break;                                     // one style per span
+        }
+      }
     });
   }
   buSelect.onchange = () => {
