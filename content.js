@@ -212,7 +212,7 @@ async function main() {
         if (txt.startsWith('* ')) {
           const yellowRules = styleWordsToUse.map(rule => ({
             _regexes: rule._regexes,
-            style:    'background: green; color: black;'
+            style:    'background: orange; color: black;'
           }));
           highlightSpan(span, yellowRules, page);
           return;  // done with this span
