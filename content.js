@@ -143,6 +143,7 @@ async function main() {
               end:   m.index + m[0].length,
               style: rule.style
             };
+            console.log('[Highlight] Matched:', m[0], 'with style:', rules.style);
           }
         }
       }
@@ -180,7 +181,6 @@ async function main() {
         target.parentNode.replaceChild(wrap, target);
       }
     }
-    console.log('[Highlight] Matched:', m[0], 'with style:', rules.style);
   }
   function renderAllHighlights() {
     container.querySelectorAll('.page').forEach(page => {
