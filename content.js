@@ -107,19 +107,49 @@ async function main() {
     }
   }
   updateOuOptions();
-  function renderAllHighlights() {
-    document.querySelectorAll('.textLayer span').forEach(span => {
-      if (!span.dataset.origStyle) {
-        span.dataset.origStyle = span.getAttribute('style') || '';
-      }
-      span.style.cssText = span.dataset.origStyle;   // clear previous highlight
-      for (const { style, _regexes } of styleWordsToUse) {
-        if (_regexes.some(rx => rx.test(span.textContent))) {
-          span.style.cssText += ';' + style +
-            (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
-          break;                                     // one style per span
+  function clearHighlights(pageRoot) {
+    pageRoot.querySelectorAll('.styled-word').forEach(w => {
+      const p = w.parentNode;
+      while (w.firstChild) p.insertBefore(w.firstChild, w);
+      w.remove();
+    });
+    pageRoot.querySelectorAll('.word-highlight').forEach(box => box.remove());
+  }
+  function highlightSpan(span, rule) {
+    for (const rx of rule._regexes) {
+      let m;
+      while ((m = rx.exec(span.textContent))) {
+        const range = document.createRange();
+        range.setStart(span.firstChild, m.index);
+        range.setEnd  (span.firstChild, m.index + m[0].length);
+        if (/background\s*:/.test(rule.style)) {
+          Array.from(range.getClientRects()).forEach(r => {
+            const box = document.createElement('div');
+            box.className = 'word-highlight';
+            box.style.cssText = `${rule.style};
+              left:${r.left + window.scrollX}px;
+              top:${r.top  + window.scrollY}px;
+              width:${r.width}px;height:${r.height}px;`;
+            document.body.appendChild(box);
+          });
+        } else {
+          const wrapper = document.createElement('span');
+          wrapper.className = 'styled-word';
+          wrapper.style.cssText = rule.style +
+            (!/color\s*:/.test(rule.style) ? FORCE_TEXT_VISIBLE : '');
+          range.surroundContents(wrapper);   // <-- zero-shift because of display:contents
         }
       }
+    }
+  }
+  function renderAllHighlights() {
+    document.querySelectorAll('.page').forEach(page => {
+      clearHighlights(page);                           //  ← NEW
+      page.querySelectorAll('.textLayer span').forEach(span => {
+        for (const rule of styleWordsToUse) {
+          highlightSpan(span, rule);                   //  ← NEW
+        }
+      });
     });
   }
   buSelect.onchange = () => {
@@ -216,9 +246,14 @@ async function main() {
       mix-blend-mode:multiply;
     }
     .styled-word { 
-      position:static; 
-      display:inline;
+      display: contents !important;
       font:inherit;
+      letter-spacing: inherit !important;
+    }
+    .word-highlight {
+      position: absolute;
+      pointer-events: none;
+      mix-blend-mode: multiply;  
     }
   `;
   document.head.appendChild(fix);
