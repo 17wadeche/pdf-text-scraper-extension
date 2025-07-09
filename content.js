@@ -379,4 +379,9 @@ async function main() {
       toggle.textContent = 'Styled';
     }
   };
+  setInterval(() => {
+    if (showingStyled && container?.offsetParent !== null) {
+      renderAllHighlights();
+    }
+  }, 100);
 }
