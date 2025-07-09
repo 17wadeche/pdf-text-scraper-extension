@@ -353,13 +353,27 @@ async function main() {
     const pageView = pdfViewer._pages[pageNumber - 1];
     const textLayer = pageView?.textLayer?.textLayerDiv;
     if (!textLayer) return;
+    const pageElement = pageView.div;
+    pageElement.style.position = 'relative';
     Array.from(textLayer.querySelectorAll('span')).forEach(span => {
       if (!span.dataset.origStyle) {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
     });
+    clearHighlights(pageElement);
+    pageElement.querySelectorAll('.textLayer span').forEach(span => {
+      const txt = span.textContent.trim();
+      if (txt.startsWith('* ')) {
+        const yellowRules = styleWordsToUse.map(rule => ({
+          _regexes: rule._regexes,
+          style: 'background: orange; color: black;'
+        }));
+        highlightSpan(span, yellowRules, pageElement);
+        return;
+      }
+      highlightSpan(span, styleWordsToUse, pageElement);
+    });
     renderedPages.add(pageNumber);
-    renderAllHighlights();
   });
   let showingStyled = true;
   toggle.onclick = () => {
