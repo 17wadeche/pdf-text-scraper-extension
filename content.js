@@ -10,6 +10,11 @@ function isPdfEmbedPresent() {
     'embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]'
   );
 }
+function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function makeRegex(word) {
+  const p = esc(word.trim());
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${p}([^\\p{L}\\p{N}]|$)`, 'iu');
+}
 const FORCE_TEXT_VISIBLE = ';color:#000 !important;-webkit-text-fill-color:#000 !important;';
 function waitForPdfEmbed() {
   if (initialized) return;
@@ -67,7 +72,10 @@ async function main() {
     if (currentBU && currentOU && config[currentBU][currentOU]?.styleWords) {
       styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
     }
-  }
+    styleWordsToUse.forEach(entry => {
+      entry._regexes = entry.words.map(makeRegex);
+    });
+  };
   updateStyleWords();
   const buSelect = document.createElement('select');
   const ouSelect = document.createElement('select');
@@ -111,18 +119,15 @@ async function main() {
       }
       span.style.cssText = span.dataset.origStyle;  
       const txt = span.textContent.trim();
-      styleWordsToUse.forEach(({style,words}) => {
-        words.forEach(raw => {
-          if (clean(txt).includes(clean(raw))) {
-            const needsTextColour = /background\s*:/i.test(style);
-            span.style.cssText =
-              span.dataset.origStyle +
-              ';' +
-              style +
-              (needsTextColour ? FORCE_TEXT_VISIBLE : '') +
-              ';mix-blend-mode:multiply;';
-          }
-        });
+      styleWordsToUse.forEach(({style, _regexes }) => {
+        if (_regexes.some(rx => rx.test(txt))) {
+          const needsTextColour = /(?:^|;)\s*color\s*:/.test(style) === false;
+          span.style.cssText =
+            span.dataset.origStyle +
+            ';' +
+            style +
+            (needsTextColour ? FORCE_TEXT_VISIBLE : '');
+        }
       });
     });
   }
