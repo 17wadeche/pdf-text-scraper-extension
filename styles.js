@@ -112,7 +112,7 @@ const defaultStyleWords = [
       'EventSummary',
       'lengthOfExternalSurgicalTime',
       'Next Action/Resolution',
-      'Description',
+      'description',
       'Possession',
       'No Return Justification',
       'Software Version',
