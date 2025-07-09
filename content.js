@@ -116,38 +116,63 @@ async function main() {
     pageRoot.querySelectorAll('.word-highlight').forEach(box => box.remove());
   }
   function highlightSpan(span, rule) {
-    for (const rx of rule._regexes) {
-      let m;
-      while ((m = rx.exec(span.textContent))) {
-        const range = document.createRange();
-        range.setStart(span.firstChild, m.index);
-        range.setEnd  (span.firstChild, m.index + m[0].length);
-        if (/background\s*:/.test(rule.style)) {
-          Array.from(range.getClientRects()).forEach(r => {
-            const box = document.createElement('div');
-            box.className = 'word-highlight';
-            box.style.cssText = `${rule.style};
-              left:${r.left + window.scrollX}px;
-              top:${r.top  + window.scrollY}px;
-              width:${r.width}px;height:${r.height}px;`;
-            document.body.appendChild(box);
+    const jobs = [];
+    const walker = document.createTreeWalker(
+      span,
+      NodeFilter.SHOW_TEXT,
+      { acceptNode: n => n.data.trim() ? NodeFilter.FILTER_ACCEPT
+                                      : NodeFilter.FILTER_REJECT }
+    );
+    for (let textNode; (textNode = walker.nextNode()); ) {
+      const text = textNode.data;
+      for (const rx of rule._regexes) {
+        rx.lastIndex = 0;                       // reset, because we reuse the RegExp
+        let m;
+        while ((m = rx.exec(text))) {
+          jobs.push({
+            node: textNode,
+            start: m.index,
+            end: m.index + m[0].length
           });
-        } else {
-          const wrapper = document.createElement('span');
-          wrapper.className = 'styled-word';
-          wrapper.style.cssText = rule.style +
-            (!/color\s*:/.test(rule.style) ? FORCE_TEXT_VISIBLE : '');
-          range.surroundContents(wrapper);   // <-- zero-shift because of display:contents
         }
+      }
+    }
+    jobs.sort((a, b) => b.start - a.start || b.node.compareDocumentPosition(a.node));
+    for (const job of jobs) {
+      const { node, start, end } = job;
+      if (/background\s*:/.test(rule.style)) {
+        const range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd  (node, end);
+        Array.from(range.getClientRects()).forEach(r => {
+          const box = document.createElement('div');
+          box.className = 'word-highlight';
+          box.style.cssText = `${rule.style};
+            left:${r.left + window.scrollX}px;
+            top:${r.top  + window.scrollY}px;
+            width:${r.width}px;height:${r.height}px;`;
+          document.body.appendChild(box);
+        });
+        range.detach();
+      } else {
+        const after  = node.splitText(end);
+        const target = node.splitText(start);
+        const wrapper = document.createElement('span');
+        wrapper.className = 'styled-word';
+        wrapper.style.cssText = rule.style +
+          (!/color\s*:/.test(rule.style) ? FORCE_TEXT_VISIBLE : '');
+
+        wrapper.appendChild(target.cloneNode(true));
+        target.parentNode.replaceChild(wrapper, target);
       }
     }
   }
   function renderAllHighlights() {
     document.querySelectorAll('.page').forEach(page => {
-      clearHighlights(page);                           //  ← NEW
+      clearHighlights(page);
       page.querySelectorAll('.textLayer span').forEach(span => {
         for (const rule of styleWordsToUse) {
-          highlightSpan(span, rule);                   //  ← NEW
+          highlightSpan(span, rule);
         }
       });
     });
