@@ -110,15 +110,12 @@ async function main() {
         words.forEach(raw => {
           const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
           if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
-            const hasColour =
-              /(?:^|[;])\s*color\s*:/.test(style) ||
-              /-webkit-text-fill-color\s*:/.test(style);
-            //const needsTextColour = /background\s*:/i.test(style);
+            const needsTextColour = /background\s*:/i.test(style);
             span.style.cssText =
               span.dataset.origStyle +
               ';' +
               style +
-              (hasColour ? FORCE_TEXT_VISIBLE : '') +
+              (needsTextColour ? FORCE_TEXT_VISIBLE : '') +
               ';mix-blend-mode:multiply;';
           }
         });
