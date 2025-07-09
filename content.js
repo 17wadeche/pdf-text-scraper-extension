@@ -64,18 +64,18 @@ async function main() {
   let currentBU = localStorage.getItem('highlight_BU') || '';
   let currentOU = localStorage.getItem('highlight_OU') || '';
   let styleWordsToUse = [];
-  function updateStyleWords () {
-    styleWordsToUse = [...defaultStyleWords];
+  function updateStyleWords() {
+    styleWordsToUse = [];
+    if (currentBU && currentOU &&
+        config[currentBU]?.[currentOU]?.styleWords) {
+      styleWordsToUse.push(...config[currentBU][currentOU].styleWords); // OU highest
+    }
     if (currentBU && config[currentBU]?.styleWords) {
-      styleWordsToUse.push(...config[currentBU].styleWords);
+      styleWordsToUse.push(...config[currentBU].styleWords);            // BU middle
     }
-    if (currentBU && currentOU && config[currentBU][currentOU]?.styleWords) {
-      styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
-    }
-    styleWordsToUse.forEach(entry => {
-      entry._regexes = entry.words.map(makeRegex);
-    });
-  };
+    styleWordsToUse.push(...defaultStyleWords);                         // default last
+    styleWordsToUse.forEach(r => r._regexes = r.words.map(makeRegex));
+  }
   updateStyleWords();
   const buSelect = document.createElement('select');
   const ouSelect = document.createElement('select');
