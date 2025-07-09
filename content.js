@@ -124,77 +124,53 @@ async function main() {
         : NodeFilter.FILTER_REJECT 
       }
     );
-    const jobsByKey = Object.create(null);
+    const matchesByNode = new Map();
     for (let textNode; (textNode = walker.nextNode()); ) {
       const text = textNode.data;
+      const jobs = [];
       for (const rule of rules) {
         for (const rx of rule._regexes) {
           rx.lastIndex = 0;
           let m;
           while ((m = rx.exec(text))) {
-            if (!textNode.__highlightId) {
-              textNode.__highlightId = Symbol();
-            }
-            const key = `${String(textNode.__highlightId)}|${m.index}|${m[0].length}`;
-            const before = text[m.index - 1];
-            const shift  = before === '*' || (before === ' ' && text[m.index - 2] === '*');
-            jobsByKey[key] = {
-              node:  textNode,
+            jobs.push({
               start: m.index,
-              end:   m.index + m[0].length,
+              end: m.index + m[0].length,
               style: rule.style,
-              shift
-            };
+              shift: false // optional logic here
+            });
           }
         }
       }
+      if (jobs.length) {
+        jobs.sort((a, b) => b.start - a.start);
+        matchesByNode.set(textNode, jobs);
+      }
     }
-    const jobs = Object.values(jobsByKey);
-    jobs.sort((a, b) => {
-      if (a.node === b.node) return b.start - a.start;
-      return a.node.compareDocumentPosition(b.node) &
-            Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;
-    });
-    for (const job of jobs) {
-      const { node, start, end, style, shift } = job;
-      if (end > node.length) continue;
-      if (/background\s*:/.test(style)) {
-        const range = document.createRange();
-        range.setStart(node, start);
-        range.setEnd  (node, end);
-        const pageRect = page.getBoundingClientRect();
-        let   scale    = 1;
-        const m = page.style.transform.match(/scale\(([^)]+)\)/);
-        if (m) scale = parseFloat(m[1]);
-        for (const r of range.getClientRects()) {
-          const box = document.createElement('div');
-          box.className = 'word-highlight';
-          if (shift) box.classList.add('shift-left');
-          const x = (r.left - pageRect.left - 8) / scale;
-          const y = (r.top  - pageRect.top - 8) / scale;
-          box.style.cssText = `${style};
-            position:absolute;
-            left:${x}px;
-            top:${y}px;
-            width:${r.width  / scale}px;
-            height:${r.height / scale}px;
-            pointer-events:none;
-            mix-blend-mode:
-            multiply;z-index:5`;
-            page.appendChild(box);   
-        }
-        range.detach();
-      } else {
-        const target = node.splitText(start);
-        const after  = target.splitText(end - start);
-        const wrap   = document.createElement('span');
-        wrap.classList.add('styled-word');
-        if (shift) wrap.classList.add('shift-left');
-        if (shift) wrap.classList.add('shift-left');
-        wrap.style.cssText = style +
+    for (const [node, jobs] of matchesByNode.entries()) {
+      let offset = 0;
+      for (const job of jobs) {
+        const { start, end, style, shift } = job;
+        const effectiveStart = start + offset;
+        const effectiveEnd = end + offset;
+        const rangeText = node.data.slice(effectiveStart, effectiveEnd);
+        const before = node.data.slice(0, effectiveStart);
+        const after = node.data.slice(effectiveEnd);
+        const wrapper = document.createElement('span');
+        wrapper.classList.add('styled-word');
+        if (shift) wrapper.classList.add('shift-left');
+        wrapper.style.cssText = style +
           (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
-        wrap.appendChild(target.cloneNode(true));
-        target.parentNode.replaceChild(wrap, target);
+        wrapper.textContent = rangeText;
+        const parent = node.parentNode;
+        const beforeNode = document.createTextNode(before);
+        const afterNode = document.createTextNode(after);
+        parent.insertBefore(beforeNode, node);
+        parent.insertBefore(wrapper, node);
+        parent.insertBefore(afterNode, node);
+        parent.removeChild(node);
+        node = afterNode;
+        offset = -effectiveEnd;
       }
     }
   }
