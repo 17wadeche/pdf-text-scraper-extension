@@ -192,7 +192,7 @@ async function main() {
         const target = node.splitText(start);
         const wrap   = document.createElement('span');
         wrap.classList.add('styled-word');
-        if (jobs.shift) wrap.classList.add('shift-left');
+        if (shift) wrap.classList.add('shift-left');
         if (shift) wrap.classList.add('shift-left');
         wrap.style.cssText = style +
           (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
