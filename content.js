@@ -123,10 +123,8 @@ async function main() {
       styleWordsToUse.forEach(({style, _regexes }) => {
         const needsTextColour = !/color\s*:/.test(style);
         _regexes.forEach(rx => {
-          const extra = 'display:inline-block;white-space:pre!important;';
-          html = html.replace(rx,
-            `<span style="${style}${needsTextColour?FORCE_TEXT_VISIBLE:''}${extra}">$&</span>`
-          );
+          const gRx = new RegExp(rx.source, rx.flags.includes('g') ? rx.flags : rx.flags + 'g');
+          html = html.replace(rx, `<span style="${style}${needsTextColour?FORCE_TEXT_VISIBLE:''}">$&</span>`);
         });
       });
       if (html !== orig) span.innerHTML = html;
@@ -220,17 +218,14 @@ async function main() {
   const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
   const fix = document.createElement('style');
   fix.textContent = `
-    .pdfViewer .textLayer span {
+    .textLayer span,
+    .textLayer span span {
       display: inline-block !important;
       white-space: pre !important;
       pointer-events: auto !important;
       opacity: 1 !important;
       mix-blend-mode: multiply;
     }
-    .pdfViewer .textLayer span span {
-      display: inline !important;
-      white-space: inherit !important;
-      vertical-align: baseline !important;
   `;
   document.head.appendChild(fix);
   linkService.setViewer(pdfViewer);
