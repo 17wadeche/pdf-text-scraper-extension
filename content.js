@@ -185,8 +185,8 @@ async function main() {
         }
         range.detach();
       } else {
-        const after  = node.splitText(end);
         const target = node.splitText(start);
+        const after  = target.splitText(end - start);
         const wrap   = document.createElement('span');
         wrap.classList.add('styled-word');
         if (shift) wrap.classList.add('shift-left');
