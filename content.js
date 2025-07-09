@@ -304,7 +304,7 @@ async function main() {
   const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
   const eventBus    = new EventBus();
   const linkService = new PDFLinkService({eventBus});
-  const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService, textLayerMode: 2 });
+  const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService, textLayerMode: 2, annotationLayerMode: 0 });
   const fix = document.createElement('style');
   fix.textContent = `
     .textLayer span {
@@ -335,6 +335,7 @@ async function main() {
   `;
   document.head.appendChild(fix);
   linkService.setViewer(pdfViewer);
+  linkService._injectLinkAnnotations = () => {};
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
