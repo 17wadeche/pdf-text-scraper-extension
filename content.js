@@ -350,16 +350,21 @@ async function main() {
   });
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
-    const pageView = pdfViewer._pages[pageNumber - 1];
-    const textLayer = pageView?.textLayer?.textLayerDiv;
-    if (!textLayer) return;
-    Array.from(textLayer.querySelectorAll('span')).forEach(span => {
-      if (!span.dataset.origStyle) {
-        span.dataset.origStyle = span.getAttribute('style') || '';
-      }
+    const pageView    = pdfViewer._pages[pageNumber - 1];
+    const pageDiv     = pageView.div;                    // the .page element
+    const textLayer   = pageView.textLayer.textLayerDiv; // its textLayer container
+    pageDiv.querySelectorAll('.styled-word, .word-highlight')
+          .forEach(el => el.remove());
+    textLayer.querySelectorAll('span').forEach(span => {
+      const txt = span.textContent.trim();
+      const rules = txt.startsWith('* ')
+        ? styleWordsToUse.map(r => ({
+            _regexes: r._regexes,
+            style:    'background: yellow; color: black;'
+          }))
+        : styleWordsToUse;
+      highlightSpan(span, rules, pageDiv);
     });
-    renderedPages.add(pageNumber);
-    renderAllHighlights();
   });
   let showingStyled = true;
   toggle.onclick = () => {
