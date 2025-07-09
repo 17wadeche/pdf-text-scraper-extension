@@ -116,7 +116,6 @@ async function main() {
     pageRoot.querySelectorAll('.word-highlight').forEach(box => box.remove());
   }
   function highlightSpan(span, rules) {
-    const jobs = [];
     const walker = document.createTreeWalker(
       span,
       NodeFilter.SHOW_TEXT,
@@ -145,6 +144,7 @@ async function main() {
         }
       }
     }
+    const jobs = Object.values(jobsByKey);
     jobs.sort((a, b) => {
       if (a.node === b.node) return b.start - a.start;
       return a.node.compareDocumentPosition(b.node) &
