@@ -66,14 +66,13 @@ async function main() {
   let styleWordsToUse = [];
   function updateStyleWords() {
     styleWordsToUse = [];
-    if (currentBU && currentOU &&
-        config[currentBU]?.[currentOU]?.styleWords) {
-      styleWordsToUse.push(...config[currentBU][currentOU].styleWords); // OU highest
-    }
+    styleWordsToUse.push(...defaultStyleWords); 
     if (currentBU && config[currentBU]?.styleWords) {
-      styleWordsToUse.push(...config[currentBU].styleWords);            // BU middle
+      styleWordsToUse.push(...config[currentBU].styleWords);             // middle
     }
-    styleWordsToUse.push(...defaultStyleWords);                         // default last
+    if (currentBU && currentOU && config[currentBU]?.[currentOU]?.styleWords) {
+      styleWordsToUse.push(...config[currentBU][currentOU].styleWords);  // ← highest
+    }
     styleWordsToUse.forEach(r => r._regexes = r.words.map(makeRegex));
     console.log('[Highlight] Active BU:', currentBU);
     console.log('[Highlight] Active OU:', currentOU);
@@ -122,8 +121,10 @@ async function main() {
     const walker = document.createTreeWalker(
       span,
       NodeFilter.SHOW_TEXT,
-      { acceptNode: n => n.data.trim() ? NodeFilter.FILTER_ACCEPT
-                                      : NodeFilter.FILTER_REJECT }
+      { acceptNode: n => n.data.trim() 
+        ? NodeFilter.FILTER_ACCEPT
+        : NodeFilter.FILTER_REJECT 
+      }
     );
     const jobsByKey = Object.create(null);
     for (let textNode; (textNode = walker.nextNode()); ) {
@@ -160,17 +161,18 @@ async function main() {
         const range = document.createRange();
         range.setStart(node, start);
         range.setEnd  (node, end);
+        const pageRect = page.getBoundingClientRect();
         for (const r of range.getClientRects()) {
           const box = document.createElement('div');
           box.className = 'word-highlight';
           box.style.cssText = `${style};
             position:absolute;
             z-index: 10000;   
-            left:${r.left - container.getBoundingClientRect().left}px;
-            top:${r.top  - container.getBoundingClientRect().top }px;
-            width:${r.width}px;height:${r.height}px`;
-          const pageDiv = span.closest('.page');
-          pageDiv.appendChild(box);   
+            left:${r.left - pageRect.left}px;
+            top:${r.top - pageRect.top}px;
+            width:${r.width}px;
+            height:${r.height}px`;
+          page.appendChild(box);   
         }
         range.detach();
       } else {
