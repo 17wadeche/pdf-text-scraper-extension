@@ -75,6 +75,9 @@ async function main() {
     }
     styleWordsToUse.push(...defaultStyleWords);                         // default last
     styleWordsToUse.forEach(r => r._regexes = r.words.map(makeRegex));
+    console.log('[Highlight] Active BU:', currentBU);
+    console.log('[Highlight] Active OU:', currentOU);
+    console.log('[Highlight] Using rules:', styleWordsToUse.map(r => ({ words: r.words, style: r.style })));
   }
   updateStyleWords();
   const buSelect = document.createElement('select');
@@ -177,9 +180,10 @@ async function main() {
         target.parentNode.replaceChild(wrap, target);
       }
     }
+    console.log('[Highlight] Matched:', m[0], 'with style:', rules.style);
   }
   function renderAllHighlights() {
-    document.querySelectorAll('.page').forEach(page => {
+    container.querySelectorAll('.page').forEach(page => {
       clearHighlights(page);
       page.querySelectorAll('.textLayer span').forEach(span => {
         highlightSpan(span, styleWordsToUse);
