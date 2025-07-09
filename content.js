@@ -304,7 +304,7 @@ async function main() {
   const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
   const eventBus    = new EventBus();
   const linkService = new PDFLinkService({eventBus});
-  const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService, textLayerMode: 2, annotationLayerMode: 0 });
+  const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService, textLayerMode: 2 });
   const fix = document.createElement('style');
   fix.textContent = `
     .textLayer span {
@@ -335,7 +335,6 @@ async function main() {
   `;
   document.head.appendChild(fix);
   linkService.setViewer(pdfViewer);
-  linkService._injectLinkAnnotations = () => {};
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
@@ -351,21 +350,16 @@ async function main() {
   });
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
-    const pageView    = pdfViewer._pages[pageNumber - 1];
-    const pageDiv     = pageView.div;                    // the .page element
-    const textLayer   = pageView.textLayer.textLayerDiv; // its textLayer container
-    pageDiv.querySelectorAll('.styled-word, .word-highlight')
-          .forEach(el => el.remove());
-    textLayer.querySelectorAll('span').forEach(span => {
-      const txt = span.textContent.trim();
-      const rules = txt.startsWith('* ')
-        ? styleWordsToUse.map(r => ({
-            _regexes: r._regexes,
-            style:    'background: yellow; color: black;'
-          }))
-        : styleWordsToUse;
-      highlightSpan(span, rules, pageDiv);
+    const pageView = pdfViewer._pages[pageNumber - 1];
+    const textLayer = pageView?.textLayer?.textLayerDiv;
+    if (!textLayer) return;
+    Array.from(textLayer.querySelectorAll('span')).forEach(span => {
+      if (!span.dataset.origStyle) {
+        span.dataset.origStyle = span.getAttribute('style') || '';
+      }
     });
+    renderedPages.add(pageNumber);
+    renderAllHighlights();
   });
   let showingStyled = true;
   toggle.onclick = () => {
