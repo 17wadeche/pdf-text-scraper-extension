@@ -377,17 +377,9 @@ async function main() {
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
-  eventBus.on('pagesloaded', () => {
-    setTimeout(() => {
-      renderAllHighlights();
-    }, 300);
-  });
-  renderAllHighlights();
-  eventBus.on('pagesloaded', () => {
-    renderAllHighlights();
-  });
-  const renderedPages = new Set();
+  enderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
+    console.log('[PDF] Rendering text layer on page', pageNumber);
     const pageView = pdfViewer._pages[pageNumber - 1];
     if (!pageView) return;
     const pageElement = pageView.div;
