@@ -220,14 +220,17 @@ async function main() {
   const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
   const fix = document.createElement('style');
   fix.textContent = `
-    .textLayer span,
-    .textLayer span span {
+    .pdfViewer .textLayer span {
       display: inline-block !important;
       white-space: pre !important;
       pointer-events: auto !important;
       opacity: 1 !important;
       mix-blend-mode: multiply;
     }
+    .pdfViewer .textLayer span span {
+      display: inline !important;
+      white-space: inherit !important;
+      vertical-align: baseline !important;
   `;
   document.head.appendChild(fix);
   linkService.setViewer(pdfViewer);
