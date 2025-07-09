@@ -197,6 +197,7 @@ async function main() {
   function renderAllHighlights() {
     clearHighlights(); 
     container.querySelectorAll('.page').forEach(page => {
+      page.style.position = 'relative';
       page.querySelectorAll('.textLayer span').forEach(span => {
         highlightSpan(span, styleWordsToUse, page);
       });
