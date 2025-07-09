@@ -107,11 +107,6 @@ async function main() {
     }
   }
   updateOuOptions();
-  function clean(txt) {
-    return txt
-      .toLowerCase()
-      .replace(/[\s\u00A0\u200B\u200C\u200D\u2060*‣•·,.:;?!/\\()[\]{}<>"'-]/g, '');
-  }
   function renderAllHighlights() {
     document.querySelectorAll('.textLayer span').forEach(span => {
       if (!span.dataset.origStyle) {
