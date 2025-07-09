@@ -10,6 +10,7 @@ function isPdfEmbedPresent() {
     'embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]'
   );
 }
+const FORCE_TEXT_VISIBLE = ';color:#000 !important;-webkit-text-fill-color:#000 !important;';
 function waitForPdfEmbed() {
   if (initialized) return;
   const embed = isPdfEmbedPresent();
@@ -108,8 +109,14 @@ async function main() {
       styleWordsToUse.forEach(({style,words}) => {
         words.forEach(raw => {
           const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-          if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
-            span.style.cssText = `${span.dataset.origStyle};${style};mix-blend-mode: multiply;`;
+          if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
+            const needsTextColour = /background\s*:/i.test(style);
+            span.style.cssText =
+              span.dataset.origStyle +
+              ';' +
+              style +
+              (needsTextColour ? FORCE_TEXT_VISIBLE : '') +
+              ';mix-blend-mode:multiply;';
           }
         });
       });
