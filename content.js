@@ -123,6 +123,7 @@ async function main() {
       { acceptNode: n => n.data.trim() ? NodeFilter.FILTER_ACCEPT
                                       : NodeFilter.FILTER_REJECT }
     );
+    const jobsByKey = Object.create(null);
     for (let textNode; (textNode = walker.nextNode()); ) {
       const text = textNode.data;
       for (const rule of rules) {
@@ -130,12 +131,13 @@ async function main() {
           rx.lastIndex = 0;
           let m;
           while ((m = rx.exec(text))) {
-            jobs.push({
+            const key = `${textNode.__highlightId || (textNode.__highlightId=Symbol())}|${m.index}|${m[0].length}`;
+            jobsByKey[key] = {
               node:  textNode,
               start: m.index,
               end:   m.index + m[0].length,
               style: rule.style
-            });
+            };
           }
         }
       }
