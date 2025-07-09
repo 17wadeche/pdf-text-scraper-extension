@@ -228,13 +228,49 @@ async function main() {
     localStorage.removeItem('highlight_OU');
     updateOuOptions();
     updateStyleWords();
-    renderAllHighlights();
+    renderedPages.forEach(pageNum => {
+      const pageView = pdfViewer._pages[pageNum - 1];
+      const pageElement = pageView.div;
+      const textLayer = pageView.textLayer?.textLayerDiv;
+      if (!textLayer) return;
+      clearHighlights(pageElement);
+      textLayer.querySelectorAll('span').forEach(span => {
+        const txt = span.textContent.trim();
+        if (txt.startsWith('* ')) {
+          const yellowRules = styleWordsToUse.map(rule => ({
+            _regexes: rule._regexes,
+            style: 'background: orange; color: black;'
+          }));
+          highlightSpan(span, yellowRules, pageElement);
+        } else {
+          highlightSpan(span, styleWordsToUse, pageElement);
+        }
+      });
+    });
   };
   ouSelect.onchange = () => {
     currentOU = ouSelect.value;
     localStorage.setItem('highlight_OU', currentOU);
     updateStyleWords();
-    renderAllHighlights();
+    renderedPages.forEach(pageNum => {
+      const pageView = pdfViewer._pages[pageNum - 1];
+      const pageElement = pageView.div;
+      const textLayer = pageView.textLayer?.textLayerDiv;
+      if (!textLayer) return;
+      clearHighlights(pageElement);
+      textLayer.querySelectorAll('span').forEach(span => {
+        const txt = span.textContent.trim();
+        if (txt.startsWith('* ')) {
+          const yellowRules = styleWordsToUse.map(rule => ({
+            _regexes: rule._regexes,
+            style: 'background: orange; color: black;'
+          }));
+          highlightSpan(span, yellowRules, pageElement);
+        } else {
+          highlightSpan(span, styleWordsToUse, pageElement);
+        }
+      });
+    });
   };
   Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
   Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'190px', zIndex:2147483648 });
@@ -353,17 +389,16 @@ async function main() {
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
     const pageView = pdfViewer._pages[pageNumber - 1];
-    const textLayer = pageView?.textLayer?.textLayerDiv;
-    if (!textLayer) return;
+    if (!pageView) return;
     const pageElement = pageView.div;
+    const textLayer = pageView.textLayer?.textLayerDiv;
+    if (!textLayer) return;
     pageElement.style.position = 'relative';
-    Array.from(textLayer.querySelectorAll('span')).forEach(span => {
+    clearHighlights(pageElement);
+    textLayer.querySelectorAll('span').forEach(span => {
       if (!span.dataset.origStyle) {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
-    });
-    clearHighlights(pageElement);
-    pageElement.querySelectorAll('.textLayer span').forEach(span => {
       const txt = span.textContent.trim();
       if (txt.startsWith('* ')) {
         const yellowRules = styleWordsToUse.map(rule => ({
@@ -371,9 +406,9 @@ async function main() {
           style: 'background: orange; color: black;'
         }));
         highlightSpan(span, yellowRules, pageElement);
-        return;
+      } else {
+        highlightSpan(span, styleWordsToUse, pageElement);
       }
-      highlightSpan(span, styleWordsToUse, pageElement);
     });
     renderedPages.add(pageNumber);
   });
