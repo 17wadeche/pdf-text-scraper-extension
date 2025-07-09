@@ -99,6 +99,11 @@ async function main() {
     }
   }
   updateOuOptions();
+  function clean(txt) {
+    return txt
+      .toLowerCase()
+      .replace(/[\s\u00A0\u200B\u200C\u200D\u2060*‣•·,.:;?!/\\()[\]{}<>"'-]/g, '');
+  }
   function renderAllHighlights() {
     document.querySelectorAll('.textLayer span').forEach(span => {
       if (!span.dataset.origStyle) {
@@ -108,8 +113,7 @@ async function main() {
       const txt = span.textContent.trim();
       styleWordsToUse.forEach(({style,words}) => {
         words.forEach(raw => {
-          const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
-          if (new RegExp(`\\b${safe}\\b`, 'i').test(txt)) {
+          if (clean(txt).includes(clean(raw))) {
             const needsTextColour = /background\s*:/i.test(style);
             span.style.cssText =
               span.dataset.origStyle +
