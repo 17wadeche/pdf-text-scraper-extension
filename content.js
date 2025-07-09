@@ -100,7 +100,11 @@ async function main() {
   updateOuOptions();
   function renderAllHighlights() {
     document.querySelectorAll('.textLayer span').forEach(span => {
-      span.style.cssText = span.dataset.origStyle || '';
+      if (!span.dataset.origStyle) {
+        span.dataset.origStyle = span.getAttribute('style') || '';
+        return; 
+      }
+      span.style.cssText = span.dataset.origStyle;  
       const txt = span.textContent.trim();
       styleWordsToUse.forEach(({style,words}) => {
         words.forEach(raw => {
