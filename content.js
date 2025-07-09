@@ -118,16 +118,20 @@ async function main() {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
       span.style.cssText = span.dataset.origStyle;
+      const orig = span.textContent;
+      let html   = orig;  
       styleWordsToUse.forEach(({style, _regexes }) => {
+        const needsTextColour = !/color\s*:/.test(style);
         _regexes.forEach(rx => {
-          span.innerHTML = span.innerHTML.replace(rx, (_, left, hit, right) => {
-            const needsTextColour = !/color\s*:/.test(style);
+          const gRx = new RegExp(rx.source, rx.flags.includes('g') ? rx.flags : rx.flags + 'g');
+          html = html.replace(gRx, (_m, left, hit, right) => {
             const wrapped =
               `<span style="${style}${needsTextColour ? FORCE_TEXT_VISIBLE : ''}">${hit}</span>`;
             return `${left}${wrapped}${right}`;
           });
         });
       });
+      if (html !== orig) span.innerHTML = html;
     });
   }
   buSelect.onchange = () => {
