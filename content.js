@@ -118,7 +118,7 @@ async function main() {
     });
     pageRoot.querySelectorAll('.word-highlight').forEach(box => box.remove());
   }
-  function highlightSpan(span, rules) {
+  function highlightSpan(span, rules, page) {
     const walker = document.createTreeWalker(
       span,
       NodeFilter.SHOW_TEXT,
@@ -169,7 +169,8 @@ async function main() {
             left:${r.left - container.getBoundingClientRect().left}px;
             top:${r.top  - container.getBoundingClientRect().top }px;
             width:${r.width}px;height:${r.height}px`;
-          document.body.appendChild(box);
+          const pageDiv = span.closest('.page');
+          pageDiv.appendChild(box);   
         }
         range.detach();
       } else {
@@ -188,7 +189,7 @@ async function main() {
     container.querySelectorAll('.page').forEach(page => {
       clearHighlights(page);
       page.querySelectorAll('.textLayer span').forEach(span => {
-        highlightSpan(span, styleWordsToUse);
+        highlightSpan(span, styleWordsToUse, page);
       });
     });
   }
