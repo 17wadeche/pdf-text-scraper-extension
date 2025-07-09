@@ -109,7 +109,7 @@ async function main() {
         words.forEach(raw => {
           const safe = raw.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
           if (new RegExp(`\\b${safe}\\b`,'i').test(txt)) {
-            span.style.cssText = `${span.dataset.origStyle};${style}`;
+            span.style.cssText = `${span.dataset.origStyle};${style};mix-blend-mode: multiply;`;
           }
         });
       });
