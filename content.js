@@ -377,7 +377,7 @@ async function main() {
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
-  enderedPages = new Set();
+  const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
     console.log('[PDF] Rendering text layer on page', pageNumber);
     const pageView = pdfViewer._pages[pageNumber - 1];
