@@ -123,8 +123,10 @@ async function main() {
       styleWordsToUse.forEach(({style, _regexes }) => {
         const needsTextColour = !/color\s*:/.test(style);
         _regexes.forEach(rx => {
-          const gRx = new RegExp(rx.source, rx.flags.includes('g') ? rx.flags : rx.flags + 'g');
-          html = html.replace(rx, `<span style="${style}${needsTextColour?FORCE_TEXT_VISIBLE:''}">$&</span>`);
+          const extra = 'display:inline-block;white-space:pre!important;';
+          html = html.replace(rx,
+            `<span style="${style}${needsTextColour?FORCE_TEXT_VISIBLE:''}${extra}">$&</span>`
+          );
         });
       });
       if (html !== orig) span.innerHTML = html;
@@ -218,7 +220,8 @@ async function main() {
   const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
   const fix = document.createElement('style');
   fix.textContent = `
-    .textLayer span {
+    .textLayer span,
+    .textLayer span span {
       display: inline-block !important;
       white-space: pre !important;
       pointer-events: auto !important;
@@ -260,14 +263,14 @@ async function main() {
     if (showingStyled) {
       container.style.display = '';
       embed.style.display     = 'none';
-      buSelect.style.display  = '';    // show the selects
+      buSelect.style.display  = '';
       ouSelect.style.display  = '';
       renderAllHighlights();
       toggle.textContent = 'Original';
     } else {
       container.style.display = 'none';
       embed.style.display     = '';
-      buSelect.style.display  = 'none'; // hide the selects
+      buSelect.style.display  = 'none';
       ouSelect.style.display  = 'none';
       toggle.textContent = 'Styled';
     }
