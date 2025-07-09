@@ -158,7 +158,8 @@ async function main() {
       return a.node.compareDocumentPosition(b.node) &
             Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;
     });
-    for (const { node, start, end, style } of jobs) {
+    for (const job of jobs) {
+      const { node, start, end, style, shift } = job;
       if (end > node.length) continue;
       if (/background\s*:/.test(style)) {
         const range = document.createRange();
@@ -171,6 +172,7 @@ async function main() {
         for (const r of range.getClientRects()) {
           const box = document.createElement('div');
           box.className = 'word-highlight';
+          if (shift) box.classList.add('shift-left');
           const x = (r.left - pageRect.left - 8) / scale;
           const y = (r.top  - pageRect.top - 8) / scale;
           box.style.cssText = `${style};
@@ -191,7 +193,7 @@ async function main() {
         const wrap   = document.createElement('span');
         wrap.classList.add('styled-word');
         if (jobs.shift) wrap.classList.add('shift-left');
-        wrap.className = 'styled-word';
+        if (shift) wrap.classList.add('shift-left');
         wrap.style.cssText = style +
           (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
         wrap.appendChild(target.cloneNode(true));
