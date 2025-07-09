@@ -405,6 +405,7 @@ async function main() {
     renderedPages.add(pageNumber);
   });
   let showingStyled = true;
+  window._styleWordsToUse = styleWordsToUse;
   toggle.onclick = () => {
     showingStyled = !showingStyled;
     if (showingStyled) {
