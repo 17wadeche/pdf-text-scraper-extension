@@ -161,6 +161,9 @@ async function main() {
         const range = document.createRange();
         range.setStart(node, start);
         range.setEnd  (node, end);
+        let scale = 1;
+        const m = page.style.transform.match(/scale\(([^)]+)\)/);
+        if (m) scale = parseFloat(m[1]);
         const pageRect = page.getBoundingClientRect();
         for (const r of range.getClientRects()) {
           const box = document.createElement('div');
@@ -168,10 +171,10 @@ async function main() {
           box.style.cssText = `${style};
             position:absolute;
             z-index: 10000;   
-            left:${r.left - pageRect.left}px;
-            top:${r.top - pageRect.top}px;
-            width:${r.width}px;
-            height:${r.height}px`;
+            left:${(r.left  - pageRect.left) / scale}px;
+            top: ${(r.top   - pageRect.top)  / scale}px;
+            width:${r.width  / scale}px;
+            height:${r.height / scale}px`;
           page.appendChild(box);   
         }
         range.detach();
