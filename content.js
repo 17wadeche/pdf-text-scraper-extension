@@ -208,16 +208,12 @@ async function main() {
       page.querySelectorAll('.textLayer span').forEach(span => {
         const txt = span.textContent.trim();
         if (txt.startsWith('* ')) {
-          const firstWord = txt.slice(2).split(/\s+/)[0];
-          const rx = new RegExp(
-            `(?<![\\p{L}\\p{N}])${esc(firstWord)}(?![\\p{L}\\p{N}])`,
-            'g'
-          );
-          highlightSpan(span, [{
-            _regexes: [ rx ],
-            style: 'background: yellow; color: black;'
-          }], page);
-          return;
+          const yellowRules = styleWordsToUse.map(rule => ({
+            _regexes: rule._regexes,
+            style:    'background: yellow; color: black;'
+          }));
+          highlightSpan(span, yellowRules, page);
+          return;  // done with this span
         }
         highlightSpan(span, styleWordsToUse, page);
       });
