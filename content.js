@@ -13,7 +13,7 @@ function isPdfEmbedPresent() {
 function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function makeRegex(word) {
   const p = esc(word.trim());
-  return new RegExp(`(^|[^\\p{L}\\p{N}])${p}([^\\p{L}\\p{N}]|$)`, 'iu');
+  return new RegExp(`(^|[^\\p{L}\\p{N}])(${p})([^\\p{L}\\p{N}]|$)`, 'iu');
 }
 const FORCE_TEXT_VISIBLE = ';color:#000 !important;-webkit-text-fill-color:#000 !important;';
 function waitForPdfEmbed() {
@@ -117,17 +117,16 @@ async function main() {
       if (!span.dataset.origStyle) {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
-      span.style.cssText = span.dataset.origStyle;  
-      const txt = span.textContent.trim();
+      span.style.cssText = span.dataset.origStyle;
       styleWordsToUse.forEach(({style, _regexes }) => {
-        if (_regexes.some(rx => rx.test(txt))) {
-          const needsTextColour = /(?:^|;)\s*color\s*:/.test(style) === false;
-          span.style.cssText =
-            span.dataset.origStyle +
-            ';' +
-            style +
-            (needsTextColour ? FORCE_TEXT_VISIBLE : '');
-        }
+        _regexes.forEach(rx => {
+          span.innerHTML = span.innerHTML.replace(rx, (_, left, hit, right) => {
+            const needsTextColour = !/color\s*:/.test(style);
+            const wrapped =
+              `<span style="${style}${needsTextColour ? FORCE_TEXT_VISIBLE : ''}">${hit}</span>`;
+            return `${left}${wrapped}${right}`;
+          });
+        });
       });
     });
   }
