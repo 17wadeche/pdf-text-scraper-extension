@@ -150,51 +150,58 @@ async function main() {
       }
     }
     const jobs = Object.values(jobsByKey);
-    jobs.sort((a, b) => {
-      if (a.node === b.node) return b.start - a.start;
-      return a.node.compareDocumentPosition(b.node) &
-            Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;
-    });
+    const jobsGroupedByNode = new Map();
     for (const job of jobs) {
-      const { node, start, end, style, shift } = job;
-      if (end > node.length) continue;
-      if (/background\s*:/.test(style)) {
-        const range = document.createRange();
-        range.setStart(node, start);
-        range.setEnd  (node, end);
-        const pageRect = page.getBoundingClientRect();
-        let   scale    = 1;
-        const m = page.style.transform.match(/scale\(([^)]+)\)/);
-        if (m) scale = parseFloat(m[1]);
-        for (const r of range.getClientRects()) {
-          const box = document.createElement('div');
-          box.className = 'word-highlight';
-          if (shift) box.classList.add('shift-left');
-          const x = (r.left - pageRect.left - 8) / scale;
-          const y = (r.top  - pageRect.top - 8) / scale;
-          box.style.cssText = `${style};
-            position:absolute;
-            left:${x}px;
-            top:${y}px;
-            width:${r.width  / scale}px;
-            height:${r.height / scale}px;
-            pointer-events:none;
-            mix-blend-mode:
-            multiply;z-index:5`;
-            page.appendChild(box);   
+      if (!jobsGroupedByNode.has(job.node)) {
+        jobsGroupedByNode.set(job.node, []);
+      }
+      jobsGroupedByNode.get(job.node).push(job);
+    }
+    for (const nodeJobs of jobsGroupedByNode.values()) {
+      nodeJobs.sort((a, b) => b.start - a.start);
+    }
+    for (const [node, nodeJobs] of jobsGroupedByNode.entries()) {
+      for (const job of nodeJobs) {
+        const { start, end, style, shift } = job;
+        if (end > node.length) continue;
+
+        if (/background\s*:/.test(style)) {
+          const range = document.createRange();
+          range.setStart(node, start);
+          range.setEnd(node, end);
+          const pageRect = page.getBoundingClientRect();
+          let scale = 1;
+          const m = page.style.transform.match(/scale\(([^)]+)\)/);
+          if (m) scale = parseFloat(m[1]);
+          for (const r of range.getClientRects()) {
+            const box = document.createElement('div');
+            box.className = 'word-highlight';
+            if (shift) box.classList.add('shift-left');
+            const x = (r.left - pageRect.left - 8) / scale;
+            const y = (r.top - pageRect.top - 8) / scale;
+            box.style.cssText = `${style};
+              position:absolute;
+              left:${x}px;
+              top:${y}px;
+              width:${r.width / scale}px;
+              height:${r.height / scale}px;
+              pointer-events:none;
+              mix-blend-mode: multiply;
+              z-index:5`;
+            page.appendChild(box);
+          }
+          range.detach();
+        } else {
+          const target = node.splitText(start);
+          const after = target.splitText(end - start);
+          const wrap = document.createElement('span');
+          wrap.classList.add('styled-word');
+          if (shift) wrap.classList.add('shift-left');
+          wrap.style.cssText = style +
+            (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
+          wrap.appendChild(target.cloneNode(true));
+          target.parentNode.replaceChild(wrap, target);
         }
-        range.detach();
-      } else {
-        const target = node.splitText(start);
-        const after  = target.splitText(end - start);
-        const wrap   = document.createElement('span');
-        wrap.classList.add('styled-word');
-        if (shift) wrap.classList.add('shift-left');
-        if (shift) wrap.classList.add('shift-left');
-        wrap.style.cssText = style +
-          (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
-        wrap.appendChild(target.cloneNode(true));
-        target.parentNode.replaceChild(wrap, target);
       }
     }
   }
