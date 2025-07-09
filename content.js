@@ -66,14 +66,15 @@ async function main() {
   let styleWordsToUse = [];
   function updateStyleWords() {
     styleWordsToUse = [];
-    styleWordsToUse.push(...defaultStyleWords); 
     if (currentBU && config[currentBU]?.styleWords) {
-      styleWordsToUse.push(...config[currentBU].styleWords);             // middle
+      styleWordsToUse.push(...config[currentBU].styleWords);
     }
     if (currentBU && currentOU && config[currentBU]?.[currentOU]?.styleWords) {
-      styleWordsToUse.push(...config[currentBU][currentOU].styleWords);  // ← highest
+      styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
     }
-    styleWordsToUse.forEach(r => r._regexes = r.words.map(makeRegex));
+    styleWordsToUse.forEach(r => {
+      r._regexes = r.words.map(makeRegex);
+    });
     console.log('[Highlight] Active BU:', currentBU);
     console.log('[Highlight] Active OU:', currentOU);
     console.log('[Highlight] Using rules:', styleWordsToUse.map(r => ({ words: r.words, style: r.style })));
