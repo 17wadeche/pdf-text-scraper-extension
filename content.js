@@ -109,13 +109,13 @@ async function main() {
     }
   }
   updateOuOptions();
-  function clearHighlights(pageRoot) {
-    pageRoot.querySelectorAll('.styled-word').forEach(w => {
+  function clearHighlights(scope = container) {
+    scope.querySelectorAll('.styled-word').forEach(w => {
       const p = w.parentNode;
       while (w.firstChild) p.insertBefore(w.firstChild, w);
       w.remove();
     });
-    pageRoot.querySelectorAll('.word-highlight').forEach(box => box.remove());
+    scope.querySelectorAll('.word-highlight').forEach(box => box.remove());
   }
   function highlightSpan(span, rules, page) {
     const walker = document.createTreeWalker(
@@ -161,21 +161,23 @@ async function main() {
         const range = document.createRange();
         range.setStart(node, start);
         range.setEnd  (node, end);
-        let scale = 1;
+        const contRect = container.getBoundingClientRect();
+        let   scale    = 1;
         const m = page.style.transform.match(/scale\(([^)]+)\)/);
         if (m) scale = parseFloat(m[1]);
-        const pageRect = page.getBoundingClientRect();
         for (const r of range.getClientRects()) {
           const box = document.createElement('div');
           box.className = 'word-highlight';
+          const x = (r.left - contRect.left + container.scrollLeft) / scale;
+          const y = (r.top  - contRect.top  + container.scrollTop ) / scale;
           box.style.cssText = `${style};
             position:absolute;
-            z-index: 10000;   
-            left:${(r.left  - pageRect.left) / scale}px;
-            top: ${(r.top   - pageRect.top)  / scale}px;
+            left:${x}px;
+            top:${y}px;
             width:${r.width  / scale}px;
-            height:${r.height / scale}px`;
-          page.appendChild(box);   
+            height:${r.height / scale}px;
+            pointer-events:none;mix-blend-mode:multiply;z-index:5`;
+            page.appendChild(box);   
         }
         range.detach();
       } else {
@@ -191,8 +193,8 @@ async function main() {
     }
   }
   function renderAllHighlights() {
+    clearHighlights(); 
     container.querySelectorAll('.page').forEach(page => {
-      clearHighlights(page);
       page.querySelectorAll('.textLayer span').forEach(span => {
         highlightSpan(span, styleWordsToUse, page);
       });
