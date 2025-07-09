@@ -115,7 +115,7 @@ async function main() {
     });
     pageRoot.querySelectorAll('.word-highlight').forEach(box => box.remove());
   }
-  function highlightSpan(span, rule) {
+  function highlightSpan(span, rules) {
     const jobs = [];
     const walker = document.createTreeWalker(
       span,
@@ -125,45 +125,50 @@ async function main() {
     );
     for (let textNode; (textNode = walker.nextNode()); ) {
       const text = textNode.data;
-      for (const rx of rule._regexes) {
-        rx.lastIndex = 0;                       // reset, because we reuse the RegExp
-        let m;
-        while ((m = rx.exec(text))) {
-          jobs.push({
-            node: textNode,
-            start: m.index,
-            end: m.index + m[0].length
-          });
+      for (const rule of rules) {
+        for (const rx of rule._regexes) {
+          rx.lastIndex = 0;
+          let m;
+          while ((m = rx.exec(text))) {
+            jobs.push({
+              node:  textNode,
+              start: m.index,
+              end:   m.index + m[0].length,
+              style: rule.style
+            });
+          }
         }
       }
     }
-    jobs.sort((a, b) => b.start - a.start || b.node.compareDocumentPosition(a.node));
-    for (const job of jobs) {
-      const { node, start, end } = job;
-      if (/background\s*:/.test(rule.style)) {
+    jobs.sort((a, b) => {
+      if (a.node === b.node) return b.start - a.start;
+      return a.node.compareDocumentPosition(b.node) &
+            Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;
+    });
+    for (const { node, start, end, style } of jobs) {
+      if (/background\s*:/.test(style)) {
         const range = document.createRange();
         range.setStart(node, start);
         range.setEnd  (node, end);
-        Array.from(range.getClientRects()).forEach(r => {
+        for (const r of range.getClientRects()) {
           const box = document.createElement('div');
           box.className = 'word-highlight';
-          box.style.cssText = `${rule.style};
-            left:${r.left + window.scrollX}px;
-            top:${r.top  + window.scrollY}px;
-            width:${r.width}px;height:${r.height}px;`;
+          box.style.cssText = `${style};
+            left:${r.left  + window.scrollX}px;
+            top:${r.top   + window.scrollY}px;
+            width:${r.width}px;height:${r.height}px`;
           document.body.appendChild(box);
-        });
+        }
         range.detach();
       } else {
         const after  = node.splitText(end);
         const target = node.splitText(start);
-        const wrapper = document.createElement('span');
-        wrapper.className = 'styled-word';
-        wrapper.style.cssText = rule.style +
-          (!/color\s*:/.test(rule.style) ? FORCE_TEXT_VISIBLE : '');
-
-        wrapper.appendChild(target.cloneNode(true));
-        target.parentNode.replaceChild(wrapper, target);
+        const wrap   = document.createElement('span');
+        wrap.className = 'styled-word';
+        wrap.style.cssText = style +
+          (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
+        wrap.appendChild(target.cloneNode(true));
+        target.parentNode.replaceChild(wrap, target);
       }
     }
   }
@@ -171,9 +176,7 @@ async function main() {
     document.querySelectorAll('.page').forEach(page => {
       clearHighlights(page);
       page.querySelectorAll('.textLayer span').forEach(span => {
-        for (const rule of styleWordsToUse) {
-          highlightSpan(span, rule);
-        }
+        highlightSpan(span, styleWordsToUse);
       });
     });
   }
