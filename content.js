@@ -126,7 +126,7 @@ async function main() {
         : NodeFilter.FILTER_REJECT 
       }
     );
-    const jobs = [];
+    const jobsByKey = Object.create(null);
     for (let textNode; (textNode = walker.nextNode()); ) {
       const text = textNode.data;
       for (const rule of rules) {
@@ -137,17 +137,19 @@ async function main() {
             if (!textNode.__highlightId) {
               textNode.__highlightId = Symbol();
             }
-            jobs.push({
-              node,
+            const key = `${String(textNode.__highlightId)}|${m.index}|${m[0].length}`;
+            jobsByKey[key] = {
+              node:  textNode,
               start: m.index,
               end:   m.index + m[0].length,
-              style
-            });
+              style: rule.style
+            };
             console.log('[Highlight] Matched:', m[0], 'with style:', rule.style);
           }
         }
       }
     }
+    const jobs = Object.values(jobsByKey);
     jobs.sort((a, b) => {
       if (a.node === b.node) return b.start - a.start;
       return a.node.compareDocumentPosition(b.node) &
