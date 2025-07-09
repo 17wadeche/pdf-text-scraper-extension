@@ -200,24 +200,10 @@ async function main() {
   const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
   const fix = document.createElement('style');
   fix.textContent = `
-    .textLayer {
-      transform: none !important;
-      text-align: initial !important;
-      line-height: 1 !important;
-      pointer-events: auto !important;
-      opacity: 1 !important;
-    }
-    .textLayer span {
-      display: inline !important;
-      position: absolute !important;
-      white-space: pre !important;
-      transform-origin: 0 0 !important;
-    }
-    .pdfViewer {
-      position: relative;
-    }
-    .page {
-      position: relative;
+      .textLayer,
+      .textLayer span {
+        pointer-events: auto !important;
+        opacity: 1 !important;
     }
   `;
   document.head.appendChild(fix);
