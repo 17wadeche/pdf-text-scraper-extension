@@ -118,7 +118,10 @@ async function main() {
       styleWordsToUse.forEach(({style, _regexes }) => {
         const needsTextColour = !/color\s*:/.test(style);
         _regexes.forEach(rx => {
-          html = html.replace(rx, `<span style="${style}${needsTextColour?FORCE_TEXT_VISIBLE:''}">$&</span>`);
+          html = html.replace(
+            rx, 
+            `<span class="styled-word" style="${style}${needsTextColour?FORCE_TEXT_VISIBLE:''}">$&</span>`
+          );
         });
       });
       if (html !== orig) span.innerHTML = html;
@@ -212,13 +215,15 @@ async function main() {
   const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
   const fix = document.createElement('style');
   fix.textContent = `
-    .textLayer span,
-    .textLayer span span {
-      display: inline-block !important;
-      white-space: pre !important;
-      pointer-events: auto !important;
-      opacity: 1 !important;
-      mix-blend-mode: multiply;
+    .textLayer span {
+      pointer-events:auto !important;
+      opacity:1 !important;
+      mix-blend-mode:multiply;
+    }
+    .styled-word { 
+      position:static; 
+      display:inline;
+      font:inherit;
     }
   `;
   document.head.appendChild(fix);
