@@ -77,7 +77,6 @@ async function main() {
     console.log('[Highlight] Active BU:', currentBU);
     console.log('[Highlight] Active OU:', currentOU);
     console.log('[Highlight] Using rules:', styleWordsToUse.map(r => ({ words: r.words, style: r.style })));
-    window._styleWordsToUse = styleWordsToUse;
   }
   updateStyleWords();
   const buSelect = document.createElement('select');
@@ -204,16 +203,14 @@ async function main() {
   }
   function renderAllHighlights() {
     clearHighlights();
-    pdfViewer._pages.forEach((pageView, index) => {
-      if (!renderedPages.has(index + 1)) return;
-      const page = pageView.div;
+    container.querySelectorAll('.page').forEach(page => {
       page.style.position = 'relative';
       page.querySelectorAll('.textLayer span').forEach(span => {
         const txt = span.textContent.trim();
         if (txt.startsWith('* ')) {
           const yellowRules = styleWordsToUse.map(rule => ({
             _regexes: rule._regexes,
-            style:    'background: orange; color: black;'
+            style:    'background: green; color: black;'
           }));
           highlightSpan(span, yellowRules, page);
           return;  // done with this span
@@ -229,49 +226,13 @@ async function main() {
     localStorage.removeItem('highlight_OU');
     updateOuOptions();
     updateStyleWords();
-    renderedPages.forEach(pageNum => {
-      const pageView = pdfViewer._pages[pageNum - 1];
-      const pageElement = pageView.div;
-      const textLayer = pageView.textLayer?.textLayerDiv;
-      if (!textLayer) return;
-      clearHighlights(pageElement);
-      textLayer.querySelectorAll('span').forEach(span => {
-        const txt = span.textContent.trim();
-        if (txt.startsWith('* ')) {
-          const yellowRules = styleWordsToUse.map(rule => ({
-            _regexes: rule._regexes,
-            style: 'background: orange; color: black;'
-          }));
-          highlightSpan(span, yellowRules, pageElement);
-        } else {
-          highlightSpan(span, styleWordsToUse, pageElement);
-        }
-      });
-    });
+    renderAllHighlights();
   };
   ouSelect.onchange = () => {
     currentOU = ouSelect.value;
     localStorage.setItem('highlight_OU', currentOU);
     updateStyleWords();
-    renderedPages.forEach(pageNum => {
-      const pageView = pdfViewer._pages[pageNum - 1];
-      const pageElement = pageView.div;
-      const textLayer = pageView.textLayer?.textLayerDiv;
-      if (!textLayer) return;
-      clearHighlights(pageElement);
-      textLayer.querySelectorAll('span').forEach(span => {
-        const txt = span.textContent.trim();
-        if (txt.startsWith('* ')) {
-          const yellowRules = styleWordsToUse.map(rule => ({
-            _regexes: rule._regexes,
-            style: 'background: orange; color: black;'
-          }));
-          highlightSpan(span, yellowRules, pageElement);
-        } else {
-          highlightSpan(span, styleWordsToUse, pageElement);
-        }
-      });
-    });
+    renderAllHighlights();
   };
   Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
   Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'190px', zIndex:2147483648 });
@@ -343,7 +304,7 @@ async function main() {
   const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
   const eventBus    = new EventBus();
   const linkService = new PDFLinkService({eventBus});
-  const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService, textLayerMode: 2 });
+  const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
   const fix = document.createElement('style');
   fix.textContent = `
     .textLayer span {
@@ -378,32 +339,27 @@ async function main() {
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
+  eventBus.on('pagesloaded', () => {
+    setTimeout(() => {
+      renderAllHighlights();
+    }, 300);
+  });
+  renderAllHighlights();
+  eventBus.on('pagesloaded', () => {
+    renderAllHighlights();
+  });
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
-    console.log('[PDF] Rendering text layer on page', pageNumber);
     const pageView = pdfViewer._pages[pageNumber - 1];
-    if (!pageView) return;
-    const pageElement = pageView.div;
-    const textLayer = pageView.textLayer?.textLayerDiv;
+    const textLayer = pageView?.textLayer?.textLayerDiv;
     if (!textLayer) return;
-    pageElement.style.position = 'relative';
-    clearHighlights(pageElement);
-    textLayer.querySelectorAll('span').forEach(span => {
+    Array.from(textLayer.querySelectorAll('span')).forEach(span => {
       if (!span.dataset.origStyle) {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
-      const txt = span.textContent.trim();
-      if (txt.startsWith('* ')) {
-        const yellowRules = styleWordsToUse.map(rule => ({
-          _regexes: rule._regexes,
-          style: 'background: orange; color: black;'
-        }));
-        highlightSpan(span, yellowRules, pageElement);
-      } else {
-        highlightSpan(span, styleWordsToUse, pageElement);
-      }
     });
     renderedPages.add(pageNumber);
+    renderAllHighlights();
   });
   let showingStyled = true;
   toggle.onclick = () => {
