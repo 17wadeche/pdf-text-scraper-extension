@@ -131,7 +131,10 @@ async function main() {
           rx.lastIndex = 0;
           let m;
           while ((m = rx.exec(text))) {
-            const key = `${textNode.__highlightId || (textNode.__highlightId=Symbol())}|${m.index}|${m[0].length}`;
+            if (!textNode.__highlightId) {
+              textNode.__highlightId = Symbol();
+            }
+            const key = `${String(textNode.__highlightId)}|${m.index}|${m[0].length}`;
             jobsByKey[key] = {
               node:  textNode,
               start: m.index,
