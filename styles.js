@@ -1,6 +1,6 @@
 const defaultStyleWords = [
   {
-    style: 'font-weight:bold',
+    style: 'color:orange',
     words: [
       'Death',
       'RESULT',
@@ -248,7 +248,7 @@ const config = {
   Xomed: { // BU
     styleWords: [
       {
-        style: 'font-weight:bold',
+        style: 'color:orange',
         words: [
           'Subject Code',
           'Damage Code',
@@ -364,10 +364,6 @@ const config = {
       {
         style: 'color:red',           
         words: ['motor stall']
-      },
-      {
-        style: 'font-weight:bold',   
-        words: ['recovery']
       }
     ],
     'Cardiac Rhythm Management': {
@@ -375,10 +371,6 @@ const config = {
         {
           style: 'background:yellow',
           words: ['infection']
-        },
-        {
-          style: 'font-weight:bold',  
-          words: ['erosion']
         },
         {
           style: 'color:red',      
@@ -461,16 +453,6 @@ const config = {
           'Text Color Outcome:',
           'This is a test of the interface update details font color',
           'This is a test of the as reported event description font color'
-        ]
-      },
-      {
-        style: 'font-weight:bold',
-        words: [
-          'This is a test of the interface details font weight',
-          'Text Weight Result:',
-          'This is a test of the interface update details font weight',
-          'This is a test of the as reported event description font weight',
-          'BU test'
         ]
       },
       {
