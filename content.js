@@ -102,7 +102,6 @@ async function main() {
     document.querySelectorAll('.textLayer span').forEach(span => {
       if (!span.dataset.origStyle) {
         span.dataset.origStyle = span.getAttribute('style') || '';
-        return; 
       }
       span.style.cssText = span.dataset.origStyle;  
       const txt = span.textContent.trim();
