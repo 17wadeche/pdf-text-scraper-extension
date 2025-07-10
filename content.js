@@ -170,31 +170,16 @@ async function main() {
         const { start, end, style, shift } = job;
         if (end > node.length) continue;
         if (/background\s*:/.test(style)) {
-          const range = document.createRange();
-          range.setStart(node, start);
-          range.setEnd(node, end);
-          const pageRect = page.getBoundingClientRect();
-          let scale = 1;
-          const m = page.style.transform.match(/scale\(([^)]+)\)/);
-          if (m) scale = parseFloat(m[1]);
-          for (const r of range.getClientRects()) {
-            const box = document.createElement('div');
-            box.className = 'word-highlight';
-            if (shift) box.classList.add('shift-left');
-            const x = (r.left - pageRect.left - 8) / scale;
-            const y = (r.top - pageRect.top - 8) / scale;
-            box.style.cssText = `${style};
-              position:absolute;
-              left:${x}px;
-              top:${y}px;
-              width:${r.width / scale}px;
-              height:${r.height / scale}px;
-              pointer-events:none;
-              mix-blend-mode: multiply;
-              z-index:5`;
-            page.appendChild(box);
-          }
-          range.detach();
+          const target = node.splitText(start);
+          target.splitText(end - start);                // splits off the “after”
+          const wrap   = document.createElement('span');
+          wrap.classList.add('styled-word');
+          if (shift) wrap.classList.add('shift-left');
+          wrap.style.cssText = style                     // your background:yellow;…
+                          + ';display:inline-block;'
+                          + FORCE_TEXT_VISIBLE;         // ensure text is visible
+          wrap.appendChild(target.cloneNode(true));
+          target.parentNode.replaceChild(wrap, target);
         } else {
           const target = node.splitText(start);
           const after = target.splitText(end - start);
@@ -333,7 +318,7 @@ async function main() {
       pointer-events: none;
       mix-blend-mode: normal !important;
       z-index: 2147483648 !important; 
-      opacity: 0.4;
+      opacity: 0.25;
     }
   `;
   fix.textContent += `
