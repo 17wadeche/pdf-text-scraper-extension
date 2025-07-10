@@ -138,18 +138,18 @@ async function main() {
             const key = `${String(textNode.__highlightId)}|${m.index}|${m[0].length}`;
             const before = text[m.index - 1];
             const shift  = before === '*' || (before === ' ' && text[m.index - 2] === '*');
-            jobsByKey[key] = {
-              node:  textNode,
+            (jobsByKey[key] ??= []).push({
+              node: textNode,
               start: m.index,
               end:   m.index + m[0].length,
               style: rule.style,
               shift
-            };
+            });
           }
         }
       }
     }
-    const jobs = Object.values(jobsByKey);
+    const jobs = Object.values(jobsByKey).flat();
     for (const job of jobs) {
       if (!/background\s*:/.test(job.style)) continue;
       const { node, start, end, style, shift } = job;
