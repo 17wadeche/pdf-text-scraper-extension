@@ -13,7 +13,12 @@ function isPdfEmbedPresent() {
 function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function makeRegex(word) {
   const p = esc(word.trim());
-  return new RegExp(`(?<![\\p{L}\\p{N}])(${p})(?![\\p{L}\\p{N}])`, 'giu');
+  return new RegExp(
+    '(?:(?<![\\p{L}\\p{N}])|(?<=[\\p{Ll}])(?=[\\p{Lu}]))' +
+    `(${p})` +
+    `(?![\\p{L}\\p{N}])`,
+    'giu'
+  );
 }
 const FORCE_TEXT_VISIBLE = ';color:#000 !important;-webkit-text-fill-color:#000 !important;';
 function waitForPdfEmbed() {
@@ -138,101 +143,90 @@ async function main() {
             const key = `${String(textNode.__highlightId)}|${m.index}|${m[0].length}`;
             const before = text[m.index - 1];
             const shift  = before === '*' || (before === ' ' && text[m.index - 2] === '*');
-            (jobsByKey[key] ??= []).push({
-              node: textNode,
+            jobsByKey[key] = {
+              node:  textNode,
               start: m.index,
               end:   m.index + m[0].length,
               style: rule.style,
               shift
-            });
+            };
           }
         }
       }
     }
-    const jobs = Object.values(jobsByKey).flat();
+    const jobs = Object.values(jobsByKey);
+    const jobsGroupedByNode = new Map();
     for (const job of jobs) {
-      if (!/background\s*:/.test(job.style)) continue;
-      const { node, start, end, style, shift } = job;
-      if (end > node.length) continue;
-      const range = document.createRange();
-      range.setStart(node, start);
-      range.setEnd(node, end);
-      const pageRect = page.getBoundingClientRect();
-      let scale = 1;
-      const m = page.style.transform.match(/scale\(([^)]+)\)/);
-      if (m) scale = parseFloat(m[1]);
-      for (const r of range.getClientRects()) {
-        const box = document.createElement('div');
-        box.className = 'word-highlight';
-        if (shift) box.classList.add('shift-left');
-        const x = (r.left - pageRect.left - 8) / scale;
-        const y = (r.top  - pageRect.top  - 8) / scale;
-        box.style.cssText = `${style};
-          position:absolute;
-          left:${x}px;
-          top:${y}px;
-          width:${r.width  / scale}px;
-          height:${r.height / scale}px;
-          pointer-events:none;
-          mix-blend-mode:multiply;
-          z-index:5`;
-        page.appendChild(box);
+      if (!jobsGroupedByNode.has(job.node)) {
+        jobsGroupedByNode.set(job.node, []);
       }
-      range.detach();
+      jobsGroupedByNode.get(job.node).push(job);
     }
-    const spanJobs = jobs
-      .filter(j => !/background\s*:/.test(j.style))
-      .sort((a, b) => {
-        if (a.node === b.node) return b.start - a.start;       // rightmost first
-        return a.node.compareDocumentPosition(b.node) &
-              Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;      // page order
-      });
-    const seen = new Set();
-    const uniqueSpanJobs = [];
-    for (const j of spanJobs) {
-      const k = `${j.node}|${j.start}|${j.end}`;
-      if (seen.has(k)) continue;   // already wrapped → skip duplicate
-      seen.add(k);
-      uniqueSpanJobs.push(j);
+    for (const nodeJobs of jobsGroupedByNode.values()) {
+      nodeJobs.sort((a, b) => b.start - a.start);
     }
-    for (const job of uniqueSpanJobs) {
-      const { node, start, end, style, shift } = job;
-      if (end > node.length) continue;
-      const target = start ? node.splitText(start) : node;
-      target.splitText(end - start);
-      const wrap = document.createElement('span');
-      wrap.classList.add('styled-word');
-      if (shift) wrap.classList.add('shift-left');
-      wrap.style.cssText = style +
-        (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
-      wrap.appendChild(target.cloneNode(true));
-      target.parentNode.replaceChild(wrap, target);
+    for (const [node, nodeJobs] of jobsGroupedByNode.entries()) {
+      for (const job of nodeJobs) {
+        const { start, end, style, shift } = job;
+        if (end > node.length) continue;
+        if (/background\s*:/.test(style)) {
+          const range = document.createRange();
+          range.setStart(node, start);
+          range.setEnd(node, end);
+          const pageRect = page.getBoundingClientRect();
+          let scale = 1;
+          const m = page.style.transform.match(/scale\(([^)]+)\)/);
+          if (m) scale = parseFloat(m[1]);
+          for (const r of range.getClientRects()) {
+            const box = document.createElement('div');
+            box.className = 'word-highlight';
+            if (shift) box.classList.add('shift-left');
+            const x = (r.left - pageRect.left - 8) / scale;
+            const y = (r.top - pageRect.top - 8) / scale;
+            box.style.cssText = `${style};
+              position:absolute;
+              left:${x}px;
+              top:${y}px;
+              width:${r.width / scale}px;
+              height:${r.height / scale}px;
+              pointer-events:none;
+              mix-blend-mode: multiply;
+              z-index:5`;
+            page.appendChild(box);
+          }
+          range.detach();
+        } else {
+          const target = node.splitText(start);
+          const after = target.splitText(end - start);
+          const wrap = document.createElement('span');
+          wrap.classList.add('styled-word');
+          if (shift) wrap.classList.add('shift-left');
+          wrap.style.cssText = style +
+            (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
+          wrap.appendChild(target.cloneNode(true));
+          target.parentNode.replaceChild(wrap, target);
+        }
+      }
     }
   }
-  function queueHighlight(page) {
-    requestIdleCallback(() => highlightPage(page), { timeout: 1000 });
-  }
-  const highlightedPages = new Set();
-  function highlightPage(page) {
-    if (highlightedPages.has(page)) return;
-    highlightedPages.add(page);
-    const start = performance.now();
-    clearHighlights(page);
-    page.style.position = 'relative';
-    page.querySelectorAll('.textLayer span').forEach(span => {
-      const txt = span.textContent.trim();
-      if (txt.startsWith('* ')) {
-        const yellowRules = styleWordsToUse.map(rule => ({
-          _regexes: rule._regexes,
-          style: 'background: orange; color: black;'
-        }));
-        highlightSpan(span, yellowRules, page);
-      } else {
+  function renderAllHighlights() {
+    if (!container) return;
+    clearHighlights(container);
+    container.querySelectorAll('.page').forEach(page => {
+      page.style.position = 'relative';
+      page.querySelectorAll('.textLayer span').forEach(span => {
+        const txt = span.textContent.trim();
+        if (txt.startsWith('* ')) {
+          const yellowRules = styleWordsToUse.map(rule => ({
+            _regexes: rule._regexes,
+            style:    'background: orange; color: black;'
+          }));
+          highlightSpan(span, yellowRules, page);
+          return;  // done with this span
+        }
         highlightSpan(span, styleWordsToUse, page);
-      }
+      });
     });
-    const end = performance.now();
-    console.log(`Highlighted page ${page.dataset.pageNumber} in ${Math.round(end - start)}ms`);
   }
   buSelect.onchange = () => {
     currentBU = buSelect.value;
@@ -242,14 +236,14 @@ async function main() {
     updateOuOptions();
     updateStyleWords();
     clearHighlights(container); 
-    visiblePages.forEach(highlightPage);
+    renderAllHighlights();
   };
   ouSelect.onchange = () => {
     currentOU = ouSelect.value;
     localStorage.setItem('highlight_OU', currentOU);
     updateStyleWords();
     clearHighlights(container); 
-    visiblePages.forEach(highlightPage);
+    renderAllHighlights();
   };
   Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
   Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'190px', zIndex:2147483648 });
@@ -337,7 +331,9 @@ async function main() {
     .word-highlight {
       position: absolute;
       pointer-events: none;
-      mix-blend-mode: multiply;  
+      mix-blend-mode: normal !important;
+      z-index: 2147483648 !important; 
+      opacity: 0.4;
     }
   `;
   fix.textContent += `
@@ -354,41 +350,20 @@ async function main() {
   linkService.setViewer(pdfViewer);
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
-  eventBus.on('pagesloaded', () => {
-    pdfViewer.scrollPageIntoView({ pageNumber: 1 });
-  });
-  const visiblePages = new Set();
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting && !visiblePages.has(entry.target)) {
-        visiblePages.add(entry.target);
-        highlightPage(entry.target);
-      }
-    });
-  }, {
-    root: container,
-    threshold: 0.1
-  });
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
   eventBus.on('pagesloaded', () => {
     setTimeout(() => {
-      visiblePages.forEach(highlightPage);
+      renderAllHighlights();
     }, 300);
   });
-  visiblePages.forEach(highlightPage);
+  renderAllHighlights();
   eventBus.on('pagesloaded', () => {
-    visiblePages.forEach(highlightPage);
+    renderAllHighlights();
   });
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
     const pageView = pdfViewer._pages[pageNumber - 1];
-    const pageEl = pageView?.div;
-    if (!pageEl) return;
-    if (!renderedPages.has(pageEl)) {
-      renderedPages.add(pageEl);
-      queueHighlight(pageEl);
-    }
     const textLayer = pageView?.textLayer?.textLayerDiv;
     if (!textLayer) return;
     Array.from(textLayer.querySelectorAll('span')).forEach(span => {
@@ -396,6 +371,8 @@ async function main() {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
     });
+    renderedPages.add(pageNumber);
+    renderAllHighlights();
   });
   let showingStyled = true;
   toggle.onclick = () => {
@@ -405,7 +382,7 @@ async function main() {
       embed.style.display     = 'none';
       buSelect.style.display  = '';
       ouSelect.style.display  = '';
-      visiblePages.forEach(highlightPage);
+      renderAllHighlights();
       toggle.textContent = 'Original';
     } else {
       container.style.display = 'none';
@@ -415,4 +392,9 @@ async function main() {
       toggle.textContent = 'Styled';
     }
   };
+  setInterval(() => {
+    if (showingStyled && container?.offsetParent !== null) {
+      renderAllHighlights();
+    }
+  }, 100);
 }
