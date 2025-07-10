@@ -161,7 +161,11 @@ async function main() {
       jobsGroupedByNode.get(job.node).push(job);
     }
     for (const nodeJobs of jobsGroupedByNode.values()) {
-      nodeJobs.sort((a, b) => b.start - a.start);
+      nodeJobs.sort((a,b) => {
+        const d = b.start - a.start;
+        if (d) return d;
+        return (b.end - b.start) - (a.end - a.start);
+      });
     }
     for (const [node, nodeJobs] of jobsGroupedByNode.entries()) {
       for (const job of nodeJobs) {
