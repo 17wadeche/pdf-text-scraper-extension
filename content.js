@@ -253,6 +253,26 @@ async function main() {
     padding:'6px 12px', zIndex:2147483648, cursor:'pointer'
   });
   document.body.append(buSelect, ouSelect, toggle);
+  const linksPanel = document.createElement('div');
+  Object.assign(linksPanel.style, {
+    position:    'fixed',
+    top:         '56px',    // 16px (top) + 32px (select height) + 8px gap
+    left:        '16px',
+    background:  '#fff',
+    border:      '1px solid #ddd',
+    borderRadius:'6px',
+    padding:     '8px',
+    boxShadow:   '0 2px 5px rgba(0,0,0,0.1)',
+    zIndex:      2147483648,
+  });
+  linksPanel.id = 'links-panel';
+  linksPanel.innerHTML = `
+    <div style="font-weight:bold; margin-bottom:4px;">Links:</div>
+    <ul style="margin:0; padding-left:16px; list-style-type: disc;">
+      <!-- items will go here -->
+    </ul>
+  `;
+  document.body.appendChild(linksPanel);
   buSelect.value = currentBU;
   updateOuOptions();
   if (currentOU) {
@@ -380,40 +400,38 @@ async function main() {
     renderAllHighlights();
   });
   let linksInjected = false;
-  const reasonRx = makeRegex('REASON');
+  const reasonRx = makeRegex('REASON FOR TRANSMISSION');
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
     if (linksInjected) return;
     const reason = findFirstSpan(reasonRx);
     if (!reason) return;                // still not on this page → wait for the next
     linksInjected = true;               // we found it! inject the bar:
     const headings = [
-      { label: 'Patient',        rx: makeRegex('PATIENT')        },
-      { label: 'Device Summary', rx: makeRegex('DEVICE SUMMARY') },
-      { label: 'Notes',          rx: makeRegex('Notes')          },
+      { label: 'Reason for Transmission',        rx: makeRegex('REASON FOR TRANSMISSION')        },
+      { label: 'Patient Identification',        rx: makeRegex('Patient Identification')        },
+      { label: 'Episode Summary', rx: makeRegex('Episode Summary') },
+      { label: 'Notes',          rx: makeRegex('Notes:')          },
     ];
     const found = headings
       .map(h => ({ ...h, found: findFirstSpan(h.rx) }))
       .filter(h => h.found);
-    const bar = document.createElement('div');
-    bar.className = 'links-container';
-    Object.assign(bar.style, {
-      position:    'sticky',
-      top:         '0',
-      background:  '#f7f7f7',
-      padding:     '8px',
-      borderBottom:'1px solid #ddd',
-      zIndex:      9999,
-    });
-    bar.innerHTML = found
-      .map((h,i) => `<a href="#" data-idx="${i}">${h.label}</a>`)
-      .join(' | ');
-    container.insertBefore(bar, container.firstChild);
-    bar.querySelectorAll('a').forEach(a => {
-      const idx = +a.dataset.idx;
+    const ul = document.querySelector('#links-panel ul');
+    ul.innerHTML = '';
+    found.forEach((h, i) => {
+      const li = document.createElement('li');
+      li.style.margin = '4px 0';
+      const a = document.createElement('a');
+      a.href = '#';
+      a.textContent = h.label;
+      a.dataset.idx = i;
+      a.style.textDecoration = 'none';
+      a.style.color = '#06c';
       a.addEventListener('click', e => {
         e.preventDefault();
-        scrollToSpan(found[idx].found);
+        scrollToSpan(h.found);
       });
+      li.appendChild(a);
+      ul.appendChild(li);
     });
   });
   const renderedPages = new Set();
