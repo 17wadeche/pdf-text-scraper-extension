@@ -209,23 +209,20 @@ async function main() {
       target.parentNode.replaceChild(wrap, target);
     }
   }
-  function renderAllHighlights() {
-    if (!container) return;
-    clearHighlights(container);
-    container.querySelectorAll('.page').forEach(page => {
-      page.style.position = 'relative';
-      page.querySelectorAll('.textLayer span').forEach(span => {
-        const txt = span.textContent.trim();
-        if (txt.startsWith('* ')) {
-          const yellowRules = styleWordsToUse.map(rule => ({
-            _regexes: rule._regexes,
-            style:    'background: orange; color: black;'
-          }));
-          highlightSpan(span, yellowRules, page);
-          return;  // done with this span
-        }
+  function highlightPage(page) {
+    clearHighlights(page);
+    page.style.position = 'relative';
+    page.querySelectorAll('.textLayer span').forEach(span => {
+      const txt = span.textContent.trim();
+      if (txt.startsWith('* ')) {
+        const yellowRules = styleWordsToUse.map(rule => ({
+          _regexes: rule._regexes,
+          style: 'background: orange; color: black;'
+        }));
+        highlightSpan(span, yellowRules, page);
+      } else {
         highlightSpan(span, styleWordsToUse, page);
-      });
+      }
     });
   }
   buSelect.onchange = () => {
@@ -236,14 +233,14 @@ async function main() {
     updateOuOptions();
     updateStyleWords();
     clearHighlights(container); 
-    renderAllHighlights();
+    visiblePages.forEach(highlightPage);
   };
   ouSelect.onchange = () => {
     currentOU = ouSelect.value;
     localStorage.setItem('highlight_OU', currentOU);
     updateStyleWords();
     clearHighlights(container); 
-    renderAllHighlights();
+    visiblePages.forEach(highlightPage);
   };
   Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
   Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'190px', zIndex:2147483648 });
@@ -348,16 +345,29 @@ async function main() {
   linkService.setViewer(pdfViewer);
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
+  const visiblePages = new Set();
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !visiblePages.has(entry.target)) {
+        visiblePages.add(entry.target);
+        highlightPage(entry.target);
+      }
+    });
+  }, {
+    root: container,
+    threshold: 0.1
+  });
+  container.querySelectorAll('.page').forEach(page => io.observe(page));
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
   eventBus.on('pagesloaded', () => {
     setTimeout(() => {
-      renderAllHighlights();
+      visiblePages.forEach(highlightPage);
     }, 300);
   });
-  renderAllHighlights();
+  visiblePages.forEach(highlightPage);
   eventBus.on('pagesloaded', () => {
-    renderAllHighlights();
+    visiblePages.forEach(highlightPage);
   });
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
@@ -370,7 +380,7 @@ async function main() {
       }
     });
     renderedPages.add(pageNumber);
-    renderAllHighlights();
+    visiblePages.forEach(highlightPage);
   });
   let showingStyled = true;
   toggle.onclick = () => {
@@ -380,7 +390,7 @@ async function main() {
       embed.style.display     = 'none';
       buSelect.style.display  = '';
       ouSelect.style.display  = '';
-      renderAllHighlights();
+      visiblePages.forEach(highlightPage);
       toggle.textContent = 'Original';
     } else {
       container.style.display = 'none';
@@ -390,4 +400,9 @@ async function main() {
       toggle.textContent = 'Styled';
     }
   };
+  setInterval(() => {
+    if (showingStyled && container?.offsetParent !== null) {
+      visiblePages.forEach(highlightPage);
+    }
+  }, 100);
 }
