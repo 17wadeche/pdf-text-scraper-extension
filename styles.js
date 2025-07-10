@@ -185,6 +185,7 @@ const defaultStyleWords = [
       'Cause Code Text',
       'Probable Cause',
       'Next Action',
+      'Action ',
       'Action',
       'Resolution confirmed on call',
       'General Summary of Failure(s)',
