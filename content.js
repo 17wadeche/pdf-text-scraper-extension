@@ -284,6 +284,26 @@ async function main() {
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
+  function findFirstSpan(rx) {
+    for (const pageEl of viewerDiv.querySelectorAll('.page')) {
+      for (const span of pageEl.querySelectorAll('.textLayer span')) {
+        if (rx.test(span.textContent.trim())) {
+          return { span, pageEl };
+        }
+      }
+    }
+    return null;
+  }
+  function scrollToSpan({ span, pageEl }) {
+    const pageRect = pageEl.getBoundingClientRect();
+    const spanRect = span.getBoundingClientRect();
+    const currentScroll = container.scrollTop;
+    const containerRect = container.getBoundingClientRect();
+    const targetY = currentScroll
+                  + (spanRect.top   - containerRect.top)
+                  - 16;
+    container.scrollTo({ top: targetY, behavior: 'smooth' });
+  }
   window.addEventListener('resize', () => {
     const r = embed.getBoundingClientRect();
     Object.assign(container.style, {
@@ -358,6 +378,44 @@ async function main() {
   renderAllHighlights();
   eventBus.on('pagesloaded', () => {
     renderAllHighlights();
+  });
+  eventBus.on('pagesloaded', () => {
+    const reasonRx = makeRegex('REASON FOR TRANSMISSION');
+    const reason = findFirstSpan(reasonRx);
+    if (!reason) {
+      return;
+    }
+    const headings = [
+      { label: 'Episode Summary',       rx: makeRegex('Episode Summary')       },
+      { label: 'Patient Identification', rx: makeRegex('Patient Identification') },
+      { label: 'Notes',                  rx: makeRegex('Notes')                  },
+    ];
+    const found = headings
+      .map(h => ({ ...h, found: findFirstSpan(h.rx) }))
+      .filter(h => h.found);
+    if (!found.some(h => h.label === 'Episode Summary')) {
+      return;
+    }
+    const bar = document.createElement('div');
+    bar.className = 'links-container';
+    bar.style.cssText = `
+      position: sticky;
+      top: 0;
+      background: #f7f7f7;
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+      z-index: 10;
+    `;
+    bar.innerHTML = found
+      .map(h => `<a href="#" class="pdf-link">${h.label}</a>`)
+      .join(' | ');
+    reason.span.parentNode.insertBefore(bar, reason.span);
+    Array.from(bar.querySelectorAll('a')).forEach((a, i) => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        scrollToSpan(reason);    // always scroll to “REASON FOR TRANSMISSION”
+      });
+    });
   });
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
