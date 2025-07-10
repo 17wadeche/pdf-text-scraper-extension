@@ -161,10 +161,23 @@ async function main() {
       nodeJobs.sort((a, b) => b.start - a.start);
     }
     for (const [node, nodeJobs] of jobsGroupedByNode.entries()) {
+      const originalText = node.data;
+      const parent = node.parentNode;
+      const fragments = [];
+      let lastIndex = 0;
+      nodeJobs.sort((a, b) => a.start - b.start); // Apply forward now
       for (const job of nodeJobs) {
         const { start, end, style, shift } = job;
-        if (end > node.length) continue;
-
+        if (start > lastIndex) {
+          fragments.push(document.createTextNode(originalText.slice(lastIndex, start)));
+        }
+        const span = document.createElement('span');
+        span.className = 'styled-word';
+        if (shift) span.classList.add('shift-left');
+        span.style.cssText = style + (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
+        span.textContent = originalText.slice(start, end);
+        fragments.push(span);
+        lastIndex = end;
         if (/background\s*:/.test(style)) {
           const range = document.createRange();
           range.setStart(node, start);
@@ -191,18 +204,15 @@ async function main() {
             page.appendChild(box);
           }
           range.detach();
-        } else {
-          const target = node.splitText(start);
-          const after = target.splitText(end - start);
-          const wrap = document.createElement('span');
-          wrap.classList.add('styled-word');
-          if (shift) wrap.classList.add('shift-left');
-          wrap.style.cssText = style +
-            (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
-          wrap.appendChild(target.cloneNode(true));
-          target.parentNode.replaceChild(wrap, target);
         }
       }
+      if (lastIndex < originalText.length) {
+        fragments.push(document.createTextNode(originalText.slice(lastIndex)));
+      }
+      for (const frag of fragments.reverse()) {
+        parent.insertBefore(frag, node.nextSibling);
+      }
+      parent.removeChild(node);
     }
   }
   function renderAllHighlights() {
