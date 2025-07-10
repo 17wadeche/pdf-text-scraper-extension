@@ -13,7 +13,7 @@ function isPdfEmbedPresent() {
 function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function makeRegex(word) {
   const p = esc(word.trim());
-  return new RegExp(`(?:^|[\\p{Z}\\s])(${p})(?=$|[\\p{Z}\\s\\p{P}])`, 'giu');
+  return new RegExp(`(?<![\\p{L}\\p{N}])(${p})(?![\\p{L}\\p{N}])`, 'giu');
 }
 const FORCE_TEXT_VISIBLE = ';color:#000 !important;-webkit-text-fill-color:#000 !important;';
 function waitForPdfEmbed() {
@@ -119,38 +119,29 @@ async function main() {
     const walker = document.createTreeWalker(
       span,
       NodeFilter.SHOW_TEXT,
-      {
-        acceptNode: n => n.data.trim()
-          ? NodeFilter.FILTER_ACCEPT
-          : NodeFilter.FILTER_REJECT
+      { acceptNode: n => n.data.trim() 
+        ? NodeFilter.FILTER_ACCEPT
+        : NodeFilter.FILTER_REJECT 
       }
     );
     const jobsByKey = Object.create(null);
     for (let textNode; (textNode = walker.nextNode()); ) {
       const text = textNode.data;
       for (const rule of rules) {
-        for (const word of rule.words) {
-          const p = esc(word.trim());
-          const boundaryRx = new RegExp(
-            `(^|[\\p{Z}\\s])(${p})(?=$|[\\p{Z}\\s\\p{P}])`,
-            'giu'
-          );
+        for (const rx of rule._regexes) {
+          rx.lastIndex = 0;
           let m;
-          while ((m = boundaryRx.exec(text))) {
+          while ((m = rx.exec(text))) {
             if (!textNode.__highlightId) {
               textNode.__highlightId = Symbol();
             }
-            const boundaryLen = m[1].length;
-            const wordLen     = m[2].length;
-            const start       = m.index + boundaryLen;
-            const end         = start + wordLen;
-            const before = text[start - 1];
-            const shift  = before === '*' || (before === ' ' && text[start - 2] === '*');
-            const key = `${String(textNode.__highlightId)}|${start}|${wordLen}`;
+            const key = `${String(textNode.__highlightId)}|${m.index}|${m[0].length}`;
+            const before = text[m.index - 1];
+            const shift  = before === '*' || (before === ' ' && text[m.index - 2] === '*');
             jobsByKey[key] = {
               node:  textNode,
-              start,
-              end,
+              start: m.index,
+              end:   m.index + m[0].length,
               style: rule.style,
               shift
             };
@@ -167,16 +158,13 @@ async function main() {
       jobsGroupedByNode.get(job.node).push(job);
     }
     for (const nodeJobs of jobsGroupedByNode.values()) {
-      nodeJobs.sort((a, b) => {
-        const d = b.start - a.start;
-        if (d) return d;
-        return (b.end - b.start) - (a.end - a.start);
-      });
+      nodeJobs.sort((a, b) => b.start - a.start);
     }
     for (const [node, nodeJobs] of jobsGroupedByNode.entries()) {
       for (const job of nodeJobs) {
         const { start, end, style, shift } = job;
         if (end > node.length) continue;
+
         if (/background\s*:/.test(style)) {
           const range = document.createRange();
           range.setStart(node, start);
@@ -195,8 +183,8 @@ async function main() {
               position:absolute;
               left:${x}px;
               top:${y}px;
-              width:${r.width/scale}px;
-              height:${r.height/scale}px;
+              width:${r.width / scale}px;
+              height:${r.height / scale}px;
               pointer-events:none;
               mix-blend-mode: multiply;
               z-index:5`;
@@ -205,8 +193,8 @@ async function main() {
           range.detach();
         } else {
           const target = node.splitText(start);
-          const after  = target.splitText(end - start);
-          const wrap   = document.createElement('span');
+          const after = target.splitText(end - start);
+          const wrap = document.createElement('span');
           wrap.classList.add('styled-word');
           if (shift) wrap.classList.add('shift-left');
           wrap.style.cssText = style +
@@ -267,32 +255,6 @@ async function main() {
     ouSelect.value = currentOU;
   }
   updateStyleWords();
-  const { default: Mark } = await import(chrome.runtime.getURL('mark.es6.min.js'));
-  function clearAllMarks(ctx) {
-    new Mark(ctx).unmark();
-  }
-  function renderAllHighlights() {
-    if (!container) return;
-    clearAllMarks(container);
-    container.querySelectorAll('.page').forEach(page => {
-      const layer = page.querySelector('.textLayer');
-      if (!layer) return;
-      const mk = new Mark(layer);
-      const terms = styleWordsToUse.flatMap(r => r.words);
-      mk.mark(terms, {
-        separateWordSearch: false,
-        accuracy: 'exactly',
-        acrossElements: true,
-        element: 'span',
-        className: 'styled-word',
-        each: (el, term) => {
-          const rule = styleWordsToUse.find(r => r.words.includes(term));
-          el.style.cssText = rule.style
-              (!/color\s*:/.test(rule.style) ? FORCE_TEXT_VISIBLE : '');
-        }
-      });
-    });
-  }
   const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
   const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
   pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
