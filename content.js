@@ -380,9 +380,12 @@ async function main() {
     renderAllHighlights();
   });
   eventBus.on('pagesloaded', () => {
+    console.log('[LinksBar] pagesloaded fired');
     const reasonRx = makeRegex('REASON');
+    console.log('[LinksBar] reason span →', reason);
     const reason = findFirstSpan(reasonRx);
     if (!reason) {
+      console.log('[LinksBar] no “REASON” found, bailing.');
       return;
     }
     const headings = [
