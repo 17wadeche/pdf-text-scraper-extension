@@ -345,6 +345,7 @@ async function main() {
   linkService.setViewer(pdfViewer);
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
+  pdfViewer.scrollPageIntoView({ pageNumber: 1 });
   const visiblePages = new Set();
   const io = new IntersectionObserver(entries => {
     entries.forEach(entry => {
@@ -357,7 +358,6 @@ async function main() {
     root: container,
     threshold: 0.1
   });
-  container.querySelectorAll('.page').forEach(page => io.observe(page));
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
   eventBus.on('pagesloaded', () => {
@@ -372,6 +372,12 @@ async function main() {
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
     const pageView = pdfViewer._pages[pageNumber - 1];
+    const pageEl = pageView?.div;
+    if (!pageEl) return;
+    if (!renderedPages.has(pageEl)) {
+      renderedPages.add(pageEl);
+      io.observe(pageEl);  // Observe now that it exists
+    }
     const textLayer = pageView?.textLayer?.textLayerDiv;
     if (!textLayer) return;
     Array.from(textLayer.querySelectorAll('span')).forEach(span => {
@@ -379,8 +385,6 @@ async function main() {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
     });
-    renderedPages.add(pageNumber);
-    visiblePages.forEach(highlightPage);
   });
   let showingStyled = true;
   toggle.onclick = () => {
