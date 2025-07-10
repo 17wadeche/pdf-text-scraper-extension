@@ -4,6 +4,12 @@ const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
+const LINKS = [
+  'REASON FOR TRANSMISSION',
+  'Episode Summary',
+  'Patient Identification',
+  'Notes'
+];
 let initialized = false;
 function isPdfEmbedPresent() {
   return document.querySelector(
@@ -352,6 +358,48 @@ async function main() {
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
+  pdfDoc.getDestinations().then(destinations => {
+    if (!destinations[LINKS[0]]) {
+      return;
+    }
+    const panel = document.createElement('div');
+    panel.id = 'pdf-links-panel';
+    Object.assign(panel.style, {
+      position: 'fixed',
+      top:     '60px',
+      right:   '16px',
+      padding: '8px',
+      background: '#fff',
+      border:  '1px solid #ccc',
+      'borderRadius': '4px',
+      'boxShadow': '0 2px 5px rgba(0,0,0,0.1)',
+      zIndex: 2147483648
+    });
+    panel.innerHTML = '<strong>Links</strong><ul style="margin:4px 0 0; padding:0; list-style:none;"></ul>';
+    const ul = panel.querySelector('ul');
+    LINKS.forEach(name => {
+      if (destinations[name]) {
+        const li = document.createElement('li');
+        li.style.margin = '4px 0';
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = name;
+        a.style.cursor = 'pointer';
+        a.onclick = e => {
+          e.preventDefault();
+          const destArray = destinations[name];
+          linkService._goToDestination(destArray);
+        };
+        li.appendChild(a);
+        ul.appendChild(li);
+      }
+    });
+    if (ul.children.length) {
+      document.body.appendChild(panel);
+    }
+  }).catch(err => {
+    console.error('Could not load PDF destinations', err);
+  });
   eventBus.on('pagesloaded', () => {
     setTimeout(() => {
       renderAllHighlights();
