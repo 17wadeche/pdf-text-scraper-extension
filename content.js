@@ -379,41 +379,40 @@ async function main() {
   eventBus.on('pagesloaded', () => {
     renderAllHighlights();
   });
-  eventBus.on('pagesloaded', () => {
-    const reasonRx = makeRegex('REASON');
-    console.log('[LinksBar] pagesloaded fired');
+  let linksInjected = false;
+  const reasonRx = makeRegex('REASON');
+  eventBus.on('textlayerrendered', ({ pageNumber }) => {
+    if (linksInjected) return;
     const reason = findFirstSpan(reasonRx);
-    console.log('[LinksBar] reason span →', reason);
-    if (!reason) {
-      console.log('[LinksBar] no “REASON” found, bailing.');
-      return;
-    }
+    if (!reason) return;                // still not on this page → wait for the next
+    linksInjected = true;               // we found it! inject the bar:
     const headings = [
-      { label: 'Episode Summary',       rx: makeRegex('Episode Summary')       },
-      { label: 'Patient Identification', rx: makeRegex('Patient Identification') },
-      { label: 'Notes',                  rx: makeRegex('Notes')                  },
+      { label: 'Patient',        rx: makeRegex('PATIENT')        },
+      { label: 'Device Summary', rx: makeRegex('DEVICE SUMMARY') },
+      { label: 'Notes',          rx: makeRegex('Notes')          },
     ];
     const found = headings
       .map(h => ({ ...h, found: findFirstSpan(h.rx) }))
       .filter(h => h.found);
     const bar = document.createElement('div');
     bar.className = 'links-container';
-    bar.style.cssText = `
-      position: sticky;
-      top: 0;
-      background: #f7f7f7;
-      padding: 8px;
-      border-bottom: 1px solid #ddd;
-      z-index: 10;
-    `;
+    Object.assign(bar.style, {
+      position:    'sticky',
+      top:         '0',
+      background:  '#f7f7f7',
+      padding:     '8px',
+      borderBottom:'1px solid #ddd',
+      zIndex:      9999,
+    });
     bar.innerHTML = found
-      .map(h => `<a href="#" class="pdf-link">${h.label}</a>`)
+      .map((h,i) => `<a href="#" data-idx="${i}">${h.label}</a>`)
       .join(' | ');
     container.insertBefore(bar, container.firstChild);
-    Array.from(bar.querySelectorAll('a')).forEach((a, i) => {
+    bar.querySelectorAll('a').forEach(a => {
+      const idx = +a.dataset.idx;
       a.addEventListener('click', e => {
         e.preventDefault();
-        scrollToSpan(reason);    // always scroll to “REASON FOR TRANSMISSION”
+        scrollToSpan(found[idx].found);
       });
     });
   });
