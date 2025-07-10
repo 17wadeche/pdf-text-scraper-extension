@@ -13,10 +13,7 @@ function isPdfEmbedPresent() {
 function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function makeRegex(word) {
   const p = esc(word.trim());
-  return new RegExp(
-    `(?<![\\p{L}\\p{N}])(${p})(?![\\p{Ll}\\p{N}])`,
-    'giu'
-  );
+  return new RegExp(`(?:^|[\\p{Z}\\s])(${p})(?=$|[\\p{Z}\\s\\p{P}])`, 'giu');
 }
 const FORCE_TEXT_VISIBLE = ';color:#000 !important;-webkit-text-fill-color:#000 !important;';
 function waitForPdfEmbed() {
