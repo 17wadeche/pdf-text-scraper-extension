@@ -187,7 +187,15 @@ async function main() {
         return a.node.compareDocumentPosition(b.node) &
               Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;      // page order
       });
-    for (const job of spanJobs) {
+    const seen = new Set();
+    const uniqueSpanJobs = [];
+    for (const j of spanJobs) {
+      const k = `${j.node}|${j.start}|${j.end}`;
+      if (seen.has(k)) continue;   // already wrapped → skip duplicate
+      seen.add(k);
+      uniqueSpanJobs.push(j);
+    }
+    for (const job of uniqueSpanJobs) {
       const { node, start, end, style, shift } = job;
       if (end > node.length) continue;
       const target = start ? node.splitText(start) : node;
