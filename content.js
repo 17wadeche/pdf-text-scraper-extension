@@ -394,5 +394,5 @@ async function main() {
     if (showingStyled && container?.offsetParent !== null) {
       renderAllHighlights();
     }
-  }, 100);
+  }, 1000);
 }
