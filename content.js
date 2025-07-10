@@ -380,7 +380,7 @@ async function main() {
     renderAllHighlights();
   });
   eventBus.on('pagesloaded', () => {
-    const reasonRx = makeRegex('REASON FOR TRANSMISSION');
+    const reasonRx = makeRegex('REASON');
     const reason = findFirstSpan(reasonRx);
     if (!reason) {
       return;
@@ -393,9 +393,6 @@ async function main() {
     const found = headings
       .map(h => ({ ...h, found: findFirstSpan(h.rx) }))
       .filter(h => h.found);
-    if (!found.some(h => h.label === 'Episode Summary')) {
-      return;
-    }
     const bar = document.createElement('div');
     bar.className = 'links-container';
     bar.style.cssText = `
@@ -409,7 +406,7 @@ async function main() {
     bar.innerHTML = found
       .map(h => `<a href="#" class="pdf-link">${h.label}</a>`)
       .join(' | ');
-    reason.span.parentNode.insertBefore(bar, reason.span);
+    container.insertBefore(bar, container.firstChild);
     Array.from(bar.querySelectorAll('a')).forEach((a, i) => {
       a.addEventListener('click', e => {
         e.preventDefault();
