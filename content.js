@@ -266,6 +266,7 @@ async function main() {
     zIndex:      2147483648,
   });
   linksPanel.id = 'links-panel';
+  linksPanel.style.display = 'none';  
   linksPanel.innerHTML = `
     <div style="font-weight:bold; margin-bottom:4px;">Links:</div>
     <ul style="margin:0; padding-left:16px; list-style-type: disc;">
@@ -415,8 +416,10 @@ async function main() {
     const found = headings
       .map(h => ({ ...h, found: findFirstSpan(h.rx) }))
       .filter(h => h.found);
-    const ul = document.querySelector('#links-panel ul');
-    ul.innerHTML = '';
+    const linksPanel = document.querySelector('#links-panel');
+    linksPanel.style.display = 'block';
+    const ul = linksPanel.querySelector('ul');
+    l.innerHTML = '';
     found.forEach((h, i) => {
       const li = document.createElement('li');
       li.style.margin = '4px 0';
