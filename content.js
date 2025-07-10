@@ -119,29 +119,38 @@ async function main() {
     const walker = document.createTreeWalker(
       span,
       NodeFilter.SHOW_TEXT,
-      { acceptNode: n => n.data.trim() 
-        ? NodeFilter.FILTER_ACCEPT
-        : NodeFilter.FILTER_REJECT 
+      {
+        acceptNode: n => n.data.trim()
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT
       }
     );
     const jobsByKey = Object.create(null);
     for (let textNode; (textNode = walker.nextNode()); ) {
       const text = textNode.data;
       for (const rule of rules) {
-        for (const rx of rule._regexes) {
-          rx.lastIndex = 0;
+        for (const word of rule.words) {
+          const p = esc(word.trim());
+          const boundaryRx = new RegExp(
+            `(^|[\\p{Z}\\s])(${p})(?=$|[\\p{Z}\\s\\p{P}])`,
+            'giu'
+          );
           let m;
-          while ((m = rx.exec(text))) {
+          while ((m = boundaryRx.exec(text))) {
             if (!textNode.__highlightId) {
               textNode.__highlightId = Symbol();
             }
-            const key = `${String(textNode.__highlightId)}|${m.index}|${m[0].length}`;
-            const before = text[m.index - 1];
-            const shift  = before === '*' || (before === ' ' && text[m.index - 2] === '*');
+            const boundaryLen = m[1].length;
+            const wordLen     = m[2].length;
+            const start       = m.index + boundaryLen;
+            const end         = start + wordLen;
+            const before = text[start - 1];
+            const shift  = before === '*' || (before === ' ' && text[start - 2] === '*');
+            const key = `${String(textNode.__highlightId)}|${start}|${wordLen}`;
             jobsByKey[key] = {
               node:  textNode,
-              start: m.index,
-              end:   m.index + m[0].length,
+              start,
+              end,
               style: rule.style,
               shift
             };
@@ -158,7 +167,7 @@ async function main() {
       jobsGroupedByNode.get(job.node).push(job);
     }
     for (const nodeJobs of jobsGroupedByNode.values()) {
-      nodeJobs.sort((a,b) => {
+      nodeJobs.sort((a, b) => {
         const d = b.start - a.start;
         if (d) return d;
         return (b.end - b.start) - (a.end - a.start);
@@ -186,8 +195,8 @@ async function main() {
               position:absolute;
               left:${x}px;
               top:${y}px;
-              width:${r.width / scale}px;
-              height:${r.height / scale}px;
+              width:${r.width/scale}px;
+              height:${r.height/scale}px;
               pointer-events:none;
               mix-blend-mode: multiply;
               z-index:5`;
@@ -196,8 +205,8 @@ async function main() {
           range.detach();
         } else {
           const target = node.splitText(start);
-          const after = target.splitText(end - start);
-          const wrap = document.createElement('span');
+          const after  = target.splitText(end - start);
+          const wrap   = document.createElement('span');
           wrap.classList.add('styled-word');
           if (shift) wrap.classList.add('shift-left');
           wrap.style.cssText = style +
