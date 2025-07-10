@@ -14,9 +14,7 @@ function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function makeRegex(word) {
   const p = esc(word.trim());
   return new RegExp(
-    '(?:(?<![\\p{L}\\p{N}])|(?<=[\\p{Ll}])(?=[\\p{Lu}]))' +
-    `(${p})` +
-    `(?![\\p{L}\\p{N}])`,
+    `(?<![\\p{L}\\p{N}])(${p})(?![\\p{Ll}\\p{N}])`,
     'giu'
   );
 }
