@@ -348,6 +348,24 @@ async function main() {
   linkService.setViewer(pdfViewer);
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
+  function highlightPage(pageDiv) {
+    pageDiv.querySelectorAll('.textLayer span')
+          .forEach(span => highlightSpan(span, styleWordsToUse, pageDiv));
+  }
+  const io = new IntersectionObserver(
+    entries => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        highlightPage(e.target);
+        io.unobserve(e.target);
+      }
+    },
+    { root: container, rootMargin: '600px 0px' }  // preload 600 px ahead/behind
+  );
+  eventBus.on('pagerendered', ({ pageNumber }) => {
+    const pageDiv = pdfViewer._pages[pageNumber - 1].div;
+    io.observe(pageDiv);               // begin tracking this page
+  });
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
   eventBus.on('pagesloaded', () => {
@@ -394,5 +412,5 @@ async function main() {
     if (showingStyled && container?.offsetParent !== null) {
       renderAllHighlights();
     }
-  }, 100);
+  }, 300);
 }
