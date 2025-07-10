@@ -345,7 +345,9 @@ async function main() {
   linkService.setViewer(pdfViewer);
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
-  pdfViewer.scrollPageIntoView({ pageNumber: 1 });
+  eventBus.on('pagesloaded', () => {
+    pdfViewer.scrollPageIntoView({ pageNumber: 1 });
+  });
   const visiblePages = new Set();
   const io = new IntersectionObserver(entries => {
     entries.forEach(entry => {
