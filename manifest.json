@@ -6,7 +6,10 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": [
+        "content.js",
+        "mark.es6.min.js"
+      ],
       "type": "module"
     }
   ],
@@ -14,6 +17,7 @@
     {
       "resources": [
         "pdf.mjs",
+        "mark.es6.min.js",
         "images/loading-icon.gif",
         "pdf.worker.mjs",
         "pdf_viewer.mjs",

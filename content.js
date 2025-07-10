@@ -267,6 +267,32 @@ async function main() {
     ouSelect.value = currentOU;
   }
   updateStyleWords();
+  const { default: Mark } = await import(chrome.runtime.getURL('mark.es6.min.js'));
+  function clearAllMarks(ctx) {
+    new Mark(ctx).unmark();
+  }
+  function renderAllHighlights() {
+    if (!container) return;
+    clearAllMarks(container);
+    container.querySelectorAll('.page').forEach(page => {
+      const layer = page.querySelector('.textLayer');
+      if (!layer) return;
+      const mk = new Mark(layer);
+      const terms = styleWordsToUse.flatMap(r => r.words);
+      mk.mark(terms, {
+        separateWordSearch: false,
+        accuracy: 'exactly',
+        acrossElements: true,
+        element: 'span',
+        className: 'styled-word',
+        each: (el, term) => {
+          const rule = styleWordsToUse.find(r => r.words.includes(term));
+          el.style.cssText = rule.style
+              (!/color\s*:/.test(rule.style) ? FORCE_TEXT_VISIBLE : '');
+        }
+      });
+    });
+  }
   const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
   const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
   pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
