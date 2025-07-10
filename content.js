@@ -209,7 +209,14 @@ async function main() {
       target.parentNode.replaceChild(wrap, target);
     }
   }
+  function queueHighlight(page) {
+    requestIdleCallback(() => highlightPage(page), { timeout: 1000 });
+  }
+  const highlightedPages = new Set();
   function highlightPage(page) {
+    if (highlightedPages.has(page)) return;
+    highlightedPages.add(page);
+    const start = performance.now();
     clearHighlights(page);
     page.style.position = 'relative';
     page.querySelectorAll('.textLayer span').forEach(span => {
@@ -224,6 +231,8 @@ async function main() {
         highlightSpan(span, styleWordsToUse, page);
       }
     });
+    const end = performance.now();
+    console.log(`Highlighted page ${page.dataset.pageNumber} in ${Math.round(end - start)}ms`);
   }
   buSelect.onchange = () => {
     currentBU = buSelect.value;
@@ -378,7 +387,7 @@ async function main() {
     if (!pageEl) return;
     if (!renderedPages.has(pageEl)) {
       renderedPages.add(pageEl);
-      io.observe(pageEl);  // Observe now that it exists
+      queueHighlight(pageEl);
     }
     const textLayer = pageView?.textLayer?.textLayerDiv;
     if (!textLayer) return;
@@ -406,9 +415,4 @@ async function main() {
       toggle.textContent = 'Styled';
     }
   };
-  setInterval(() => {
-    if (showingStyled && container?.offsetParent !== null) {
-      visiblePages.forEach(highlightPage);
-    }
-  }, 100);
 }
