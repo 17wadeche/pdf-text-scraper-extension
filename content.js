@@ -331,7 +331,9 @@ async function main() {
     .word-highlight {
       position: absolute;
       pointer-events: none;
-      mix-blend-mode: multiply;  
+      mix-blend-mode: normal !important;
+      z-index: 2147483648 !important; 
+      opacity: 0.4;
     }
   `;
   fix.textContent += `
