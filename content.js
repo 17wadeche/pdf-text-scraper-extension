@@ -149,48 +149,48 @@ async function main() {
         }
       }
     }
-  const jobs = Object.values(jobsByKey);
-  for (const job of jobs) {
-    if (!/background\s*:/.test(job.style)) continue;
-    const { node, start, end, style, shift } = job;
-    if (end > node.length) continue;
-    const range = document.createRange();
-    range.setStart(node, start);
-    range.setEnd(node, end);
-    const pageRect = page.getBoundingClientRect();
-    let scale = 1;
-    const m = page.style.transform.match(/scale\(([^)]+)\)/);
-    if (m) scale = parseFloat(m[1]);
-    for (const r of range.getClientRects()) {
-      const box = document.createElement('div');
-      box.className = 'word-highlight';
-      if (shift) box.classList.add('shift-left');
-      const x = (r.left - pageRect.left - 8) / scale;
-      const y = (r.top  - pageRect.top  - 8) / scale;
-      box.style.cssText = `${style};
-        position:absolute;
-        left:${x}px;
-        top:${y}px;
-        width:${r.width  / scale}px;
-        height:${r.height / scale}px;
-        pointer-events:none;
-        mix-blend-mode:multiply;
-        z-index:5`;
-      page.appendChild(box);
+    const jobs = Object.values(jobsByKey);
+    for (const job of jobs) {
+      if (!/background\s*:/.test(job.style)) continue;
+      const { node, start, end, style, shift } = job;
+      if (end > node.length) continue;
+      const range = document.createRange();
+      range.setStart(node, start);
+      range.setEnd(node, end);
+      const pageRect = page.getBoundingClientRect();
+      let scale = 1;
+      const m = page.style.transform.match(/scale\(([^)]+)\)/);
+      if (m) scale = parseFloat(m[1]);
+      for (const r of range.getClientRects()) {
+        const box = document.createElement('div');
+        box.className = 'word-highlight';
+        if (shift) box.classList.add('shift-left');
+        const x = (r.left - pageRect.left - 8) / scale;
+        const y = (r.top  - pageRect.top  - 8) / scale;
+        box.style.cssText = `${style};
+          position:absolute;
+          left:${x}px;
+          top:${y}px;
+          width:${r.width  / scale}px;
+          height:${r.height / scale}px;
+          pointer-events:none;
+          mix-blend-mode:multiply;
+          z-index:5`;
+        page.appendChild(box);
+      }
+      range.detach();
     }
-    range.detach();
-  }
-  const spanJobs = jobs
-    .filter(j => !/background\s*:/.test(j.style))
-    .sort((a, b) => {
-      if (a.node === b.node) return b.start - a.start; // rightmost first
-      return a.node.compareDocumentPosition(b.node) &
-            Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;
-    });
+    const spanJobs = jobs
+      .filter(j => !/background\s*:/.test(j.style))
+      .sort((a, b) => {
+        if (a.node === b.node) return b.start - a.start;       // rightmost first
+        return a.node.compareDocumentPosition(b.node) &
+              Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;      // page order
+      });
     for (const job of spanJobs) {
       const { node, start, end, style, shift } = job;
       if (end > node.length) continue;
-      const target = node.splitText(start);
+      const target = start ? node.splitText(start) : node;
       target.splitText(end - start);
       const wrap = document.createElement('span');
       wrap.classList.add('styled-word');
