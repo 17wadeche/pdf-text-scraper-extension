@@ -268,7 +268,7 @@ async function main() {
   linksPanel.id = 'links-panel';
   linksPanel.style.display = 'none';  
   linksPanel.innerHTML = `
-    <div style="font-weight:bold; margin-bottom:4px;">Links:</div>
+    <div style="font-weight:bold; margin-bottom:4px; color:#000;">Links:</div>
     <ul style="margin:0; padding-left:16px; list-style-type: disc;">
       <!-- items will go here -->
     </ul>
@@ -402,7 +402,7 @@ async function main() {
   });
   let linksInjected = false;
   const reasonRx = makeRegex('REASON FOR TRANSMISSION');
-  eventBus.on('textlayerrendered', ({ pageNumber }) => {
+  eventBus.on('pagesloaded', () => {
     if (linksInjected) return;
     const reason = findFirstSpan(reasonRx);
     if (!reason) return;                // still not on this page → wait for the next
