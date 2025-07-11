@@ -305,6 +305,14 @@ async function main() {
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
+  function findPage(rx) {
+    for (const pageEl of viewerDiv.querySelectorAll('.page')) {
+      if (rx.test(pageEl.textContent)) {
+        return pageEl;
+      }
+    }
+    return null;
+  }
   function findFirstSpan(rx) {
     for (const pageEl of viewerDiv.querySelectorAll('.page')) {
       for (const span of pageEl.querySelectorAll('.textLayer span')) {
@@ -414,8 +422,8 @@ async function main() {
       { label: 'Notes',          rx: makeRegex('Notes:')          },
     ];
     const found = headings
-      .map(h => ({ ...h, found: findFirstSpan(h.rx) }))
-      .filter(h => h.found);
+      .map(h => ({ label: h.label, pageEl: findPage(h.rx) }))
+      .filter(h => h.pageEl);
     const linksPanel = document.querySelector('#links-panel');
     linksPanel.style.display = 'block';
     const ul = linksPanel.querySelector('ul');
