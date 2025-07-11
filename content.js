@@ -305,14 +305,6 @@ async function main() {
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
-  function findPage(rx) {
-    for (const pageEl of viewerDiv.querySelectorAll('.page')) {
-      if (rx.test(pageEl.textContent)) {
-        return pageEl;
-      }
-    }
-    return null;
-  }
   function findFirstSpan(rx) {
     for (const pageEl of viewerDiv.querySelectorAll('.page')) {
       for (const span of pageEl.querySelectorAll('.textLayer span')) {
@@ -410,7 +402,7 @@ async function main() {
   });
   let linksInjected = false;
   const reasonRx = makeRegex('REASON FOR TRANSMISSION');
-  eventBus.on('pagesloaded', () => {
+  eventBus.on('textlayerrendered', ({ pageNumber }) => {
     if (linksInjected) return;
     const reason = findFirstSpan(reasonRx);
     if (!reason) return;                // still not on this page → wait for the next
@@ -422,8 +414,8 @@ async function main() {
       { label: 'Notes',          rx: makeRegex('Notes:')          },
     ];
     const found = headings
-      .map(h => ({ label: h.label, pageEl: findPage(h.rx) }))
-      .filter(h => h.pageEl);
+      .map(h => ({ ...h, found: findFirstSpan(h.rx) }))
+      .filter(h => h.found);
     const linksPanel = document.querySelector('#links-panel');
     linksPanel.style.display = 'block';
     const ul = linksPanel.querySelector('ul');
