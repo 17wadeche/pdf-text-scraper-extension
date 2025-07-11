@@ -387,14 +387,16 @@ async function main() {
   `;
   document.head.appendChild(fix);
   linkService.setViewer(pdfViewer);
-  await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
+  pdfViewer._pages.forEach(pageView => {
+    pageView.draw();
+  });
+  await new Promise(resolve => requestAnimationFrame(resolve));
   eventBus.on('pagesloaded', () => {
-    setTimeout(() => {
-      renderAllHighlights();
-    }, 300);
+    pdfViewer._pages.forEach(pv => pv.draw());
+    setTimeout(renderAllHighlights, 300);
   });
   renderAllHighlights();
   eventBus.on('pagesloaded', () => {
@@ -453,11 +455,13 @@ async function main() {
   let showingStyled = true;
   toggle.onclick = () => {
     showingStyled = !showingStyled;
+    const linksPanel = document.querySelector('#links-panel');
     if (showingStyled) {
       container.style.display = '';
       embed.style.display     = 'none';
       buSelect.style.display  = '';
       ouSelect.style.display  = '';
+      linksPanel.style.display = 'block';  
       renderAllHighlights();
       toggle.textContent = 'Original';
     } else {
@@ -465,6 +469,7 @@ async function main() {
       embed.style.display     = '';
       buSelect.style.display  = 'none';
       ouSelect.style.display  = 'none';
+      linksPanel.style.display = 'none';
       toggle.textContent = 'Styled';
     }
   };
