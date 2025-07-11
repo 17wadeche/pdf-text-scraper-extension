@@ -474,13 +474,17 @@ async function main() {
   eventBus.on('pagesloaded', () => {
     console.log(`pagesloaded event fired; pdfDoc.numPages = ${pdfDoc.numPages}`);
     (async () => {
-      const pages = viewerDiv.querySelectorAll('.page');
-      console.log(`  → found ${pages.length} .page elements`);
-      for (let i = 0; i < pages.length; i++) {
-        const pageEl = pages[i];
-        container.scrollTop = pageEl.offsetTop;
-        console.log(`    scrolling to page ${i+1}/${pages.length}`);
-        await new Promise(r => setTimeout(r, 80));
+      for (let i = 0; i < pdfDoc.numPages; i++) {
+      const pageNum = i + 1;
+      const pageView = pdfViewer._pages[i];
+      console.log(`  → page ${pageNum}:`);
+      if (pageView.textLayer) {
+        console.log(`      • textLayer.render()`);
+        pageView.textLayer.render();
+      }
+      console.log(`      • scrollPageIntoView(${pageNum})`);
+      pdfViewer.scrollPageIntoView({ pageNumber: pageNum, destArray: null });
+      await new Promise(r => setTimeout(r, 50));
       }
       container.scrollTop = 0;
       console.log('  auto-scroll complete; highlighting all pages now');
