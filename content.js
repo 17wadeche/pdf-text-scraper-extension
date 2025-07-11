@@ -419,7 +419,7 @@ async function main() {
     const linksPanel = document.querySelector('#links-panel');
     linksPanel.style.display = 'block';
     const ul = linksPanel.querySelector('ul');
-    l.innerHTML = '';
+    ul.innerHTML = '';
     found.forEach((h, i) => {
       const li = document.createElement('li');
       li.style.margin = '4px 0';
