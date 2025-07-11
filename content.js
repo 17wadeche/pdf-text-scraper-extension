@@ -390,12 +390,13 @@ async function main() {
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
-  pdfViewer._pages.forEach(pageView => {
-    pageView.draw();
-  });
   await new Promise(resolve => requestAnimationFrame(resolve));
   eventBus.on('pagesloaded', () => {
-    pdfViewer._pages.forEach(pv => pv.draw());
+    const pages = viewerDiv.querySelectorAll('.page');
+    for (const pageEl of pages) {
+      container.scrollTop = pageEl.offsetTop;
+    }
+    container.scrollTop = 0;
     setTimeout(renderAllHighlights, 300);
   });
   renderAllHighlights();
