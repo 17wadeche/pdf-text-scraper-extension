@@ -395,19 +395,6 @@ async function main() {
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
   await new Promise(resolve => requestAnimationFrame(resolve));
-  (async () => {
-    const pages = viewerDiv.querySelectorAll('.page');
-    console.log(`pagesloaded → detected ${pages.length} pages total`);
-    for (let i = 0; i < pages.length; i++) {
-      const pageEl = pages[i];
-      container.scrollTop = pageEl.offsetTop;
-      console.log(`  → scrolling to page ${i+1} / ${pages.length}`);
-      await new Promise(r => setTimeout(r, 80));
-    }
-    container.scrollTop = 0;
-    console.log('auto-scroll complete, back to top');
-    setTimeout(renderAllHighlights, 300);
-  })();
   renderAllHighlights();
   eventBus.on('pagesloaded', () => {
     renderAllHighlights();
@@ -484,6 +471,22 @@ async function main() {
       toggle.textContent = 'Styled';
     }
   };
+  eventBus.on('pagesloaded', () => {
+    console.log(`pagesloaded event fired; pdfDoc.numPages = ${pdfDoc.numPages}`);
+    (async () => {
+      const pages = viewerDiv.querySelectorAll('.page');
+      console.log(`  → found ${pages.length} .page elements`);
+      for (let i = 0; i < pages.length; i++) {
+        const pageEl = pages[i];
+        container.scrollTop = pageEl.offsetTop;
+        console.log(`    scrolling to page ${i+1}/${pages.length}`);
+        await new Promise(r => setTimeout(r, 80));
+      }
+      container.scrollTop = 0;
+      console.log('  auto-scroll complete; highlighting all pages now');
+      renderAllHighlights();
+    })();
+  });
   setInterval(() => {
     if (showingStyled && container?.offsetParent !== null) {
       renderAllHighlights();
