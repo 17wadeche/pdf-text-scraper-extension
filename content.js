@@ -306,9 +306,13 @@ async function main() {
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
   function findFirstSpan(rx) {
-    for (const pageEl of viewerDiv.querySelectorAll('.page')) {
+    const pages = viewerDiv.querySelectorAll('.page');
+    for (let i = 0; i < pages.length; i++) {
+      const pageEl = pages[i];
+      console.log(`  findFirstSpan: checking page ${i+1}`);
       for (const span of pageEl.querySelectorAll('.textLayer span')) {
         if (rx.test(span.textContent.trim())) {
+          console.log(`    → matched on page ${i+1}`, span.textContent.trim());
           return { span, pageEl };
         }
       }
@@ -393,11 +397,15 @@ async function main() {
   await new Promise(resolve => requestAnimationFrame(resolve));
   (async () => {
     const pages = viewerDiv.querySelectorAll('.page');
-    for (const pageEl of pages) {
+    console.log(`pagesloaded → detected ${pages.length} pages total`);
+    for (let i = 0; i < pages.length; i++) {
+      const pageEl = pages[i];
       container.scrollTop = pageEl.offsetTop;
-      await new Promise(r => setTimeout(r, 1000));
+      console.log(`  → scrolling to page ${i+1} / ${pages.length}`);
+      await new Promise(r => setTimeout(r, 80));
     }
     container.scrollTop = 0;
+    console.log('auto-scroll complete, back to top');
     setTimeout(renderAllHighlights, 300);
   })();
   renderAllHighlights();
@@ -407,6 +415,7 @@ async function main() {
   let linksInjected = false;
   const reasonRx = makeRegex('REASON FOR TRANSMISSION');
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
+    console.log(`textlayerrendered → page ${pageNumber}`);
     if (linksInjected) return;
     const reason = findFirstSpan(reasonRx);
     if (!reason) return;                // still not on this page → wait for the next
