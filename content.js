@@ -306,13 +306,9 @@ async function main() {
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
   function findFirstSpan(rx) {
-    const pages = viewerDiv.querySelectorAll('.page');
-    for (let i = 0; i < pages.length; i++) {
-      const pageEl = pages[i];
-      console.log(`  findFirstSpan: checking page ${i+1}`);
+    for (const pageEl of viewerDiv.querySelectorAll('.page')) {
       for (const span of pageEl.querySelectorAll('.textLayer span')) {
         if (rx.test(span.textContent.trim())) {
-          console.log(`    → matched on page ${i+1}`, span.textContent.trim());
           return { span, pageEl };
         }
       }
@@ -391,47 +387,55 @@ async function main() {
   `;
   document.head.appendChild(fix);
   linkService.setViewer(pdfViewer);
+  await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
-  await new Promise(resolve => requestAnimationFrame(resolve));
-  const rendered = new Set();
-  const totalPages = pdfDoc.numPages;
+  eventBus.on('pagesloaded', () => {
+    setTimeout(() => {
+      renderAllHighlights();
+    }, 300);
+  });
+  renderAllHighlights();
+  eventBus.on('pagesloaded', () => {
+    renderAllHighlights();
+  });
   let linksInjected = false;
   const reasonRx = makeRegex('REASON FOR TRANSMISSION');
-  eventBus.on('textlayerrendered', ({ pageNumber }) => {
-    rendered.add(pageNumber);
-    console.log(`page ${pageNumber} text layer rendered (${rendered.size}/${totalPages})`);
-    if (!linksInjected && rendered.size === totalPages) {
-      const reason = findFirstSpan(reasonRx);
-      if (!reason) return;                // still not on this page → wait for the next
-      linksInjected = true;               // we found it! inject the bar:
-      const headings = [
-        { label: 'Reason for Transmission',        rx: makeRegex('REASON FOR TRANSMISSION')        },
-        { label: 'Patient Identification',        rx: makeRegex('Patient Identification')        },
-        { label: 'Episode Summary', rx: makeRegex('Episode Summary') },
-        { label: 'Notes',          rx: makeRegex('Notes:')          },
-      ];
-      const found = headings
-        .map(h => ({ ...h, found: findFirstSpan(h.rx) }))
-        .filter(h => h.found);
-      const linksPanel = document.querySelector('#links-panel');
-      linksPanel.style.display = 'block';
-      const ul = linksPanel.querySelector('ul');
-      ul.innerHTML = '';
-      found.forEach((h, i) => {
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = '#';
-        a.textContent = h.label;
-        a.addEventListener('click', e => {
-          e.preventDefault();
-          scrollToSpan(h.found);
-        });
-        li.appendChild(a);
-        ul.appendChild(li);
+  eventBus.on('pagesloaded', () => {
+    if (linksInjected) return;
+    const reason = findFirstSpan(reasonRx);
+    if (!reason) return;                // still not on this page → wait for the next
+    linksInjected = true;               // we found it! inject the bar:
+    const headings = [
+      { label: 'Reason for Transmission',        rx: makeRegex('REASON FOR TRANSMISSION')        },
+      { label: 'Patient Identification',        rx: makeRegex('Patient Identification')        },
+      { label: 'Episode Summary', rx: makeRegex('Episode Summary') },
+      { label: 'Notes',          rx: makeRegex('Notes:')          },
+    ];
+    const found = headings
+      .map(h => ({ ...h, found: findFirstSpan(h.rx) }))
+      .filter(h => h.found);
+    const linksPanel = document.querySelector('#links-panel');
+    linksPanel.style.display = 'block';
+    const ul = linksPanel.querySelector('ul');
+    ul.innerHTML = '';
+    found.forEach((h, i) => {
+      const li = document.createElement('li');
+      li.style.margin = '4px 0';
+      const a = document.createElement('a');
+      a.href = '#';
+      a.textContent = h.label;
+      a.dataset.idx = i;
+      a.style.textDecoration = 'none';
+      a.style.color = '#06c';
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        scrollToSpan(h.found);
       });
-    }
+      li.appendChild(a);
+      ul.appendChild(li);
+    });
   });
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
@@ -449,13 +453,11 @@ async function main() {
   let showingStyled = true;
   toggle.onclick = () => {
     showingStyled = !showingStyled;
-    const linksPanel = document.querySelector('#links-panel');
     if (showingStyled) {
       container.style.display = '';
       embed.style.display     = 'none';
       buSelect.style.display  = '';
       ouSelect.style.display  = '';
-      linksPanel.style.display = 'block';  
       renderAllHighlights();
       toggle.textContent = 'Original';
     } else {
@@ -463,30 +465,9 @@ async function main() {
       embed.style.display     = '';
       buSelect.style.display  = 'none';
       ouSelect.style.display  = 'none';
-      linksPanel.style.display = 'none';
       toggle.textContent = 'Styled';
     }
   };
-  eventBus.on('pagesloaded', () => {
-    console.log(`pagesloaded event fired; pdfDoc.numPages = ${pdfDoc.numPages}`);
-    (async () => {
-      for (let i = 0; i < pdfDoc.numPages; i++) {
-      const pageNum = i + 1;
-      const pageView = pdfViewer._pages[i];
-      console.log(`  → page ${pageNum}:`);
-      if (pageView.textLayer) {
-        console.log(`      • textLayer.render()`);
-        pageView.textLayer.render();
-      }
-      console.log(`      • scrollPageIntoView(${pageNum})`);
-      pdfViewer.scrollPageIntoView({ pageNumber: pageNum, destArray: null });
-      await new Promise(r => setTimeout(r, 50));
-      }
-      container.scrollTop = 0;
-      console.log('  auto-scroll complete; highlighting all pages now');
-      renderAllHighlights();
-    })();
-  });
   setInterval(() => {
     if (showingStyled && container?.offsetParent !== null) {
       renderAllHighlights();
