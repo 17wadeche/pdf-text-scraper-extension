@@ -391,14 +391,15 @@ async function main() {
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
   await new Promise(resolve => requestAnimationFrame(resolve));
-  eventBus.on('pagesloaded', () => {
+  (async () => {
     const pages = viewerDiv.querySelectorAll('.page');
     for (const pageEl of pages) {
       container.scrollTop = pageEl.offsetTop;
+      await new Promise(r => setTimeout(r, 80));
     }
     container.scrollTop = 0;
     setTimeout(renderAllHighlights, 300);
-  });
+  })();
   renderAllHighlights();
   eventBus.on('pagesloaded', () => {
     renderAllHighlights();
