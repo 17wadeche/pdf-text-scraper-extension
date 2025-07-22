@@ -355,25 +355,37 @@ async function main() {
     clearHighlights(container);
     renderAllHighlights();
   }
+  function refreshCustomTitle() {
+    addBtn.title = customRules.length
+      ? 'Custom rules:\n' + showCustomListString() + '\n\nClick = Add | Shift-Click = Manage | Right-Click = Manage'
+      : 'No custom rules. Click to add.';
+  }
   addBtn.title = 'Add custom terms (Shift- or right-click to manage/delete)';
-  addBtn.onclick = () => {
-    if (e.shiftKey) { manageCustomRules(); return; }
+  addBtn.onclick = (e) => {
+    if (e.shiftKey) { manageCustomRules(); refreshCustomTitle(); return; }
     const termsRaw = prompt('Enter comma-separated term(s) to highlight:', '');
-    if (!termsRaw) return;
+    if (!termsRaw) { refreshCustomTitle(); return; }
     const styleRaw = prompt(
       'Enter CSS style for these terms (e.g., "background:yellow; color:black;" or "color:#f00;")',
       'background:yellow;'
     );
     const style = styleRaw && styleRaw.trim() ? styleRaw.trim() : 'background:yellow;';
     const words = termsRaw.split(',').map(w => w.trim()).filter(Boolean);
-    if (!words.length) return;
+    if (!words.length) { refreshCustomTitle(); return; }
     customRules.push({ style, words });
     localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
+    includeCustom = true;
+    customChk.checked = true;
     updateStyleWords();
     clearHighlights(container);
     renderAllHighlights();
+    refreshCustomTitle();
   };
-  addBtn.oncontextmenu = (e) => { e.preventDefault(); manageCustomRules(); };
+  addBtn.oncontextmenu = (e) => {
+    e.preventDefault();
+    manageCustomRules();
+    refreshCustomTitle();
+  };
   updateStyleWords();
   const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
   const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
@@ -513,6 +525,9 @@ async function main() {
       embed.style.display     = '';
       buSelect.style.display  = 'none';
       ouSelect.style.display  = 'none';
+      addBtn.style.display    = 'none';
+      customChk.style.display = 'none';
+      customLbl.style.display = 'none';
       toggle.textContent = 'Styled';
     }
   };
