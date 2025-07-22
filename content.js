@@ -305,14 +305,12 @@ async function main() {
     clearHighlights(container); 
     renderAllHighlights();
   };
-  Object.assign(buSelect.style, { position:'fixed', top:'16px', left:'16px', zIndex:2147483648 });
-  Object.assign(ouSelect.style, { position:'fixed', top:'16px', left:'190px', zIndex:2147483648 });
   Object.assign(toggle.style, {
     position:'fixed', top:'16px', right:'16px',
     background:'#ff0', color:'#000', fontWeight:'bold',
     padding:'6px 12px', zIndex:2147483648, cursor:'pointer'
   });
-  document.body.append(buSelect, ouSelect, toggle);
+  document.body.append(toggle);
   buSelect.value = currentBU;
   updateOuOptions();
   if (currentOU) {
@@ -320,14 +318,6 @@ async function main() {
   }
   const addBtn = document.createElement('button');
   addBtn.textContent = '➕ Custom';
-  Object.assign(addBtn.style, {
-    position:'fixed', top:'16px', left:'450px',
-    zIndex:2147483648,
-    padding:'6px 12px',
-    background:'#fff', border:'1px solid #ddd', borderRadius:'6px',
-    cursor:'pointer', fontSize:'14px'
-  });
-  document.body.appendChild(addBtn);
   const customChk = document.createElement('input');
   customChk.type = 'checkbox';
   customChk.checked = includeCustom;
@@ -335,16 +325,6 @@ async function main() {
   const customLbl = document.createElement('label');
   customLbl.htmlFor = customChk.id;
   customLbl.textContent = 'Use Custom';
-  Object.assign(customLbl.style, {
-    position:'fixed', top:'20px', left:'582px',
-    zIndex:2147483648,
-    fontSize:'14px', color:'#000', cursor:'pointer',
-  });
-  Object.assign(customChk.style, {
-    position:'fixed', top:'20px', left:'560px',
-    zIndex:2147483648,
-  });
-  document.body.append(customChk, customLbl);
   customChk.addEventListener('change', () => {
     includeCustom = customChk.checked;
     updateStyleWords();
@@ -400,6 +380,88 @@ async function main() {
     const optCustom = new Option('Custom Hex…','__custom__');
     sel.add(optCustom);
   }
+  const hlPanel = document.createElement('div');
+  hlPanel.id = 'highlightControlPanel';
+  hlPanel.style.cssText = `
+    position:fixed;
+    top:16px;
+    left:16px;
+    z-index:2147483648;
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:6px;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);
+    font:12px/1.2 sans-serif;
+    color:#000;
+    max-width:320px;
+    min-width:220px;
+  `;
+  const hlPanelHdr = document.createElement('div');
+  hlPanelHdr.style.cssText = `
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:4px 8px;
+    cursor:pointer;
+    user-select:none;
+    background:#f5f5f5;
+    border-bottom:1px solid #ddd;
+    font-weight:bold;
+  `;
+  hlPanelHdr.textContent = 'Highlight Controls';
+  const hlPanelChevron = document.createElement('span');
+  hlPanelChevron.textContent = '▾';
+  hlPanelChevron.style.marginLeft = '8px';
+  hlPanelHdr.appendChild(hlPanelChevron);
+  const hlPanelBody = document.createElement('div');
+  hlPanelBody.style.cssText = `
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    padding:8px;
+  `;
+  Object.assign(buSelect.style, {position:'static', width:'100%', margin:0});
+  Object.assign(ouSelect.style, {position:'static', width:'100%', margin:0});
+  Object.assign(addBtn.style,   {position:'static', margin:0, padding:'4px 8px', width:'auto'});
+  Object.assign(customChk.style,{position:'static', margin:'0 4px 0 0', verticalAlign:'middle'});
+  Object.assign(customLbl.style,{position:'static', margin:0, verticalAlign:'middle', fontSize:'12px'});
+  const hlPanelCustomRow = document.createElement('div');
+  hlPanelCustomRow.style.cssText = `
+    display:flex;
+    align-items:center;
+    gap:8px;
+  `;
+  hlPanelCustomRow.appendChild(addBtn);
+  const hlPanelCustomChkWrap = document.createElement('label');
+  hlPanelCustomChkWrap.style.cssText = `
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    cursor:pointer;
+    font-size:12px;
+  `;
+  hlPanelCustomChkWrap.append(customChk, customLbl);
+  hlPanelCustomRow.appendChild(hlPanelCustomChkWrap);
+  hlPanelBody.append(buSelect, ouSelect, hlPanelCustomRow);
+  hlPanel.append(hlPanelHdr, hlPanelBody);
+  document.body.appendChild(hlPanel);
+  const PANEL_COLLAPSED_KEY = 'highlight_panel_collapsed';
+  let panelCollapsed = localStorage.getItem(PANEL_COLLAPSED_KEY) === '1';
+  function applyPanelCollapsedState() {
+    if (panelCollapsed) {
+      hlPanelBody.style.display = 'none';
+      hlPanelChevron.textContent = '▸';
+    } else {
+      hlPanelBody.style.display = 'flex';
+      hlPanelChevron.textContent = '▾';
+    }
+  }
+  applyPanelCollapsedState();
+  hlPanelHdr.addEventListener('click', () => {
+    panelCollapsed = !panelCollapsed;
+    localStorage.setItem(PANEL_COLLAPSED_KEY, panelCollapsed ? '1' : '0');
+    applyPanelCollapsedState();
+  });
   populateColorSel(customColorSel);
   const customColorInput = document.createElement('input');
   customColorInput.type = 'color';
@@ -445,6 +507,11 @@ async function main() {
   });
   function openCustomPanel(prefillWords='') {
     customWordsTA.value = prefillWords;
+    if (panelCollapsed) {
+      panelCollapsed = false;
+      localStorage.setItem(PANEL_COLLAPSED_KEY, '0');
+      applyPanelCollapsedState();
+    }
     customPanel.style.display='';
     customWordsTA.focus();
   }
@@ -725,14 +792,11 @@ async function main() {
   toggle.onclick = () => {
     showingStyled = !showingStyled;
     if (showingStyled) {
-      includeCustom = customChk.checked;  
+      includeCustom = customChk.checked;
+      updateStyleWords();
       container.style.display = '';
       embed.style.display     = 'none';
-      buSelect.style.display  = '';
-      ouSelect.style.display  = '';
-      addBtn.style.display    = '';
-      customChk.style.display = '';
-      customLbl.style.display = '';
+      hlPanel.style.display   = '';   // show panel
       renderAllHighlights();
       toggle.textContent = 'Original';
     } else {
@@ -741,11 +805,7 @@ async function main() {
       updateStyleWords();
       container.style.display = 'none';
       embed.style.display     = '';
-      buSelect.style.display  = 'none';
-      ouSelect.style.display  = 'none';
-      addBtn.style.display    = 'none';
-      customChk.style.display = 'none';
-      customLbl.style.display = 'none';
+      hlPanel.style.display   = 'none'; // hide panel
       toggle.textContent = 'Styled';
     }
   };
