@@ -319,7 +319,7 @@ async function main() {
     fontSize:'14px', color:'#000', cursor:'pointer',
   });
   Object.assign(customChk.style, {
-    position:'fixed', top:'20px', left:'460px',
+    position:'fixed', top:'20px', left:'560px',
     zIndex:2147483648,
   });
   document.body.append(customChk, customLbl);
