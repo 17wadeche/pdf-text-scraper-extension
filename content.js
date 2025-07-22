@@ -5,10 +5,10 @@ const ALLOWED_PREFIXES = [
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
 let initialized = false;
-let prevActiveWordsSet = new Set();      // words active during previous render pass
-let activeWordsSet     = new Set();      // words active for current BU/OU + custom rules
-let newWordsSet        = new Set();      // words newly introduced this update
-let pulseMode          = false;          // turn on for one render pass after rules change
+let prevActiveWordsSet = new Set();
+let activeWordsSet     = new Set();
+let newWordsSet        = new Set();
+let pulseMode          = false;
 let customRules = [];
 let includeCustom = true;
 try {
@@ -239,15 +239,15 @@ async function main() {
     const spanJobs = jobs
       .filter(j => !/background\s*:/.test(j.style))
       .sort((a, b) => {
-        if (a.node === b.node) return b.start - a.start;       // rightmost first
+        if (a.node === b.node) return b.start - a.start;
         return a.node.compareDocumentPosition(b.node) &
-              Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;      // page order
+              Node.DOCUMENT_POSITION_FOLLOWING ? 1 : -1;
       });
     const seen = new Set();
     const uniqueSpanJobs = [];
     for (const j of spanJobs) {
       const k = `${j.node}|${j.start}|${j.end}`;
-      if (seen.has(k)) continue;   // already wrapped → skip duplicate
+      if (seen.has(k)) continue;
       seen.add(k);
       uniqueSpanJobs.push(j);
     }
@@ -279,7 +279,7 @@ async function main() {
             style:    'background: orange; color: black;'
           }));
           highlightSpan(span, yellowRules, page);
-          return;  // done with this span
+          return;
         }
         highlightSpan(span, styleWordsToUse, page);
       });
@@ -336,7 +336,7 @@ async function main() {
   customLbl.htmlFor = customChk.id;
   customLbl.textContent = 'Use Custom';
   Object.assign(customLbl.style, {
-    position:'fixed', top:'20px', left:'582px',  // tweak layout
+    position:'fixed', top:'20px', left:'582px',
     zIndex:2147483648,
     fontSize:'14px', color:'#000', cursor:'pointer',
   });
@@ -403,7 +403,7 @@ async function main() {
   populateColorSel(customColorSel);
   const customColorInput = document.createElement('input');
   customColorInput.type = 'color';
-  customColorInput.value = '#ffff00'; // default yellow
+  customColorInput.value = '#ffff00';
   customColorInput.style.width='100%';
   customColorInput.style.marginTop='4px';
   customColorInput.style.display='none';
@@ -424,7 +424,7 @@ async function main() {
   );
   document.body.appendChild(customPanel);
   const LS_PROP_KEY  = 'highlight_custom_prop';
-  const LS_COLOR_KEY = 'highlight_custom_color';   // named color OR hex
+  const LS_COLOR_KEY = 'highlight_custom_color';
   customPropSel.value = localStorage.getItem(LS_PROP_KEY)  || 'background';
   const savedColor = localStorage.getItem(LS_COLOR_KEY);
   if (savedColor) {
@@ -455,7 +455,6 @@ async function main() {
   customPanel.addEventListener('keydown', (ev)=>{
     if (ev.key === 'Escape') closeCustomPanel();
   });
-
   function showCustomListString() {
     if (!customRules.length) return '(none)';
     return customRules.map((r,i)=>`${i+1}. [${r.style}] ${r.words.join(', ')}`).join('\n');
@@ -465,18 +464,15 @@ async function main() {
       alert('No custom rules saved.');
       return;
     }
-
     const list = customRules
       .map((r,i)=>`${i+1}. [${r.style}] ${r.words.join(', ')}`)
       .join('\n');
-
     const choice = prompt(
       `Custom highlight rules:\n${list}\n\n` +
       'Enter # to edit/delete, "*" to delete ALL, or blank to cancel:',
       ''
     );
     if (choice == null || choice.trim() === '') return;
-
     if (choice.trim() === '*') {
       if (!confirm('Delete ALL custom rules?')) return;
       customRules = [];
@@ -487,7 +483,6 @@ async function main() {
         return;
       }
       const rule = customRules[idx];
-
       const action = prompt(
         `Rule #${idx+1}\nStyle: ${rule.style}\nWords: ${rule.words.join(', ')}\n\n` +
         'Action: (D)elete, (E)dit, or blank to cancel:',
@@ -495,44 +490,33 @@ async function main() {
       );
       if (action == null || action.trim() === '') return;
       const a = action.trim().toLowerCase();
-
       if (a === 'd') {
         if (confirm('Delete this rule?')) customRules.splice(idx,1);
       } else if (a === 'e') {
-        // Parse existing style to pre-select prop/color
         let prop = 'background';
         let col  = 'yellow';
         const mColor = /color\s*:\s*([^;]+)/i.exec(rule.style);
         const mBg    = /background\s*:\s*([^;]+)/i.exec(rule.style);
         if (mBg) { prop = 'background'; col = mBg[1].trim(); }
         if (mColor && !mBg) { prop = 'color'; col = mColor[1].trim(); }
-
-        // Prepopulate panel
         customPropSel.value = prop;
-        // try find in named list
         const opt = Array.from(customColorSel.options).find(o=>o.value===col.toLowerCase());
         if (opt) {
           customColorSel.value = opt.value;
           customColorInput.style.display='none';
         } else {
           customColorSel.value='__custom__';
-          // ensure leading #
           if (!col.startsWith('#')) {
-            // crude conversion; if not a hex we just ignore + fallback yellow
             col = '#ffff00';
           }
           customColorInput.value = col;
           customColorInput.style.display='';
         }
         customWordsTA.value = rule.words.join(', ');
-
-        // We will override Add to perform update once (then restore)
         const origHandler = customAddBtn.onclick;
-
         customAddBtn.onclick = () => {
           const words = customWordsTA.value.split(/[\n,]/).map(w=>w.trim()).filter(Boolean);
           if (!words.length) { alert('Please enter at least one word.'); return; }
-
           let colorValue;
           if (customColorSel.value === '__custom__') {
             colorValue = customColorInput.value || '#ffff00';
@@ -544,45 +528,35 @@ async function main() {
           const prop = customPropSel.value === 'color' ? 'color' : 'background';
           rule.style = `${prop}:${colorValue};`;
           rule.words = words;
-
           localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
           localStorage.setItem(LS_PROP_KEY, prop);
           localStorage.setItem(LS_COLOR_KEY, colorValue);
-
           includeCustom = true;
           customChk.checked = true;
-
           updateStyleWords();
           clearHighlights(container);
           renderAllHighlights();
           refreshCustomTitle();
-
-          // restore handler + close
           customAddBtn.onclick = origHandler;
           closeCustomPanel();
         };
-
-        openCustomPanel(); // display edit UI
-        return; // skip remainder; update handled in panel
+        openCustomPanel();
+        return;
       } else {
         alert('Unknown action.');
         return;
       }
     }
-
     localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
-
     if (!customRules.length) {
       includeCustom = false;
       customChk.checked = false;
     }
-
     updateStyleWords();
     clearHighlights(container);
     renderAllHighlights();
     refreshCustomTitle();
   }
-
   function refreshCustomTitle() {
     addBtn.title = customRules.length
       ? 'Custom rules:\n' + showCustomListString() + '\n\nClick = Add | Shift-Click = Manage | Right-Click = Manage'
@@ -608,32 +582,22 @@ async function main() {
       alert('Please enter at least one word.');
       return;
     }
-
     let colorValue;
     if (customColorSel.value === '__custom__') {
       colorValue = customColorInput.value || '#ffff00';
     } else if (customColorSel.value) {
       colorValue = customColorSel.value;
     } else {
-      // no selection -> default yellow
       colorValue = 'yellow';
     }
-
     const prop = customPropSel.value === 'color' ? 'color' : 'background';
-    // Build style string
     let style = `${prop}:${colorValue};`;
-    // If prop=background, rely on FORCE_TEXT_VISIBLE to ensure readable text (already in your wrap code).
-
     customRules.push({ style, words });
     localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
-
-    // Persist last selections
     localStorage.setItem(LS_PROP_KEY, prop);
     localStorage.setItem(LS_COLOR_KEY, colorValue);
-
     includeCustom = true;
     customChk.checked = true;
-
     updateStyleWords();
     clearHighlights(container);
     renderAllHighlights();
