@@ -157,9 +157,10 @@ async function main() {
       for (const rule of rules) {
         for (const rxObj of (rule._regexes || [])) {
           const re = rxObj.rx || rxObj;
+          if (!(re instanceof RegExp)) continue;
           re.lastIndex = 0;
           let m;
-          while ((m = rx.exec(text))) {
+          while ((m = re.exec(text))) {  
             if (!textNode.__highlightId) {
               textNode.__highlightId = Symbol();
             }
