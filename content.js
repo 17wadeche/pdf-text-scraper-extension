@@ -5,10 +5,22 @@ const ALLOWED_PREFIXES = [
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
 let initialized = false;
+let prevActiveWordsSet = new Set();      // words active during previous render pass
+let activeWordsSet     = new Set();      // words active for current BU/OU + custom rules
+let newWordsSet        = new Set();      // words newly introduced this update
+let pulseMode          = false;          // turn on for one render pass after rules change
+let customRules = [];
+try {
+  customRules = JSON.parse(localStorage.getItem('highlight_custom_rules') || '[]');
+  if (!Array.isArray(customRules)) customRules = [];
+} catch { customRules = []; }
 function isPdfEmbedPresent() {
   return document.querySelector(
     'embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]'
   );
+}
+function normWord(w) {
+  return w.trim().toLowerCase();
 }
 function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function makeRegex(word) {
@@ -65,6 +77,7 @@ async function main() {
   let currentOU = localStorage.getItem('highlight_OU') || '';
   let styleWordsToUse = [];
   function updateStyleWords() {
+    prevActiveWordsSet = activeWordsSet;
     styleWordsToUse = [];
     if (currentBU && config[currentBU]?.styleWords) {
       styleWordsToUse.push(...config[currentBU].styleWords);
@@ -72,9 +85,20 @@ async function main() {
     if (currentBU && currentOU && config[currentBU]?.[currentOU]?.styleWords) {
       styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
     }
+    styleWordsToUse.push(...customRules);  
+    activeWordsSet = new Set();
     styleWordsToUse.forEach(r => {
-      r._regexes = r.words.map(makeRegex);
+      r.words.forEach(w => activeWordsSet.add(normWord(w)));
     });
+    newWordsSet = new Set([...activeWordsSet].filter(w => !prevActiveWordsSet.has(w)));
+    styleWordsToUse.forEach(r => {
+      r._regexes = r.words.map(w => ({
+        word: w,
+        rx: makeRegex(w),
+        isNew: newWordsSet.has(normWord(w)),
+      }));
+    });
+    pulseMode = newWordsSet.size > 0;
   }
   updateStyleWords();
   const buSelect = document.createElement('select');
@@ -129,6 +153,7 @@ async function main() {
       const text = textNode.data;
       for (const rule of rules) {
         for (const rx of rule._regexes) {
+          const rx = rxObj.rx || rxObj;
           rx.lastIndex = 0;
           let m;
           while ((m = rx.exec(text))) {
@@ -143,7 +168,8 @@ async function main() {
               start: m.index,
               end:   m.index + m[0].length,
               style: rule.style,
-              shift
+              shift,
+              isNew: rxObj.isNew === true
             });
           }
         }
@@ -165,6 +191,7 @@ async function main() {
         const box = document.createElement('div');
         box.className = 'word-highlight';
         if (shift) box.classList.add('shift-left');
+        if (pulseMode && job.isNew) box.classList.add('pulse');
         const x = (r.left - pageRect.left - 8) / scale;
         const y = (r.top  - pageRect.top  - 8) / scale;
         box.style.cssText = `${style};
@@ -203,6 +230,7 @@ async function main() {
       const wrap = document.createElement('span');
       wrap.classList.add('styled-word');
       if (shift) wrap.classList.add('shift-left');
+      if (pulseMode && job.isNew) wrap.classList.add('pulse');
       wrap.style.cssText = style +
         (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
       wrap.appendChild(target.cloneNode(true));
@@ -227,6 +255,9 @@ async function main() {
         highlightSpan(span, styleWordsToUse, page);
       });
     });
+    if (pulseMode) {
+      setTimeout(() => { pulseMode = false; }, 100);
+    }
   }
   buSelect.onchange = () => {
     currentBU = buSelect.value;
@@ -258,6 +289,32 @@ async function main() {
   if (currentOU) {
     ouSelect.value = currentOU;
   }
+  const addBtn = document.createElement('button');
+  addBtn.textContent = '➕ Custom';
+  Object.assign(addBtn.style, {
+    position:'fixed', top:'16px', left:'360px',
+    zIndex:2147483648,
+    padding:'6px 12px',
+    background:'#fff', border:'1px solid #ddd', borderRadius:'6px',
+    cursor:'pointer', fontSize:'14px'
+  });
+  document.body.appendChild(addBtn);
+  addBtn.onclick = () => {
+    const termsRaw = prompt('Enter comma-separated term(s) to highlight:', '');
+    if (!termsRaw) return;
+    const styleRaw = prompt(
+      'Enter CSS style for these terms (e.g., "background:yellow; color:black;" or "color:#f00;")',
+      'background:yellow;'
+    );
+    const style = styleRaw && styleRaw.trim() ? styleRaw.trim() : 'background:yellow;';
+    const words = termsRaw.split(',').map(w => w.trim()).filter(Boolean);
+    if (!words.length) return;
+    customRules.push({ style, words });
+    localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
+    updateStyleWords();
+    clearHighlights(container);
+    renderAllHighlights();
+  };
   updateStyleWords();
   const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
   const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
@@ -335,13 +392,16 @@ async function main() {
     }
   `;
   fix.textContent += `
-    .word-highlight.shift-left {
-      transform: translateX(-1px);
+    @keyframes pulseHighlight {
+      0%   { filter: brightness(1.8) saturate(1.4); transform: scale(1);   }
+      50%  { filter: brightness(2.2) saturate(1.8); transform: scale(1.04); }
+      100% { filter: brightness(1.0) saturate(1.0); transform: scale(1);   }
     }
-    .styled-word.shift-left {
-      position: relative !important;
-      left: -2.2px !important;
-      display: inline-block !important;
+    .word-highlight.pulse {
+      animation: pulseHighlight 0.9s ease-out 0s 2 alternate;
+    }
+    .styled-word.pulse {
+      animation: pulseHighlight 0.9s ease-out 0s 2 alternate;
     }
   `;
   document.head.appendChild(fix);
