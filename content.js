@@ -42,6 +42,28 @@ function waitForPdfEmbed() {
 if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
   waitForPdfEmbed();
 }
+const CSS_COLOR_KEYWORDS = [
+  'aliceblue','antiquewhite','aqua','aquamarine','azure','beige','bisque','black',
+  'blanchedalmond','blue','blueviolet','brown','burlywood','cadetblue','chartreuse',
+  'chocolate','coral','cornflowerblue','cornsilk','crimson','cyan','darkblue','darkcyan',
+  'darkgoldenrod','darkgray','darkgreen','darkgrey','darkkhaki','darkmagenta','darkolivegreen',
+  'darkorange','darkorchid','darkred','darksalmon','darkseagreen','darkslateblue','darkslategray',
+  'darkslategrey','darkturquoise','darkviolet','deeppink','deepskyblue','dimgray','dimgrey',
+  'dodgerblue','firebrick','floralwhite','forestgreen','fuchsia','gainsboro','ghostwhite','gold',
+  'goldenrod','gray','green','greenyellow','grey','honeydew','hotpink','indianred','indigo','ivory',
+  'khaki','lavender','lavenderblush','lawngreen','lemonchiffon','lightblue','lightcoral',
+  'lightcyan','lightgoldenrodyellow','lightgray','lightgreen','lightgrey','lightpink','lightsalmon',
+  'lightseagreen','lightskyblue','lightslategray','lightslategrey','lightsteelblue','lightyellow',
+  'lime','limegreen','linen','magenta','maroon','mediumaquamarine','mediumblue','mediumorchid',
+  'mediumpurple','mediumseagreen','mediumslateblue','mediumspringgreen','mediumturquoise',
+  'mediumvioletred','midnightblue','mintcream','mistyrose','moccasin','navajowhite','navy',
+  'oldlace','olive','olivedrab','orange','orangered','orchid','palegoldenrod','palegreen',
+  'paleturquoise','palevioletred','papayawhip','peachpuff','peru','pink','plum','powderblue',
+  'purple','rebeccapurple','red','rosybrown','royalblue','saddlebrown','salmon','sandybrown',
+  'seagreen','seashell','sienna','silver','skyblue','slateblue','slategray','slategrey','snow',
+  'springgreen','steelblue','tan','teal','thistle','tomato','turquoise','violet','wheat','white',
+  'whitesmoke','yellow','yellowgreen'
+];
 async function main() {
   const styleTag = document.createElement('style');
   styleTag.textContent = `
@@ -329,6 +351,111 @@ async function main() {
     clearHighlights(container);
     renderAllHighlights();
   });
+  const customPanel = document.createElement('div');
+  customPanel.style.cssText = `
+    position:fixed;
+    top:48px;
+    left:450px;
+    z-index:2147483648;
+    background:#fff;
+    border:1px solid #ccc;
+    border-radius:6px;
+    padding:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,.2);
+    font:12px sans-serif;
+    color:#000;
+    width:280px;
+    max-width:90vw;
+    display:none;
+  `;
+  const customWordsTA = document.createElement('textarea');
+  customWordsTA.rows = 3;
+  customWordsTA.placeholder = 'word1, word2\n(or newline separated)';
+  customWordsTA.style.width = '100%';
+  const customPropSel = document.createElement('select');
+  ['color','background'].forEach(v=>{
+    const opt=document.createElement('option');
+    opt.value=v;
+    opt.textContent = v === 'color' ? 'Text Color' : 'Background';
+    customPropSel.appendChild(opt);
+  });
+  customPropSel.style.width='100%';
+  customPropSel.style.marginTop='4px';
+  const customColorSel = document.createElement('select');
+  customColorSel.style.width='100%';
+  customColorSel.style.marginTop='4px';
+  function populateColorSel(sel){
+    sel.innerHTML='';
+    const optDefault = new Option('-- choose named color --','');
+    sel.add(optDefault);
+    CSS_COLOR_KEYWORDS.forEach(name=>{
+      const opt = new Option(name, name);
+      opt.style.background = name;
+      opt.style.color = '#000';
+      sel.add(opt);
+    });
+    const optSep = new Option('────────','__sep__');
+    optSep.disabled = true;
+    sel.add(optSep);
+    const optCustom = new Option('Custom Hex…','__custom__');
+    sel.add(optCustom);
+  }
+  populateColorSel(customColorSel);
+  const customColorInput = document.createElement('input');
+  customColorInput.type = 'color';
+  customColorInput.value = '#ffff00'; // default yellow
+  customColorInput.style.width='100%';
+  customColorInput.style.marginTop='4px';
+  customColorInput.style.display='none';
+  const customAddBtn = document.createElement('button');
+  customAddBtn.textContent = 'Add';
+  customAddBtn.style.marginTop='8px';
+  customAddBtn.style.marginRight='8px';
+  const customCancelBtn = document.createElement('button');
+  customCancelBtn.textContent = 'Cancel';
+  customCancelBtn.style.marginTop='8px';
+  customPanel.append(
+    customWordsTA,
+    customPropSel,
+    customColorSel,
+    customColorInput,
+    customAddBtn,
+    customCancelBtn
+  );
+  document.body.appendChild(customPanel);
+  const LS_PROP_KEY  = 'highlight_custom_prop';
+  const LS_COLOR_KEY = 'highlight_custom_color';   // named color OR hex
+  customPropSel.value = localStorage.getItem(LS_PROP_KEY)  || 'background';
+  const savedColor = localStorage.getItem(LS_COLOR_KEY);
+  if (savedColor) {
+    const opt = Array.from(customColorSel.options).find(o=>o.value===savedColor);
+    if (opt) customColorSel.value = savedColor;
+    else {
+      customColorSel.value='__custom__';
+      customColorInput.value = savedColor;
+      customColorInput.style.display='';
+    }
+  }
+  customColorSel.addEventListener('change', () => {
+    if (customColorSel.value === '__custom__') {
+      customColorInput.style.display='';
+    } else {
+      customColorInput.style.display='none';
+    }
+  });
+  function openCustomPanel(prefillWords='') {
+    customWordsTA.value = prefillWords;
+    customPanel.style.display='';
+    customWordsTA.focus();
+  }
+  function closeCustomPanel() {
+    customPanel.style.display='none';
+  }
+  customCancelBtn.addEventListener('click', closeCustomPanel);
+  customPanel.addEventListener('keydown', (ev)=>{
+    if (ev.key === 'Escape') closeCustomPanel();
+  });
+
   function showCustomListString() {
     if (!customRules.length) return '(none)';
     return customRules.map((r,i)=>`${i+1}. [${r.style}] ${r.words.join(', ')}`).join('\n');
@@ -338,23 +465,124 @@ async function main() {
       alert('No custom rules saved.');
       return;
     }
-    const msg = `Custom highlight rules:\n${showCustomListString()}\n\n` +
-                'Enter number to delete, "*" to delete ALL, or blank to cancel:';
-    const which = prompt(msg, '');
-    if (which == null || which === '') return;
-    if (which.trim() === '*') {
+
+    const list = customRules
+      .map((r,i)=>`${i+1}. [${r.style}] ${r.words.join(', ')}`)
+      .join('\n');
+
+    const choice = prompt(
+      `Custom highlight rules:\n${list}\n\n` +
+      'Enter # to edit/delete, "*" to delete ALL, or blank to cancel:',
+      ''
+    );
+    if (choice == null || choice.trim() === '') return;
+
+    if (choice.trim() === '*') {
       if (!confirm('Delete ALL custom rules?')) return;
       customRules = [];
     } else {
-      const idx = Number(which) - 1;
-      if (!Number.isInteger(idx) || idx < 0 || idx >= customRules.length) return;
-      customRules.splice(idx,1);
+      const idx = Number(choice) - 1;
+      if (!Number.isInteger(idx) || idx < 0 || idx >= customRules.length) {
+        alert('Invalid selection.');
+        return;
+      }
+      const rule = customRules[idx];
+
+      const action = prompt(
+        `Rule #${idx+1}\nStyle: ${rule.style}\nWords: ${rule.words.join(', ')}\n\n` +
+        'Action: (D)elete, (E)dit, or blank to cancel:',
+        ''
+      );
+      if (action == null || action.trim() === '') return;
+      const a = action.trim().toLowerCase();
+
+      if (a === 'd') {
+        if (confirm('Delete this rule?')) customRules.splice(idx,1);
+      } else if (a === 'e') {
+        // Parse existing style to pre-select prop/color
+        let prop = 'background';
+        let col  = 'yellow';
+        const mColor = /color\s*:\s*([^;]+)/i.exec(rule.style);
+        const mBg    = /background\s*:\s*([^;]+)/i.exec(rule.style);
+        if (mBg) { prop = 'background'; col = mBg[1].trim(); }
+        if (mColor && !mBg) { prop = 'color'; col = mColor[1].trim(); }
+
+        // Prepopulate panel
+        customPropSel.value = prop;
+        // try find in named list
+        const opt = Array.from(customColorSel.options).find(o=>o.value===col.toLowerCase());
+        if (opt) {
+          customColorSel.value = opt.value;
+          customColorInput.style.display='none';
+        } else {
+          customColorSel.value='__custom__';
+          // ensure leading #
+          if (!col.startsWith('#')) {
+            // crude conversion; if not a hex we just ignore + fallback yellow
+            col = '#ffff00';
+          }
+          customColorInput.value = col;
+          customColorInput.style.display='';
+        }
+        customWordsTA.value = rule.words.join(', ');
+
+        // We will override Add to perform update once (then restore)
+        const origHandler = customAddBtn.onclick;
+
+        customAddBtn.onclick = () => {
+          const words = customWordsTA.value.split(/[\n,]/).map(w=>w.trim()).filter(Boolean);
+          if (!words.length) { alert('Please enter at least one word.'); return; }
+
+          let colorValue;
+          if (customColorSel.value === '__custom__') {
+            colorValue = customColorInput.value || '#ffff00';
+          } else if (customColorSel.value) {
+            colorValue = customColorSel.value;
+          } else {
+            colorValue = 'yellow';
+          }
+          const prop = customPropSel.value === 'color' ? 'color' : 'background';
+          rule.style = `${prop}:${colorValue};`;
+          rule.words = words;
+
+          localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
+          localStorage.setItem(LS_PROP_KEY, prop);
+          localStorage.setItem(LS_COLOR_KEY, colorValue);
+
+          includeCustom = true;
+          customChk.checked = true;
+
+          updateStyleWords();
+          clearHighlights(container);
+          renderAllHighlights();
+          refreshCustomTitle();
+
+          // restore handler + close
+          customAddBtn.onclick = origHandler;
+          closeCustomPanel();
+        };
+
+        openCustomPanel(); // display edit UI
+        return; // skip remainder; update handled in panel
+      } else {
+        alert('Unknown action.');
+        return;
+      }
     }
+
     localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
+
+    if (!customRules.length) {
+      includeCustom = false;
+      customChk.checked = false;
+    }
+
     updateStyleWords();
     clearHighlights(container);
     renderAllHighlights();
+    refreshCustomTitle();
   }
+
   function refreshCustomTitle() {
     addBtn.title = customRules.length
       ? 'Custom rules:\n' + showCustomListString() + '\n\nClick = Add | Shift-Click = Manage | Right-Click = Manage'
@@ -363,29 +591,55 @@ async function main() {
   addBtn.title = 'Add custom terms (Shift- or right-click to manage/delete)';
   addBtn.onclick = (e) => {
     if (e.shiftKey) { manageCustomRules(); refreshCustomTitle(); return; }
-    const termsRaw = prompt('Enter comma-separated term(s) to highlight:', '');
-    if (!termsRaw) { refreshCustomTitle(); return; }
-    const styleRaw = prompt(
-      'Enter CSS style for these terms (e.g., "background:yellow; color:black;" or "color:#f00;")',
-      'background:yellow;'
-    );
-    const style = styleRaw && styleRaw.trim() ? styleRaw.trim() : 'background:yellow;';
-    const words = termsRaw.split(',').map(w => w.trim()).filter(Boolean);
-    if (!words.length) { refreshCustomTitle(); return; }
-    customRules.push({ style, words });
-    localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
-    includeCustom = true;
-    customChk.checked = true;
-    updateStyleWords();
-    clearHighlights(container);
-    renderAllHighlights();
-    refreshCustomTitle();
+    openCustomPanel();
   };
   addBtn.oncontextmenu = (e) => {
     e.preventDefault();
     manageCustomRules();
     refreshCustomTitle();
   };
+  customAddBtn.addEventListener('click', () => {
+    const termsRaw = customWordsTA.value;
+    const words = termsRaw
+      .split(/[\n,]/)
+      .map(w=>w.trim())
+      .filter(Boolean);
+    if (!words.length) {
+      alert('Please enter at least one word.');
+      return;
+    }
+
+    let colorValue;
+    if (customColorSel.value === '__custom__') {
+      colorValue = customColorInput.value || '#ffff00';
+    } else if (customColorSel.value) {
+      colorValue = customColorSel.value;
+    } else {
+      // no selection -> default yellow
+      colorValue = 'yellow';
+    }
+
+    const prop = customPropSel.value === 'color' ? 'color' : 'background';
+    // Build style string
+    let style = `${prop}:${colorValue};`;
+    // If prop=background, rely on FORCE_TEXT_VISIBLE to ensure readable text (already in your wrap code).
+
+    customRules.push({ style, words });
+    localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
+
+    // Persist last selections
+    localStorage.setItem(LS_PROP_KEY, prop);
+    localStorage.setItem(LS_COLOR_KEY, colorValue);
+
+    includeCustom = true;
+    customChk.checked = true;
+
+    updateStyleWords();
+    clearHighlights(container);
+    renderAllHighlights();
+    refreshCustomTitle();
+    closeCustomPanel();
+  });
   updateStyleWords();
   const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
   const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
