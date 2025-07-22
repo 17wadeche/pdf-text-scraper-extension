@@ -101,6 +101,9 @@ async function main() {
     pulseMode = newWordsSet.size > 0;
   }
   updateStyleWords();
+  prevActiveWordsSet = new Set(activeWordsSet);
+  newWordsSet.clear();
+  pulseMode = false;
   const buSelect = document.createElement('select');
   const ouSelect = document.createElement('select');
   ouSelect.disabled = true;
@@ -153,8 +156,8 @@ async function main() {
       const text = textNode.data;
       for (const rule of rules) {
         for (const rx of rule._regexes) {
-          const rx = rxObj.rx || rxObj;
-          rx.lastIndex = 0;
+          const re = rxObj.rx || rxObj;
+          re.lastIndex = 0;
           let m;
           while ((m = rx.exec(text))) {
             if (!textNode.__highlightId) {
@@ -292,7 +295,7 @@ async function main() {
   const addBtn = document.createElement('button');
   addBtn.textContent = '➕ Custom';
   Object.assign(addBtn.style, {
-    position:'fixed', top:'16px', left:'360px',
+    position:'fixed', top:'16px', left:'390px',
     zIndex:2147483648,
     padding:'6px 12px',
     background:'#fff', border:'1px solid #ddd', borderRadius:'6px',
