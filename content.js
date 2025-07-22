@@ -314,7 +314,7 @@ async function main() {
   customLbl.htmlFor = customChk.id;
   customLbl.textContent = 'Use Custom';
   Object.assign(customLbl.style, {
-    position:'fixed', top:'19px', left:'480px',  // tweak layout
+    position:'fixed', top:'19px', left:'580px',  // tweak layout
     zIndex:2147483648,
     fontSize:'14px', color:'#000', cursor:'pointer',
   });
