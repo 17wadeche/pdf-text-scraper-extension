@@ -155,7 +155,7 @@ async function main() {
     for (let textNode; (textNode = walker.nextNode()); ) {
       const text = textNode.data;
       for (const rule of rules) {
-        for (const rx of rule._regexes) {
+        for (const rxObj of (rule._regexes || [])) {
           const re = rxObj.rx || rxObj;
           re.lastIndex = 0;
           let m;
