@@ -10,6 +10,7 @@ let activeWordsSet     = new Set();      // words active for current BU/OU + cus
 let newWordsSet        = new Set();      // words newly introduced this update
 let pulseMode          = false;          // turn on for one render pass after rules change
 let customRules = [];
+let includeCustom = true;
 try {
   customRules = JSON.parse(localStorage.getItem('highlight_custom_rules') || '[]');
   if (!Array.isArray(customRules)) customRules = [];
@@ -85,7 +86,9 @@ async function main() {
     if (currentBU && currentOU && config[currentBU]?.[currentOU]?.styleWords) {
       styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
     }
-    styleWordsToUse.push(...customRules);  
+    if (includeCustom && customRules.length) {
+      styleWordsToUse.push(...customRules);
+    }
     activeWordsSet = new Set();
     styleWordsToUse.forEach(r => {
       r.words.forEach(w => activeWordsSet.add(normWord(w)));
@@ -303,7 +306,58 @@ async function main() {
     cursor:'pointer', fontSize:'14px'
   });
   document.body.appendChild(addBtn);
+  const customChk = document.createElement('input');
+  customChk.type = 'checkbox';
+  customChk.checked = includeCustom;
+  customChk.id = 'highlightUseCustom';
+  const customLbl = document.createElement('label');
+  customLbl.htmlFor = customChk.id;
+  customLbl.textContent = 'Use Custom';
+  Object.assign(customLbl.style, {
+    position:'fixed', top:'19px', left:'480px',  // tweak layout
+    zIndex:2147483648,
+    fontSize:'14px', color:'#000', cursor:'pointer',
+  });
+  Object.assign(customChk.style, {
+    position:'fixed', top:'20px', left:'460px',
+    zIndex:2147483648,
+  });
+  document.body.append(customChk, customLbl);
+  customChk.addEventListener('change', () => {
+    includeCustom = customChk.checked;
+    updateStyleWords();
+    clearHighlights(container);
+    renderAllHighlights();
+  });
+  function showCustomListString() {
+    if (!customRules.length) return '(none)';
+    return customRules.map((r,i)=>`${i+1}. [${r.style}] ${r.words.join(', ')}`).join('\n');
+  }
+  function manageCustomRules() {
+    if (!customRules.length) {
+      alert('No custom rules saved.');
+      return;
+    }
+    const msg = `Custom highlight rules:\n${showCustomListString()}\n\n` +
+                'Enter number to delete, "*" to delete ALL, or blank to cancel:';
+    const which = prompt(msg, '');
+    if (which == null || which === '') return;
+    if (which.trim() === '*') {
+      if (!confirm('Delete ALL custom rules?')) return;
+      customRules = [];
+    } else {
+      const idx = Number(which) - 1;
+      if (!Number.isInteger(idx) || idx < 0 || idx >= customRules.length) return;
+      customRules.splice(idx,1);
+    }
+    localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
+    updateStyleWords();
+    clearHighlights(container);
+    renderAllHighlights();
+  }
+  addBtn.title = 'Add custom terms (Shift- or right-click to manage/delete)';
   addBtn.onclick = () => {
+    if (e.shiftKey) { manageCustomRules(); return; }
     const termsRaw = prompt('Enter comma-separated term(s) to highlight:', '');
     if (!termsRaw) return;
     const styleRaw = prompt(
@@ -319,6 +373,7 @@ async function main() {
     clearHighlights(container);
     renderAllHighlights();
   };
+  addBtn.oncontextmenu = (e) => { e.preventDefault(); manageCustomRules(); };
   updateStyleWords();
   const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
   const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
@@ -440,13 +495,20 @@ async function main() {
   toggle.onclick = () => {
     showingStyled = !showingStyled;
     if (showingStyled) {
+      includeCustom = customChk.checked;  
       container.style.display = '';
       embed.style.display     = 'none';
       buSelect.style.display  = '';
       ouSelect.style.display  = '';
+      addBtn.style.display    = '';
+      customChk.style.display = '';
+      customLbl.style.display = '';
       renderAllHighlights();
       toggle.textContent = 'Original';
     } else {
+      includeCustom = false;
+      customChk.checked = false;
+      updateStyleWords();
       container.style.display = 'none';
       embed.style.display     = '';
       buSelect.style.display  = 'none';
