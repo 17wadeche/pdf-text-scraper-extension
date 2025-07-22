@@ -295,7 +295,7 @@ async function main() {
   const addBtn = document.createElement('button');
   addBtn.textContent = '➕ Custom';
   Object.assign(addBtn.style, {
-    position:'fixed', top:'16px', left:'390px',
+    position:'fixed', top:'16px', left:'450px',
     zIndex:2147483648,
     padding:'6px 12px',
     background:'#fff', border:'1px solid #ddd', borderRadius:'6px',
