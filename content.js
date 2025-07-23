@@ -768,16 +768,25 @@ async function main(host = {}) {
   linkService.setViewer(pdfViewer);
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
+  let _aftRefreshScheduled = false;
+  function aftRefreshHighlights(reason = '') {
+    if (_aftRefreshScheduled) return;          // coalesce repeated triggers into next frame
+    _aftRefreshScheduled = true;
+    requestAnimationFrame(() => {
+      _aftRefreshScheduled = false;
+      if (!showingStyled) return;
+      renderAllHighlights();
+    });
+  }
+  setTimeout(() => aftRefreshHighlights('initDelay'), 500);
   pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
   eventBus.on('pagesloaded', () => {
-    setTimeout(() => {
-      renderAllHighlights();
-    }, 300);
+    setTimeout(() => aftRefreshHighlights('pagesloadedDelay'), 300);
   });
   renderAllHighlights();
   eventBus.on('pagesloaded', () => {
-    renderAllHighlights();
+    aftRefreshHighlights('tlr-' + pageNumber);
   });
   const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
@@ -801,7 +810,7 @@ async function main(host = {}) {
       container.style.display = '';
       embed.style.display     = 'none';
       hlPanel.style.display   = '';   // show panel
-      renderAllHighlights();
+      aftRefreshHighlights('toggle-on');
       toggle.textContent = 'Original';
     } else {
       includeCustom = false;
@@ -813,15 +822,4 @@ async function main(host = {}) {
       toggle.textContent = 'Styled';
     }
   };
-  let _aftRefreshScheduled = false;
-  function aftRefreshHighlights(reason = '') {
-    if (_aftRefreshScheduled) return;          // coalesce repeated triggers into next frame
-    _aftRefreshScheduled = true;
-    requestAnimationFrame(() => {
-      _aftRefreshScheduled = false;
-      if (!showingStyled) return;
-      renderAllHighlights();
-    });
-  }
-  setTimeout(() => aftRefreshHighlights('initDelay'), 500);
 }
