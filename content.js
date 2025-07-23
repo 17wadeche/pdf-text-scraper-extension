@@ -232,7 +232,7 @@ async function main(host = {}, fetchUrlOverride) {
   const hlPanel = document.createElement('div');
   hlPanel.id = 'aftHlPanel';
   hlPanel.style.cssText = `
-    position:fixed; top:60px; right:16px;
+    position:fixed; top:60px; left:16px;
     background:#fff; border:1px solid #ccc; border-radius:6px;
     padding:8px; box-shadow:0 2px 10px rgba(0,0,0,.2);
     font:12px sans-serif; color:#000;
@@ -719,6 +719,14 @@ async function main(host = {}, fetchUrlOverride) {
   hlPanel.dataset.aftRole = 'panel';
   customPanel.dataset.aftRole = 'custom';
   hlPanel.style.zIndex = AFT_UI_Z;
+  hlPanel.append(
+    buSelect,
+    ouSelect,
+    toggle,
+    addBtn,
+    customChk,
+    customLbl
+  );
   customPanel.style.zIndex = AFT_UI_Z;
   toggle.dataset.aftRole   = 'toggle';
   toggle.style.zIndex      = AFT_UI_Z;
