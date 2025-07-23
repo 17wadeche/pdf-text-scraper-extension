@@ -82,7 +82,7 @@ const CSS_COLOR_KEYWORDS = [
 async function main(host = {}) {
   const { viewerEl = null, embedEl = null } = host;
   let container = null;
-  window.__AFT_VERSION = '0.1.3c';
+  window.__AFT_VERSION = '0.1.3d';
   console.log('[AFT] init v' + window.__AFT_VERSION, location.href);
   const styleTag = document.createElement('style');
   styleTag.textContent = `
@@ -721,33 +721,6 @@ async function main(host = {}) {
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
-  window.addEventListener('resize', () => {
-    const r = embed.getBoundingClientRect();
-    Object.assign(container.style, {
-      top:   `${r.top}px`,
-      left:  `${r.left}px`,
-      width: `${r.width}px`,
-      height:`${r.height}px`,
-    });
-  });
-  function updateContainer() {
-    let r;
-    if (embed) {
-      const er = embed.getBoundingClientRect();
-      r = {top:er.top, left:er.left, width:er.width, height:er.height};
-    } else {
-      r = {top:0, left:0, width:window.innerWidth, height:window.innerHeight};
-    }
-    Object.assign(container.style, {
-      top:   `${r.top}px`,
-      left:  `${r.left}px`,
-      width: `${r.width}px`,
-      height:`${r.height}px`
-    });
-  }
-  updateContainer();
-  window.addEventListener('scroll', updateContainer);
-  window.addEventListener('resize', updateContainer);
   let data, fetchUrl, resp;
   try {
     fetchUrl = (embed && embed.getAttribute && embed.getAttribute('original-url')) || location.href;
