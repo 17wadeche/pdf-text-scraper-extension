@@ -110,6 +110,7 @@ async function main(host = {}) {
       box-shadow: 0 0 0 2px rgba(74,144,226,0.3);
     }
   `;
+  let showingStyled = true;
   document.head.appendChild(styleTag);
   const link = document.createElement('link');
   link.rel  = 'stylesheet';
@@ -769,8 +770,10 @@ async function main(host = {}) {
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
   let _aftRefreshScheduled = false;
+  let _aftLastReason = '';
   function aftRefreshHighlights(reason = '') {
-    if (_aftRefreshScheduled) return;          // coalesce repeated triggers into next frame
+    _aftLastReason = reason;
+    if (_aftRefreshScheduled) return;          // coalesce
     _aftRefreshScheduled = true;
     requestAnimationFrame(() => {
       _aftRefreshScheduled = false;
@@ -785,10 +788,6 @@ async function main(host = {}) {
     setTimeout(() => aftRefreshHighlights('pagesloadedDelay'), 300);
   });
   renderAllHighlights();
-  eventBus.on('pagesloaded', () => {
-    aftRefreshHighlights('tlr-' + pageNumber);
-  });
-  const renderedPages = new Set();
   eventBus.on('textlayerrendered', ({ pageNumber }) => {
     const pageView = pdfViewer._pages[pageNumber - 1];
     const textLayer = pageView?.textLayer?.textLayerDiv;
@@ -798,10 +797,8 @@ async function main(host = {}) {
         span.dataset.origStyle = span.getAttribute('style') || '';
       }
     });
-    renderedPages.add(pageNumber);
-    renderAllHighlights();
+    aftRefreshHighlights('tlr-' + pageNumber);
   });
-  let showingStyled = true;
   toggle.onclick = () => {
     showingStyled = !showingStyled;
     if (showingStyled) {
