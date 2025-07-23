@@ -84,6 +84,7 @@ async function main(host = {}) {
   let container = null;
   window.__AFT_VERSION = '0.1.3d';
   console.log('[AFT] init v' + window.__AFT_VERSION, location.href);
+  const AFT_UI_Z = 999999999;
   const styleTag = document.createElement('style');
   styleTag.textContent = `
     .modern-select {
@@ -152,8 +153,28 @@ async function main(host = {}) {
   const ouSelect = document.createElement('select');
   ouSelect.disabled = true;
   const toggle   = document.createElement('button');
+  toggle.id = 'aftToggle';
+  toggle.dataset.aftRole = 'toggle';
   [buSelect, ouSelect].forEach(s => s.className = 'modern-select');
   toggle.textContent = 'Original';
+  const addBtn      = document.createElement('button');
+  addBtn.textContent = '➕ Custom';
+  const customChk   = document.createElement('input');
+  customChk.type    = 'checkbox';
+  customChk.checked = includeCustom;
+  customChk.id      = 'highlightUseCustom';
+  const customLbl   = document.createElement('label');
+  customLbl.htmlFor = customChk.id;
+  customLbl.textContent = 'Use Custom';
+  const customPanel = document.createElement('div');
+  customPanel.dataset.aftRole = 'custom';
+  customPanel.style.cssText = `
+    position:fixed; top:48px; left:450px;
+    background:#fff; border:1px solid #ccc; border-radius:6px;
+    padding:8px; box-shadow:0 2px 10px rgba(0,0,0,.2);
+    font:12px sans-serif; color:#000;
+    width:280px; max-width:90vw; display:none;
+  `;
   buSelect.innerHTML =
     `<option value="">-- Select BU --</option>` +
     Object.keys(config)
@@ -325,7 +346,6 @@ async function main(host = {}) {
     clearHighlights(container); 
     renderAllHighlights();
   };
-  const AFT_UI_Z = 999999999;
   Object.assign(toggle.style, {
     position:'fixed', top:'16px', right:'16px',
     background:'#ff0', color:'#000', fontWeight:'bold',
@@ -342,38 +362,12 @@ async function main(host = {}) {
   if (currentOU) {
     ouSelect.value = currentOU;
   }
-  const addBtn = document.createElement('button');
-  addBtn.textContent = '➕ Custom';
-  const customChk = document.createElement('input');
-  customChk.type = 'checkbox';
-  customChk.checked = includeCustom;
-  customChk.id = 'highlightUseCustom';
-  const customLbl = document.createElement('label');
-  customLbl.htmlFor = customChk.id;
-  customLbl.textContent = 'Use Custom';
   customChk.addEventListener('change', () => {
     includeCustom = customChk.checked;
     updateStyleWords();
     clearHighlights(container);
     renderAllHighlights();
   });
-  const customPanel = document.createElement('div');
-  customPanel.style.cssText = `
-    position:fixed;
-    top:48px;
-    left:450px;
-    z-index:2147483648;
-    background:#fff;
-    border:1px solid #ccc;
-    border-radius:6px;
-    padding:8px;
-    box-shadow:0 2px 10px rgba(0,0,0,.2);
-    font:12px sans-serif;
-    color:#000;
-    width:280px;
-    max-width:90vw;
-    display:none;
-  `;
   const customWordsTA = document.createElement('textarea');
   customWordsTA.rows = 3;
   customWordsTA.placeholder = 'word1, word2\n(or newline separated)';
@@ -727,6 +721,9 @@ async function main(host = {}) {
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
+  document.body.appendChild(toggle);
+  document.body.appendChild(hlPanel);
+  document.body.appendChild(customPanel);
   let data, fetchUrl, resp;
   try {
     fetchUrl = (embed && embed.getAttribute && embed.getAttribute('original-url')) || location.href;
