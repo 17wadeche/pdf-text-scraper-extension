@@ -712,6 +712,9 @@ async function main(host = {}, fetchUrlOverride) {
   addBtn.oncontextmenu = (e) => { e.preventDefault(); toggleCustomPanel(); };
   document.body.appendChild(toggle);
   document.body.appendChild(hlPanel);
+  if (showingStyled) {
+    hlPanel.style.display = '';
+  }
   document.body.appendChild(customPanel);
   hlPanel.dataset.aftRole = 'panel';
   customPanel.dataset.aftRole = 'custom';
