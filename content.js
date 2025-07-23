@@ -702,26 +702,22 @@ async function main(host = {}) {
       embed = viewerEl.shadowRoot?.querySelector('embed[type*="pdf"],object[type*="pdf"]') || null;
     } catch { /* ignore */ }
   }
-  const rect = embed
-    ? embed.getBoundingClientRect()
-    : { top:0, left:0, width:window.innerWidth, height:window.innerHeight };
   container = document.createElement('div');
+  container.className = 'aft-container';
   Object.assign(container.style, {
-    position:'absolute',
-    top:   `${rect.top}px`,
-    left:  `${rect.left}px`,
-    width: `${rect.width}px`,
-    height:`${rect.height}px`,
-    overflow:'auto', 
-    background:'#fff', 
-    zIndex:2147483647
+    position: 'fixed',
+    inset: '0',              // top/right/bottom/left 0
+    width: '100vw',
+    height: '100vh',
+    overflow: 'auto',
+    background: '#fff',
+    zIndex: 2147483647
   });
-  if (embed && embed.parentNode) {
+
+  if (embed) {
     embed.style.display = 'none';
-    embed.parentNode.insertBefore(container, embed.nextSibling);
-  } else {
-    document.body.appendChild(container);
   }
+  document.body.appendChild(container);
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
@@ -752,12 +748,15 @@ async function main(host = {}) {
   updateContainer();
   window.addEventListener('scroll', updateContainer);
   window.addEventListener('resize', updateContainer);
-  let data;
+  let data, fetchUrl, resp;
   try {
-    const url = (embed && embed.getAttribute && embed.getAttribute('original-url')) || location.href;
-    data = await fetch(url, {credentials:'include'}).then(r=>r.arrayBuffer());
-  } catch {
-    console.error('Could not fetch PDF');
+    fetchUrl = (embed && embed.getAttribute && embed.getAttribute('original-url')) || location.href;
+    resp = await fetch(fetchUrl, { credentials: 'include' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    data = await resp.arrayBuffer();
+    console.log('[AFT] fetched PDF bytes:', data.byteLength, 'from', fetchUrl);
+  } catch (err) {
+    console.error('[AFT] Could not fetch PDF:', err);
     return;
   }
   const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
