@@ -327,6 +327,17 @@ async function main(host = {}) {
       setTimeout(() => { pulseMode = false; }, 100);
     }
   }
+  let _aftRefreshScheduled = false;
+  function aftRefreshHighlights(reason = '') {
+    if (_aftRefreshScheduled) return;          // coalesce repeated triggers into next frame
+    _aftRefreshScheduled = true;
+    requestAnimationFrame(() => {
+      _aftRefreshScheduled = false;
+      if (!showingStyled) return;
+      renderAllHighlights();
+    });
+  }
+  setTimeout(() => aftRefreshHighlights('initDelay'), 500);
   buSelect.onchange = () => {
     currentBU = buSelect.value;
     localStorage.setItem('highlight_BU', currentBU);
