@@ -4,15 +4,14 @@ const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
-(function redirectIfPluginPdf(){
+(function redirectIfPluginPdf() {
   try {
     const extViewerBase = chrome.runtime.getURL('viewer.html');
     if (location.href.startsWith(extViewerBase)) return;
     if (window.__AFT_FROM_VIEWER) return;
     if (!urlIsAllowed()) return;
-    const isPdfDoc  = document.contentType === 'application/pdf';
-    const hasHostEl = document.querySelector('embed[type*="pdf"],object[type*="pdf"],pdf-viewer');
-    if (isPdfDoc && !hasHostEl) {
+    if (location.hash === '#noaft') return;
+    if ((document.contentType || '').toLowerCase() === 'application/pdf') {
       const target = extViewerBase + '?src=' + encodeURIComponent(location.href);
       location.replace(target);
     }
@@ -944,7 +943,7 @@ async function main(host = {}, fetchUrlOverride) {
   }
   toggle.onclick = () => {
     if (!hasEmbedForToggle) {
-      window.open(fetchUrl, '_blank', 'noopener,noreferrer');
+      window.open(fetchUrl + '#noaft', '_blank', 'noopener,noreferrer');
       return;
     }
     showingStyled = !showingStyled;
