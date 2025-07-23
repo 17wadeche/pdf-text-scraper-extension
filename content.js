@@ -176,39 +176,70 @@ async function main(host = {}, fetchUrlOverride) {
       box-shadow: 0 0 0 2px rgba(74,144,226,0.3);
     }
       #aftCustomPanel {
-        border-radius: 8px;
-        padding: 10px;
-        background: #f9f9f9;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        font-family: 'Segoe UI', sans-serif;
-      }
-      #aftCustomPanel input[type="text"],
-      #aftCustomPanel select {
-        width: 100%;
-        padding: 4px 6px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 13px;
-      }
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  width: 320px;
+}
 
-      #aftCustomPanel button {
-        padding: 3px 8px;
-        font-size: 12px;
-        border-radius: 4px;
-        border: 1px solid #888;
-        background: #fff;
-        cursor: pointer;
-      }
+#aftCustomPanel input[type="text"],
+#aftCustomPanel select {
+  font-size: 13px;
+  padding: 5px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
 
-      #aftCustomPanel button:hover {
-        background: #e8e8e8;
-      }
+#aftCustomPanel input[type="color"] {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  padding: 0;
+}
 
-      #aftCustomPanel hr {
-        border: none;
-        border-top: 1px solid #ddd;
-        margin: 6px 0;
-      }
+#aftCustomPanel button {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid #888;
+  border-radius: 4px;
+  background: #f3f3f3;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+#aftCustomPanel button:hover {
+  background: #e0e0e0;
+}
+
+#aftCustomPanel hr {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 8px 0;
+}
+
+.aft-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.aft-row > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.aft-row.actions {
+  justify-content: flex-end;
+  margin-top: 4px;
+}
 
   `;
   let showingStyled = true;
