@@ -298,6 +298,8 @@ async function main(host = {}) {
       target.splitText(end - start);
       const wrap = document.createElement('span');
       wrap.classList.add('styled-word');
+      const isUnderline = /text-decoration-line\s*:\s*underline/i.test(style);
+      if (isUnderline) wrap.classList.add('aft-ul'); // marker class
       if (shift) wrap.classList.add('shift-left');
       if (pulseMode && job.isNew) wrap.classList.add('pulse');
       wrap.style.cssText = style +
@@ -369,7 +371,10 @@ async function main(host = {}) {
   ['color','background'].forEach(v=>{
     const opt=document.createElement('option');
     opt.value=v;
-    opt.textContent = v === 'color' ? 'Text Color' : 'Background';
+    opt.textContent = 
+    v === 'color' ? 'Text Color' 
+    : v === 'background' ? 'Background'
+    :'Wavy Underline';
     customPropSel.appendChild(opt);
   });
   customPropSel.style.width='100%';
@@ -572,10 +577,17 @@ async function main(host = {}) {
       } else if (a === 'e') {
         let prop = 'background';
         let col  = 'yellow';
-        const mColor = /color\s*:\s*([^;]+)/i.exec(rule.style);
-        const mBg    = /background\s*:\s*([^;]+)/i.exec(rule.style);
-        if (mBg) { prop = 'background'; col = mBg[1].trim(); }
-        if (mColor && !mBg) { prop = 'color'; col = mColor[1].trim(); }
+        const mUnderline = /text-decoration-(?:line|style|color)\s*:[^;]*/ig.test(rule.style);
+        if (mUnderline) {
+          prop = 'underline';
+          const mULColor = /text-decoration-color\s*:\s*([^;]+)/i.exec(rule.style);
+          if (mULColor) col = mULColor[1].trim();
+        } else {
+          const mColor = /color\s*:\s*([^;]+)/i.exec(rule.style);
+          const mBg    = /background\s*:\s*([^;]+)/i.exec(rule.style);
+          if (mBg) { prop = 'background'; col = mBg[1].trim(); }
+          if (mColor && !mBg) { prop = 'color'; col = mColor[1].trim(); }
+        }
         customPropSel.value = prop;
         const opt = Array.from(customColorSel.options).find(o=>o.value===col.toLowerCase());
         if (opt) {
@@ -667,8 +679,18 @@ async function main(host = {}) {
     } else {
       colorValue = 'yellow';
     }
-    const prop = customPropSel.value === 'color' ? 'color' : 'background';
-    let style = `${prop}:${colorValue};`;
+    const selProp = customPropSel.value;
+    let style;
+    if (selProp === 'underline') {
+      style =
+        `text-decoration-line:underline;` +
+        `text-decoration-style:wavy;` +
+        `text-decoration-color:${colorValue};` +
+        `text-decoration-thickness:auto;`;
+    } else {
+      const prop = selProp === 'color' ? 'color' : 'background';
+      style = `${prop}:${colorValue};`;
+    }
     customRules.push({ style, words });
     localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
     localStorage.setItem(LS_PROP_KEY, prop);
@@ -763,6 +785,11 @@ async function main(host = {}) {
     }
     .styled-word.pulse {
       animation: pulseHighlight 0.9s ease-out 0s 2 alternate;
+    }
+    .styled-word.aft-ul {
+      display:inline !important;         /* override display:contents */
+      background:none !important;        /* ensure no stray bg */
+      text-decoration-skip-ink:auto;
     }
   `;
   document.head.appendChild(fix);
