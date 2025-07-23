@@ -700,7 +700,6 @@ async function main(host = {}, fetchUrlOverride) {
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
   document.body.appendChild(toggle);
-  document.body.appendChild(hlPanel);
   toggle.dataset.aftRole   = 'toggle';
   hlPanel.dataset.aftRole  = 'panel';
   customPanel.dataset.aftRole = 'custom';
