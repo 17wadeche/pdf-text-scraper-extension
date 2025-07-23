@@ -154,7 +154,6 @@ async function main(host = {}) {
   ouSelect.disabled = true;
   const toggle   = document.createElement('button');
   toggle.id = 'aftToggle';
-  toggle.dataset.aftRole = 'toggle';
   [buSelect, ouSelect].forEach(s => s.className = 'modern-select');
   toggle.textContent = 'Original';
   const addBtn      = document.createElement('button');
@@ -167,7 +166,6 @@ async function main(host = {}) {
   customLbl.htmlFor = customChk.id;
   customLbl.textContent = 'Use Custom';
   const customPanel = document.createElement('div');
-  customPanel.dataset.aftRole = 'custom';
   customPanel.style.cssText = `
     position:fixed; top:48px; left:450px;
     background:#fff; border:1px solid #ccc; border-radius:6px;
@@ -349,14 +347,8 @@ async function main(host = {}) {
   Object.assign(toggle.style, {
     position:'fixed', top:'16px', right:'16px',
     background:'#ff0', color:'#000', fontWeight:'bold',
-    padding:'6px 12px', zIndex: AFT_UI_Z, cursor:'pointer'
+    padding:'6px 12px', cursor:'pointer'
   });
-  hlPanel.style.zIndex = AFT_UI_Z;
-  customPanel.style.zIndex = AFT_UI_Z;
-  document.body.append(toggle);
-  toggle.dataset.aftRole = 'toggle';
-  hlPanel.dataset.aftRole = 'panel';
-  customPanel.dataset.aftRole = 'custom';
   buSelect.value = currentBU;
   updateOuOptions();
   if (currentOU) {
@@ -406,7 +398,6 @@ async function main(host = {}) {
     position:fixed;
     top:16px;
     left:16px;
-    z-index:2147483648;
     background:#fff;
     border:1px solid #ddd;
     border-radius:6px;
@@ -464,7 +455,6 @@ async function main(host = {}) {
   hlPanelCustomRow.appendChild(hlPanelCustomChkWrap);
   hlPanelBody.append(buSelect, ouSelect, hlPanelCustomRow);
   hlPanel.append(hlPanelHdr, hlPanelBody);
-  document.body.appendChild(hlPanel);
   const PANEL_COLLAPSED_KEY = 'highlight_panel_collapsed';
   let panelCollapsed = localStorage.getItem(PANEL_COLLAPSED_KEY) === '1';
   function applyPanelCollapsedState() {
@@ -504,7 +494,6 @@ async function main(host = {}) {
     customAddBtn,
     customCancelBtn
   );
-  document.body.appendChild(customPanel);
   const LS_PROP_KEY  = 'highlight_custom_prop';
   const LS_COLOR_KEY = 'highlight_custom_color';
   customPropSel.value = localStorage.getItem(LS_PROP_KEY)  || 'background';
@@ -713,7 +702,6 @@ async function main(host = {}) {
     background: '#fff',
     zIndex: 2147483647
   });
-
   if (embed) {
     embed.style.display = 'none';
   }
@@ -724,6 +712,12 @@ async function main(host = {}) {
   document.body.appendChild(toggle);
   document.body.appendChild(hlPanel);
   document.body.appendChild(customPanel);
+  toggle.dataset.aftRole   = 'toggle';
+  hlPanel.dataset.aftRole  = 'panel';
+  customPanel.dataset.aftRole = 'custom';
+  toggle.style.zIndex      = AFT_UI_Z;
+  hlPanel.style.zIndex     = AFT_UI_Z;
+  customPanel.style.zIndex = AFT_UI_Z;
   let data, fetchUrl, resp;
   try {
     fetchUrl = (embed && embed.getAttribute && embed.getAttribute('original-url')) || location.href;
