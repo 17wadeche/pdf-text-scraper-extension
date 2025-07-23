@@ -467,7 +467,7 @@ async function main(host = {}, fetchUrlOverride) {
     newRow.style.cssText='display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:start;';
     const newWords=document.createElement('input'); newWords.type='text'; newWords.placeholder='word1, word2';
     const newProp=document.createElement('select');
-    [['background','Bg'],['color','Text'],['underline','Wave']].forEach(([v,l])=>{
+    [['background','Background'],['color','Text'],['underline','Underline']].forEach(([v,l])=>{
       const opt=document.createElement('option');opt.value=v;opt.textContent=l;newProp.appendChild(opt);
     });
     const newColorWrap=document.createElement('div'); newColorWrap.style.cssText='display:flex;gap:4px;align-items:center;';
