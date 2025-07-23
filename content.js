@@ -377,7 +377,6 @@ async function main(host = {}, fetchUrlOverride) {
       customRules.forEach((rule, idx) => {
         const row = document.createElement('div');
         row.style.cssText = 'display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:start;margin-bottom:4px;';
-        // words
         const wordsInput = document.createElement('input');
         wordsInput.type='text';
         wordsInput.value = rule.words.join(', ');
@@ -385,7 +384,7 @@ async function main(host = {}, fetchUrlOverride) {
         wordsInput.style.width='100%';
         row.appendChild(wordsInput);
         const propSel = document.createElement('select');
-        [['background','Bg'],['color','Text'],['underline','Wave']].forEach(([v,l])=>{
+        [['background','Background'],['color','Text'],['underline','Underline']].forEach(([v,l])=>{
           const opt=document.createElement('option');
           opt.value=v; opt.textContent=l;
           if (rule.prop===v) opt.selected=true;
@@ -804,7 +803,7 @@ async function main(host = {}, fetchUrlOverride) {
   customPanel.dataset.aftRole = 'custom';
   hlPanel.style.zIndex = AFT_UI_Z;
   const hlHeader = document.createElement('div');
-  hlHeader.textContent = 'Highlights';
+  hlHeader.textContent = 'Settings';
   hlHeader.style.cssText = `
     font-weight:bold; margin-bottom:4px;
     display:flex; align-items:center; justify-content:space-between;
@@ -817,7 +816,30 @@ async function main(host = {}, fetchUrlOverride) {
 
   const hlBody = document.createElement('div');
   hlBody.id = 'aftHlPanelBody';
-  hlBody.append(buSelect, ouSelect, toggle, addBtn, customChk, customLbl);
+  const buLabel = document.createElement('label');
+  buLabel.textContent = 'BU:';
+  buLabel.style.fontWeight = 'bold';
+
+  const ouLabel = document.createElement('label');
+  ouLabel.textContent = 'OU:';
+  ouLabel.style.fontWeight = 'bold';
+
+  const buRow = document.createElement('div');
+  buRow.className = 'aft-row';
+  buRow.append(buLabel, buSelect);
+
+  const ouRow = document.createElement('div');
+  ouRow.className = 'aft-row';
+  ouRow.append(ouLabel, ouSelect);
+
+  hlBody.append(
+    buRow,
+    ouRow,
+    toggle,
+    addBtn,
+    customChk,
+    customLbl
+  );
   hlBody.style.display = ''; // show by default
 
   hlPanel.innerHTML = ''; // clear previous text
