@@ -4,6 +4,9 @@ const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
+function urlIsAllowed(href = location.href) {
+  return ALLOWED_PREFIXES.some(p => href.startsWith(p));
+}
 let initialized = false;
 let prevActiveWordsSet = new Set();
 let activeWordsSet     = new Set();
@@ -30,7 +33,7 @@ function findPdfHostElements() {
 }
 function startWhenReady() {
   if (initialized) return;
-  if (!ALLOWED_PREFIXES()) return;
+  if (!urlIsAllowed()) return;
   const host = findPdfHostElements();
   if (host.viewerEl || host.embedEl) {
     initialized = true;
