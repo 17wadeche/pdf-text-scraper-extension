@@ -287,7 +287,7 @@ async function main(host = {}, fetchUrlOverride) {
   [buSelect, ouSelect].forEach(s => s.className = 'modern-select');
   toggle.textContent = 'Original';
   const addBtn      = document.createElement('button');
-  addBtn.textContent = '➕ Custom';
+  addBtn.textContent = 'Edit Personal Styles';
   const customChk   = document.createElement('input');
   customChk.type    = 'checkbox';
   customChk.checked = includeCustom;
