@@ -702,8 +702,6 @@ async function main(host = {}, fetchUrlOverride) {
   document.body.appendChild(toggle);
   toggle.dataset.aftRole   = 'toggle';
   toggle.style.zIndex      = AFT_UI_Z;
-  hlPanel.style.zIndex     = AFT_UI_Z;
-  customPanel.style.zIndex = AFT_UI_Z;
   let data, fetchUrl, resp;
   try {
     fetchUrl = fetchUrlOverride ||
