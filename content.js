@@ -799,6 +799,32 @@ async function main(host = {}) {
     });
     aftRefreshHighlights('tlr-' + pageNumber);
   });
+  const AFT_POLL_MS = 800;  // tune: smaller = more responsive, larger = less CPU
+  let _aftLastSig = '';
+  function aftComputeSig() {
+    if (!container) return '';
+    const pages = container.querySelectorAll('.page').length;
+    const spans = container.querySelectorAll('.textLayer span').length;
+    return pages + ':' + spans;
+  }
+  setInterval(() => {
+    if (!showingStyled) return;
+    const sig = aftComputeSig();
+    if (sig !== _aftLastSig) {
+      _aftLastSig = sig;
+      aftRefreshHighlights('poll-change');   // coalesced via wrapper
+    }
+  }, AFT_POLL_MS);
+  let _aftScrollDebounce;
+  container.addEventListener('scroll', () => {
+    if (!showingStyled) return;
+    clearTimeout(_aftScrollDebounce);
+    _aftScrollDebounce = setTimeout(() => aftRefreshHighlights('scroll'), 100);
+  }, { passive: true });
+  setInterval(() => {
+    if (!showingStyled) return;
+    aftRefreshHighlights('poll-forced');
+  }, 500);
   toggle.onclick = () => {
     showingStyled = !showingStyled;
     if (showingStyled) {
