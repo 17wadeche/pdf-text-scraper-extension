@@ -212,10 +212,7 @@ async function main(host = {}, fetchUrlOverride) {
     });
     pulseMode = newWordsSet.size > 0;
   }
-  updateStyleWords();
-  prevActiveWordsSet = new Set(activeWordsSet);
-  newWordsSet.clear();
-  pulseMode = false;
+  updateStyleWords({suppressPulse:true});
   const buSelect = document.createElement('select');
   const ouSelect = document.createElement('select');
   ouSelect.disabled = true;
@@ -704,6 +701,12 @@ async function main(host = {}, fetchUrlOverride) {
   addBtn.onclick = (e) => { e.preventDefault(); toggleCustomPanel(); };
   addBtn.oncontextmenu = (e) => { e.preventDefault(); toggleCustomPanel(); };
   document.body.appendChild(toggle);
+  document.body.appendChild(hlPanel);
+  document.body.appendChild(customPanel);
+  hlPanel.dataset.aftRole = 'panel';
+  customPanel.dataset.aftRole = 'custom';
+  hlPanel.style.zIndex = AFT_UI_Z;
+  customPanel.style.zIndex = AFT_UI_Z;
   toggle.dataset.aftRole   = 'toggle';
   toggle.style.zIndex      = AFT_UI_Z;
   let data, fetchUrl, resp;
