@@ -302,8 +302,10 @@ async function main(host = {}) {
       if (isUnderline) wrap.classList.add('aft-ul'); // marker class
       if (shift) wrap.classList.add('shift-left');
       if (pulseMode && job.isNew) wrap.classList.add('pulse');
-      wrap.style.cssText = style +
-        (!/color\s*:/.test(style) ? FORCE_TEXT_VISIBLE : '');
+      const needsForce =
+        !/color\s*:/.test(style) &&
+        !isUnderline; 
+      wrap.style.cssText = style + (needsForce ? FORCE_TEXT_VISIBLE : '');
       wrap.appendChild(target.cloneNode(true));
       target.parentNode.replaceChild(wrap, target);
     }
@@ -372,9 +374,9 @@ async function main(host = {}) {
     const opt=document.createElement('option');
     opt.value=v;
     opt.textContent = 
-    v === 'color' ? 'Text Color' 
-    : v === 'background' ? 'Background'
-    :'Wavy Underline';
+    v === 'color' ? 'Text Color' :
+    v === 'background' ? 'Background':
+                      'Wavy Underline';
     customPropSel.appendChild(opt);
   });
   customPropSel.style.width='100%';
@@ -502,7 +504,12 @@ async function main(host = {}) {
   );
   const LS_PROP_KEY  = 'highlight_custom_prop';
   const LS_COLOR_KEY = 'highlight_custom_color';
-  customPropSel.value = localStorage.getItem(LS_PROP_KEY)  || 'background';
+  {
+    const savedProp = localStorage.getItem(LS_PROP_KEY) || 'background';
+    customPropSel.value = ['color','background','underline'].includes(savedProp)
+      ? savedProp
+      : 'background';
+  }
   const savedColor = localStorage.getItem(LS_COLOR_KEY);
   if (savedColor) {
     const opt = Array.from(customColorSel.options).find(o=>o.value===savedColor);
@@ -614,11 +621,20 @@ async function main(host = {}) {
           } else {
             colorValue = 'yellow';
           }
-          const prop = customPropSel.value === 'color' ? 'color' : 'background';
-          rule.style = `${prop}:${colorValue};`;
+          const selProp = customPropSel.value;
+          if (selProp === 'underline') {
+            rule.style =
+              `text-decoration-line:underline;` +
+              `text-decoration-style:wavy;` +
+              `text-decoration-color:${colorValue};` +
+              `text-decoration-thickness:auto;`;
+          } else {
+            const prop = selProp === 'color' ? 'color' : 'background';
+            rule.style = `${prop}:${colorValue};`;
+          }
           rule.words = words;
           localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
-          localStorage.setItem(LS_PROP_KEY, prop);
+          localStorage.setItem(LS_PROP_KEY, selProp);
           localStorage.setItem(LS_COLOR_KEY, colorValue);
           includeCustom = true;
           customChk.checked = true;
@@ -693,7 +709,7 @@ async function main(host = {}) {
     }
     customRules.push({ style, words });
     localStorage.setItem('highlight_custom_rules', JSON.stringify(customRules));
-    localStorage.setItem(LS_PROP_KEY, prop);
+    localStorage.setItem(LS_PROP_KEY, selProp);
     localStorage.setItem(LS_COLOR_KEY, colorValue);
     includeCustom = true;
     customChk.checked = true;
