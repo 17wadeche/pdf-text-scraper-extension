@@ -100,6 +100,51 @@ const CSS_COLOR_KEYWORDS = [
   'springgreen','steelblue','tan','teal','thistle','tomato','turquoise','violet','wheat','white',
   'whitesmoke','yellow','yellowgreen'
 ];
+function parseStyleToFields(styleStr) {
+  const s = styleStr.toLowerCase();
+  if (/\btext-decoration-line\s*:\s*underline\b/.test(s) || /\btext-decoration\b[^;]*underline/.test(s)) {
+    const m = /text-decoration-color\s*:\s*([^;]+)/i.exec(styleStr) ||
+              /text-decoration\s*:[^;]*\b([^;\s]+)\s*$/i.exec(styleStr);
+    return {prop:'underline', color:(m?m[1].trim():'red')};
+  }
+  const bg = /background\s*:\s*([^;]+)/i.exec(styleStr);
+  if (bg) return {prop:'background', color:bg[1].trim()};
+  const col = /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(styleStr);
+  if (col) return {prop:'color', color:col[1].trim()};
+  return {prop:'background', color:'yellow'}; // default
+}
+function buildStyleFromFields(prop, color) {
+  if (prop === 'underline') {
+    return `text-decoration-line:underline;text-decoration-style:wavy;text-decoration-color:${color};text-decoration-thickness:auto;`;
+  }
+  const cssProp = (prop === 'color') ? 'color' : 'background';
+  return `${cssProp}:${color};`;
+}
+function normalizeRuleFromStorage(r) {
+  if (!r || typeof r !== 'object') return null;
+  let words = Array.isArray(r.words) ? r.words.slice() : [];
+  if (!words.length && typeof r.word === 'string') words = [r.word];
+  let prop = r.prop, color = r.color, style = r.style;
+  if (!style) style = buildStyleFromFields(prop || 'background', color || 'yellow');
+  ({prop, color} = parseStyleToFields(style)); // ensure
+  return {
+    id: r.id || (Date.now().toString(36) + Math.random().toString(36).slice(2)),
+    words,
+    prop,
+    color,
+    style: buildStyleFromFields(prop, color)
+  };
+}
+function persistCustomRules() {
+  const storageShape = customRules.map(r => ({style:r.style, words:r.words}));
+  localStorage.setItem('highlight_custom_rules', JSON.stringify(storageShape));
+}
+function rebuildRuleStyles() {
+  customRules.forEach(r => { r.style = buildStyleFromFields(r.prop, r.color); });
+}
+customRules = customRules
+  .map(normalizeRuleFromStorage)
+  .filter(Boolean);
 async function main(host = {}, fetchUrlOverride) {
   const { viewerEl = null, embedEl = null } = host;
   let container = null;
@@ -151,7 +196,7 @@ async function main(host = {}, fetchUrlOverride) {
       styleWordsToUse.push(...config[currentBU][currentOU].styleWords);
     }
     if (includeCustom && customRules.length) {
-      styleWordsToUse.push(...customRules);
+      styleWordsToUse.push(...customRules.map(r => ({style:r.style, words:r.words})));
     }
     activeWordsSet = new Set();
     styleWordsToUse.forEach(r => {
@@ -188,13 +233,210 @@ async function main(host = {}, fetchUrlOverride) {
   customLbl.htmlFor = customChk.id;
   customLbl.textContent = 'Use Custom';
   const customPanel = document.createElement('div');
+  customPanel.id = 'aftCustomPanel';
   customPanel.style.cssText = `
-    position:fixed; top:48px; left:450px;
+    position:fixed; top:60px; left:16px;
     background:#fff; border:1px solid #ccc; border-radius:6px;
     padding:8px; box-shadow:0 2px 10px rgba(0,0,0,.2);
     font:12px sans-serif; color:#000;
-    width:280px; max-width:90vw; display:none;
+    width:300px; max-width:90vw; display:none; z-index:${AFT_UI_Z};
   `;
+
+  const customPanelHdr = document.createElement('div');
+  customPanelHdr.textContent = 'Custom Highlights';
+  customPanelHdr.style.cssText = `
+    font-weight:bold; margin-bottom:4px;
+    display:flex; align-items:center; justify-content:space-between;
+  `;
+  const customPanelClose = document.createElement('button');
+  customPanelClose.textContent = '✕';
+  customPanelClose.style.cssText = 'font-size:12px;line-height:1;padding:0 4px;cursor:pointer;';
+  customPanelHdr.appendChild(customPanelClose);
+  const customPanelBody = document.createElement('div');
+  customPanel.append(customPanelHdr, customPanelBody);
+  function makeColorSelect(selected) {
+    const sel = document.createElement('select');
+    sel.style.width='100%';
+    sel.innerHTML = '<option value="">(named)</option>';
+    CSS_COLOR_KEYWORDS.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      if (name === selected) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    const optCustom = document.createElement('option');
+    optCustom.value = '__custom__';
+    optCustom.textContent = 'Custom Hex…';
+    sel.appendChild(optCustom);
+    return sel;
+  }
+  function renderCustomPanel() {
+    customPanelBody.innerHTML = '';
+    if (!customRules.length) {
+      const empty = document.createElement('div');
+      empty.textContent = 'No custom rules yet.';
+      empty.style.marginBottom = '8px';
+      customPanelBody.appendChild(empty);
+    } else {
+      customRules.forEach((rule, idx) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:start;margin-bottom:4px;';
+        // words
+        const wordsInput = document.createElement('input');
+        wordsInput.type='text';
+        wordsInput.value = rule.words.join(', ');
+        wordsInput.title = 'Comma or newline separated words';
+        wordsInput.style.width='100%';
+        row.appendChild(wordsInput);
+        // prop
+        const propSel = document.createElement('select');
+        [['background','Bg'],['color','Text'],['underline','Wave']].forEach(([v,l])=>{
+          const opt=document.createElement('option');
+          opt.value=v; opt.textContent=l;
+          if (rule.prop===v) opt.selected=true;
+          propSel.appendChild(opt);
+        });
+        row.appendChild(propSel);
+        // color swatch / select group
+        const colorWrap = document.createElement('div');
+        colorWrap.style.cssText='display:flex;gap:4px;align-items:center;';
+        const colorSel = makeColorSelect(rule.color.toLowerCase?.()||rule.color);
+        const colorInput = document.createElement('input');
+        colorInput.type='color';
+        colorInput.value = /^#/.test(rule.color) ? rule.color : '#ffff00';
+        colorInput.style.display = /^#/.test(rule.color)?'':'none';
+        colorInput.style.width='22px'; colorInput.style.padding='0'; colorInput.style.border='none';
+        colorInput.style.background='transparent';
+        colorSel.addEventListener('change',()=>{
+          if (colorSel.value==='__custom__'){
+            colorInput.style.display='';
+          } else {
+            colorInput.style.display='none';
+          }
+        });
+        colorWrap.append(colorSel,colorInput);
+        row.appendChild(colorWrap);
+
+        // action row under controls (Save / Delete)
+        const actionRow = document.createElement('div');
+        actionRow.style.cssText='grid-column:1/-1;display:flex;justify-content:flex-end;gap:4px;margin-bottom:2px;';
+        const saveBtn=document.createElement('button'); saveBtn.textContent='Save'; saveBtn.style.fontSize='11px';
+        const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.style.fontSize='11px';
+        actionRow.append(saveBtn,delBtn);
+        row.appendChild(actionRow);
+
+        saveBtn.onclick = () => {
+          const raw = wordsInput.value;
+          const words = raw.split(/[\n,]/).map(w=>w.trim()).filter(Boolean);
+          if (!words.length) { alert('Please enter at least one word.'); return; }
+          let colorValue;
+          if (colorSel.value==='__custom__') {
+            colorValue = colorInput.value || '#ffff00';
+          } else if (colorSel.value) {
+            colorValue = colorSel.value;
+          } else {
+            colorValue = 'yellow';
+          }
+          rule.words = words;
+          rule.prop  = propSel.value;
+          rule.color = colorValue;
+          rule.style = buildStyleFromFields(rule.prop, rule.color);
+          persistCustomRules();
+          includeCustom = true;
+          customChk.checked = true;
+          updateStyleWords();
+          clearHighlights(container);
+          renderAllHighlights();
+          renderCustomPanel(); // re-render to normalize display
+        };
+
+        delBtn.onclick = () => {
+          if (!confirm('Delete this custom highlight?')) return;
+          customRules.splice(idx,1);
+          persistCustomRules();
+          if (!customRules.length) {
+            includeCustom=false;
+            customChk.checked=false;
+          }
+          updateStyleWords();
+          clearHighlights(container);
+          renderAllHighlights();
+          renderCustomPanel();
+        };
+        customPanelBody.appendChild(row);
+        const hr=document.createElement('hr'); hr.style.margin='4px 0'; customPanelBody.appendChild(hr);
+      });
+    }
+    const addHdr=document.createElement('div');
+    addHdr.textContent='Add New';
+    addHdr.style.cssText='font-weight:bold;margin:4px 0;';
+    customPanelBody.appendChild(addHdr);
+
+    const newRow=document.createElement('div');
+    newRow.style.cssText='display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:start;';
+    const newWords=document.createElement('input'); newWords.type='text'; newWords.placeholder='word1, word2';
+    const newProp=document.createElement('select');
+    [['background','Bg'],['color','Text'],['underline','Wave']].forEach(([v,l])=>{
+      const opt=document.createElement('option');opt.value=v;opt.textContent=l;newProp.appendChild(opt);
+    });
+    const newColorWrap=document.createElement('div'); newColorWrap.style.cssText='display:flex;gap:4px;align-items:center;';
+    const newColorSel=makeColorSelect('');
+    const newColorInput=document.createElement('input'); newColorInput.type='color'; newColorInput.value='#ffff00'; newColorInput.style.display='none'; newColorInput.style.width='22px';
+    newColorSel.addEventListener('change',()=>{
+      newColorInput.style.display = (newColorSel.value==='__custom__')?'':'none';
+    });
+    newColorWrap.append(newColorSel,newColorInput);
+    newRow.append(newWords,newProp,newColorWrap);
+    customPanelBody.appendChild(newRow);
+
+    const newRowBtns=document.createElement('div');
+    newRowBtns.style.cssText='margin-top:4px;display:flex;justify-content:flex-end;gap:4px;';
+    const newAddBtn=document.createElement('button'); newAddBtn.textContent='Add'; newAddBtn.style.fontSize='11px';
+    const newCancelBtn=document.createElement('button'); newCancelBtn.textContent='Clear'; newCancelBtn.style.fontSize='11px';
+    newRowBtns.append(newCancelBtn,newAddBtn);
+    customPanelBody.appendChild(newRowBtns);
+
+    newCancelBtn.onclick=()=>{newWords.value='';newColorSel.value='';newColorInput.style.display='none';};
+    newAddBtn.onclick=()=>{
+      const words = newWords.value.split(/[\n,]/).map(w=>w.trim()).filter(Boolean);
+      if(!words.length){alert('Please enter at least one word.');return;}
+      let colorValue;
+      if (newColorSel.value==='__custom__') colorValue=newColorInput.value||'#ffff00';
+      else if (newColorSel.value) colorValue=newColorSel.value;
+      else colorValue='yellow';
+      const newRule={
+        id: Date.now().toString(36)+Math.random().toString(36).slice(2),
+        words,
+        prop:newProp.value,
+        color:colorValue,
+        style:buildStyleFromFields(newProp.value,colorValue)
+      };
+      customRules.push(newRule);
+      persistCustomRules();
+      includeCustom = true;
+      customChk.checked = true;
+      updateStyleWords();
+      clearHighlights(container);
+      renderAllHighlights();
+      renderCustomPanel();
+      newWords.value='';
+      newColorSel.value='';
+      newColorInput.style.display='none';
+    };
+  }
+  customPanelClose.onclick = () => { customPanel.style.display='none'; };
+  function toggleCustomPanel() {
+    if (customPanel.style.display==='none' || customPanel.style.display==='') {
+      renderCustomPanel();
+      customPanel.style.display='';
+    } else {
+      customPanel.style.display='none';
+    }
+  }
+  addBtn.title = 'Add / Manage custom highlights';
+  addBtn.onclick = (e) => { e.preventDefault(); toggleCustomPanel(); };
+  addBtn.oncontextmenu = (e) => { e.preventDefault(); toggleCustomPanel(); };
   buSelect.innerHTML =
     `<option value="">-- Select BU --</option>` +
     Object.keys(config)
