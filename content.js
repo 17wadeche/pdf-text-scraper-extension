@@ -699,6 +699,10 @@ async function main(host = {}, fetchUrlOverride) {
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
+  rebuildRuleStyles();
+  addBtn.title = 'Add / Manage custom highlights'; 
+  addBtn.onclick = (e) => { e.preventDefault(); toggleCustomPanel(); };
+  addBtn.oncontextmenu = (e) => { e.preventDefault(); toggleCustomPanel(); };
   document.body.appendChild(toggle);
   toggle.dataset.aftRole   = 'toggle';
   toggle.style.zIndex      = AFT_UI_Z;
