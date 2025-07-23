@@ -4,6 +4,22 @@ const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
+(function redirectIfPluginPdf(){
+  try {
+    const extViewerBase = chrome.runtime.getURL('viewer.html');
+    if (location.href.startsWith(extViewerBase)) return;
+    if (window.__AFT_FROM_VIEWER) return;
+    if (!urlIsAllowed()) return;
+    const isPdfDoc  = document.contentType === 'application/pdf';
+    const hasHostEl = document.querySelector('embed[type*="pdf"],object[type*="pdf"],pdf-viewer');
+    if (isPdfDoc && !hasHostEl) {
+      const target = extViewerBase + '?src=' + encodeURIComponent(location.href);
+      location.replace(target);
+    }
+  } catch (err) {
+    console.warn('[AFT] redirect shim error:', err);
+  }
+})();
 function urlIsAllowed(href = location.href) {
   return ALLOWED_PREFIXES.some(p => href.startsWith(p));
 }
@@ -33,8 +49,14 @@ function findPdfHostElements() {
 }
 function startWhenReady() {
   if (initialized) return;
-  if (!urlIsAllowed()) return;
-  const host = findPdfHostElements();
+  const fromViewer = !!window.__AFT_FROM_VIEWER;
+  if (!fromViewer && !urlIsAllowed()) return;
+  const host = fromViewer ? {} : findPdfHostElements();
+  if (fromViewer) {
+    initialized = true;
+    main(host, window.__AFT_FETCH_URL || undefined);
+    return;
+  }
   if (host.viewerEl || host.embedEl) {
     initialized = true;
     main(host);
@@ -43,7 +65,7 @@ function startWhenReady() {
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     if (document.contentType === 'application/pdf') {
       initialized = true;
-      main(host);   // host may have nulls; main handles fallback sizing
+      main(host);   // host may be nulls; main can handle
     }
     return;
   }
@@ -79,7 +101,7 @@ const CSS_COLOR_KEYWORDS = [
   'springgreen','steelblue','tan','teal','thistle','tomato','turquoise','violet','wheat','white',
   'whitesmoke','yellow','yellowgreen'
 ];
-async function main(host = {}) {
+async function main(host = {}, fetchUrlOverride) {
   const { viewerEl = null, embedEl = null } = host;
   let container = null;
   window.__AFT_VERSION = '0.1.3d';
@@ -800,7 +822,9 @@ async function main(host = {}) {
   customPanel.style.zIndex = AFT_UI_Z;
   let data, fetchUrl, resp;
   try {
-    fetchUrl = (embed && embed.getAttribute && embed.getAttribute('original-url')) || location.href;
+    fetchUrl = fetchUrlOverride ||
+           (embed && embed.getAttribute && embed.getAttribute('original-url')) ||
+           location.href;
     resp = await fetch(fetchUrl, { credentials: 'include' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     data = await resp.arrayBuffer();
@@ -914,7 +938,15 @@ async function main(host = {}) {
     if (!showingStyled) return;
     aftRefreshHighlights('poll-forced');
   }, 500);
+  const hasEmbedForToggle = !!embed;
+  if (!hasEmbedForToggle) {
+    toggle.textContent = 'Open Original';
+  }
   toggle.onclick = () => {
+    if (!hasEmbedForToggle) {
+      window.open(fetchUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     showingStyled = !showingStyled;
     if (showingStyled) {
       includeCustom = customChk.checked;

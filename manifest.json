@@ -3,6 +3,7 @@
   "name": "Attachment Formatting Tool",
   "description": "Formatting Tool for that highlights, bolds and colors words based on the configuration selected for PDF files.",
   "version": "0.1.3",
+  "permissions": ["storage"],
   "content_scripts": [
     {
       "matches": [
@@ -24,6 +25,8 @@
   "web_accessible_resources": [
     {
       "resources": [
+        "viewer.html",
+        "viewer.js",
         "pdf.mjs",
         "images/loading-icon.gif",
         "pdf.worker.mjs",
