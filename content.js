@@ -205,7 +205,7 @@ async function main(host = {}) {
       while (w.firstChild) p.insertBefore(w.firstChild, w);
       w.remove();
     });
-    scope.querySelectorAll('.word-highlight').forEach(box => box.remove());
+    scope.querySelectorAll('.word-highlight, .word-underline').forEach(el => el.remove());
   }
   function makeWavyDataURI(color = 'red', amp = 2, wave = 6) {
     const h = amp * 2;
