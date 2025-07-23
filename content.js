@@ -349,12 +349,14 @@ async function main(host = {}, fetchUrlOverride) {
   customPanel.append(customPanelHdr, customPanelBody);
   function makeColorSelect(selected) {
     const sel = document.createElement('select');
-    sel.style.width='100%';
+    sel.style.width = '100%';
     sel.innerHTML = '<option value="">(named)</option>';
     CSS_COLOR_KEYWORDS.forEach(name => {
       const opt = document.createElement('option');
       opt.value = name;
       opt.textContent = name;
+      opt.style.backgroundColor = name;
+      opt.style.color = name === 'yellow' || name === 'white' ? '#000' : '#fff';
       if (name === selected) opt.selected = true;
       sel.appendChild(opt);
     });
@@ -382,7 +384,6 @@ async function main(host = {}, fetchUrlOverride) {
         wordsInput.title = 'Comma or newline separated words';
         wordsInput.style.width='100%';
         row.appendChild(wordsInput);
-        // prop
         const propSel = document.createElement('select');
         [['background','Bg'],['color','Text'],['underline','Wave']].forEach(([v,l])=>{
           const opt=document.createElement('option');
@@ -391,7 +392,6 @@ async function main(host = {}, fetchUrlOverride) {
           propSel.appendChild(opt);
         });
         row.appendChild(propSel);
-        // color swatch / select group
         const colorWrap = document.createElement('div');
         colorWrap.style.cssText='display:flex;gap:4px;align-items:center;';
         const colorSel = makeColorSelect(rule.color.toLowerCase?.()||rule.color);
@@ -410,8 +410,6 @@ async function main(host = {}, fetchUrlOverride) {
         });
         colorWrap.append(colorSel,colorInput);
         row.appendChild(colorWrap);
-
-        // action row under controls (Save / Delete)
         const actionRow = document.createElement('div');
         actionRow.style.cssText='grid-column:1/-1;display:flex;justify-content:flex-end;gap:4px;margin-bottom:2px;';
         const saveBtn=document.createElement('button'); saveBtn.textContent='Save'; saveBtn.style.fontSize='11px';
