@@ -30,7 +30,7 @@ function findPdfHostElements() {
 }
 function startWhenReady() {
   if (initialized) return;
-  if (!urlIsAllowed()) return;
+  if (!ALLOWED_PREFIXES()) return;
   const host = findPdfHostElements();
   if (host.viewerEl || host.embedEl) {
     initialized = true;
