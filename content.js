@@ -16,9 +16,7 @@ try {
   if (!Array.isArray(customRules)) customRules = [];
 } catch { customRules = []; }
 function findPdfHostElements() {
-  let embedEl = document.querySelector(
-    'embed[type*="pdf"],object[type*="pdf"]'
-  );
+  let embedEl = document.querySelector('embed[type*="pdf"],object[type*="pdf"]');
   let viewerEl = document.querySelector('pdf-viewer');
   if (viewerEl && !embedEl) {
     try {
@@ -49,33 +47,13 @@ function startWhenReady() {
   setTimeout(startWhenReady, 200);
 }
 startWhenReady();
-function isPdfEmbedPresent() {
-  return document.querySelector(
-    'embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]'
-  );
-}
-function normWord(w) {
-  return w.trim().toLowerCase();
-}
+function normWord(w) { return w.trim().toLowerCase(); }
 function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function makeRegex(word) {
   const p = esc(word.trim());
   return new RegExp(`(?<![\\p{L}\\p{N}])(${p})(?![\\p{L}\\p{N}])`, 'giu');
 }
 const FORCE_TEXT_VISIBLE = ';color:#000 !important;-webkit-text-fill-color:#000 !important;';
-function waitForPdfEmbed() {
-  if (initialized) return;
-  const embed = isPdfEmbedPresent();
-  if (embed) {
-    initialized = true;
-    main();
-  } else {
-    setTimeout(waitForPdfEmbed, 200);
-  }
-}
-if (ALLOWED_PREFIXES.some(p => location.href.startsWith(p))) {
-  waitForPdfEmbed();
-}
 const CSS_COLOR_KEYWORDS = [
   'aliceblue','antiquewhite','aqua','aquamarine','azure','beige','bisque','black',
   'blanchedalmond','blue','blueviolet','brown','burlywood','cadetblue','chartreuse',
