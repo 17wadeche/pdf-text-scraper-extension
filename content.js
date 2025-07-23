@@ -175,6 +175,41 @@ async function main(host = {}, fetchUrlOverride) {
       border-color: #4a90e2;
       box-shadow: 0 0 0 2px rgba(74,144,226,0.3);
     }
+      #aftCustomPanel {
+        border-radius: 8px;
+        padding: 10px;
+        background: #f9f9f9;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        font-family: 'Segoe UI', sans-serif;
+      }
+      #aftCustomPanel input[type="text"],
+      #aftCustomPanel select {
+        width: 100%;
+        padding: 4px 6px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+
+      #aftCustomPanel button {
+        padding: 3px 8px;
+        font-size: 12px;
+        border-radius: 4px;
+        border: 1px solid #888;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      #aftCustomPanel button:hover {
+        background: #e8e8e8;
+      }
+
+      #aftCustomPanel hr {
+        border: none;
+        border-top: 1px solid #ddd;
+        margin: 6px 0;
+      }
+
   `;
   let showingStyled = true;
   document.head.appendChild(styleTag);
@@ -251,10 +286,30 @@ async function main(host = {}, fetchUrlOverride) {
 
   const customPanelHdr = document.createElement('div');
   customPanelHdr.textContent = 'Custom Highlights';
-  customPanelHdr.style.cssText = `
-    font-weight:bold; margin-bottom:4px;
-    display:flex; align-items:center; justify-content:space-between;
+  customPanelHdr.innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="font-weight:bold;">☰</span>
+      <span style="font-weight:bold;">Custom Highlights</span>
+    </div>
   `;
+  customPanelHdr.style.cursor = 'move';
+  let isDragging = false, offsetX, offsetY;
+  customPanelHdr.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    const rect = customPanel.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    document.body.style.userSelect = '';
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    customPanel.style.left = `${e.clientX - offsetX}px`;
+    customPanel.style.top = `${e.clientY - offsetY}px`;
+  });
   const customPanelClose = document.createElement('button');
   customPanelClose.textContent = '✕';
   customPanelClose.style.cssText = 'font-size:12px;line-height:1;padding:0 4px;cursor:pointer;';
