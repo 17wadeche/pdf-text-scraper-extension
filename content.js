@@ -81,6 +81,9 @@ const CSS_COLOR_KEYWORDS = [
 ];
 async function main(host = {}) {
   const { viewerEl = null, embedEl = null } = host;
+  let container = null;
+  window.__AFT_VERSION = '0.1.3c';
+  console.log('[AFT] init v' + window.__AFT_VERSION, location.href);
   const styleTag = document.createElement('style');
   styleTag.textContent = `
     .modern-select {
@@ -175,7 +178,8 @@ async function main(host = {}) {
     }
   }
   updateOuOptions();
-  function clearHighlights(scope = container) {
+  function clearHighlights(scope) {
+    if (!scope) return;
     scope.querySelectorAll('.styled-word').forEach(w => {
       const p = w.parentNode;
       while (w.firstChild) p.insertBefore(w.firstChild, w);
@@ -701,7 +705,7 @@ async function main(host = {}) {
   const rect = embed
     ? embed.getBoundingClientRect()
     : { top:0, left:0, width:window.innerWidth, height:window.innerHeight };
-  const container = document.createElement('div');
+  container = document.createElement('div');
   Object.assign(container.style, {
     position:'absolute',
     top:   `${rect.top}px`,
@@ -750,7 +754,7 @@ async function main(host = {}) {
   window.addEventListener('resize', updateContainer);
   let data;
   try {
-    const url = embed.getAttribute('original-url')||location.href;
+    const url = (embed && embed.getAttribute && embed.getAttribute('original-url')) || location.href;
     data = await fetch(url, {credentials:'include'}).then(r=>r.arrayBuffer());
   } catch {
     console.error('Could not fetch PDF');
