@@ -207,6 +207,22 @@ async function main(host = {}) {
     });
     scope.querySelectorAll('.word-highlight').forEach(box => box.remove());
   }
+  function makeWavyDataURI(color = 'red', amp = 2, wave = 6) {
+    const h = amp * 2;
+    const svg =
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${wave}" height="${h}" viewBox="0 0 ${wave} ${h}" preserveAspectRatio="none">` +
+        `<path d="M0 ${amp} Q ${wave/4} 0 ${wave/2} ${amp} T ${wave} ${amp}" ` +
+        `fill="none" stroke="${color}" stroke-width="1"/>` +
+      `</svg>`;
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  }
+  function getUnderlineColorFromStyle(style) {
+    const m = /text-decoration-color\s*:\s*([^;]+)/i.exec(style);
+    if (m) return m[1].trim();
+    const m2 = /text-decoration\s*:[^;]*?\b(#?[\\w]+)\b/i.exec(style);
+    if (m2) return m2[1].trim();
+    return 'red';
+  }
   function highlightSpan(span, rules, page) {
     const walker = document.createTreeWalker(
       span,
@@ -246,8 +262,11 @@ async function main(host = {}) {
     }
     const jobs = Object.values(jobsByKey).flat();
     for (const job of jobs) {
-      if (!/background\s*:/.test(job.style)) continue;
-      const { node, start, end, style, shift } = job;
+      const { style } = job;
+      const hasBg   = /background\s*:/.test(style);
+      const hasUL   = /text-decoration-line\s*:\s*underline/i.test(style);
+      if (!hasBg && !hasUL) continue;
+      const { node, start, end, shift } = job;
       if (end > node.length) continue;
       const range = document.createRange();
       range.setStart(node, start);
@@ -257,27 +276,49 @@ async function main(host = {}) {
       const m = page.style.transform.match(/scale\(([^)]+)\)/);
       if (m) scale = parseFloat(m[1]);
       for (const r of range.getClientRects()) {
-        const box = document.createElement('div');
-        box.className = 'word-highlight';
-        if (shift) box.classList.add('shift-left');
-        if (pulseMode && job.isNew) box.classList.add('pulse');
-        const x = (r.left - pageRect.left - 8) / scale;
-        const y = (r.top  - pageRect.top  - 8) / scale;
-        box.style.cssText = `${style};
-          position:absolute;
-          left:${x}px;
-          top:${y}px;
-          width:${r.width  / scale}px;
-          height:${r.height / scale}px;
-          pointer-events:none;
-          mix-blend-mode:multiply;
-          z-index:5`;
-        page.appendChild(box);
+        if (hasBg) {
+          const box = document.createElement('div');
+          box.className = 'word-highlight';
+          if (shift) box.classList.add('shift-left');
+          if (pulseMode && job.isNew) box.classList.add('pulse');
+          const x = (r.left - pageRect.left - 8) / scale;
+          const y = (r.top  - pageRect.top  - 8) / scale;
+          box.style.cssText = `${style};
+            position:absolute;
+            left:${x}px;
+            top:${y}px;
+            width:${r.width  / scale}px;
+            height:${r.height / scale}px;
+            pointer-events:none;
+            mix-blend-mode:multiply;
+            z-index:5`;
+          page.appendChild(box);
+        }
+        if (hasUL) {
+          const ul = document.createElement('div');
+          ul.className = 'word-underline';
+          if (shift) ul.classList.add('shift-left');
+          if (pulseMode && job.isNew) ul.classList.add('pulse');
+          const ulColor = getUnderlineColorFromStyle(style);
+          const x = (r.left - pageRect.left - 8) / scale;
+          const y = (r.bottom - pageRect.top - 8 - 3) / scale; // 3px tweak
+          const w = r.width / scale;
+          const h = 4; // matches .word-underline height; small constant
+          ul.style.left  = `${x}px`;
+          ul.style.top   = `${y}px`;
+          ul.style.width = `${w}px`;
+          ul.style.height= `${h}px`;
+          ul.style.backgroundImage = makeWavyDataURI(ulColor, 2, 6);
+          page.appendChild(ul);
+        }
       }
       range.detach();
     }
     const spanJobs = jobs
-      .filter(j => !/background\s*:/.test(j.style))
+      .filter(j => {
+        const st = j.style;
+        return !/background\s*:/.test(st) && !/text-decoration-line\s*:\s*underline/i.test(st);
+      })
       .sort((a, b) => {
         if (a.node === b.node) return b.start - a.start;
         return a.node.compareDocumentPosition(b.node) &
@@ -802,10 +843,15 @@ async function main(host = {}) {
     .styled-word.pulse {
       animation: pulseHighlight 0.9s ease-out 0s 2 alternate;
     }
-    .styled-word.aft-ul {
-      display:inline !important;         /* override display:contents */
-      background:none !important;        /* ensure no stray bg */
-      text-decoration-skip-ink:auto;
+    .word-underline {
+      position:absolute;
+      pointer-events:none;
+      z-index:6;
+      height:4px;                /* wave height; scaled in JS */
+      background-repeat:repeat-x;
+      background-position:left bottom;
+      background-size:auto 100%;
+      mix-blend-mode:multiply;
     }
   `;
   document.head.appendChild(fix);
