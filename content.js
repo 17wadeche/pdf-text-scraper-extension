@@ -325,12 +325,18 @@ async function main(host = {}) {
     clearHighlights(container); 
     renderAllHighlights();
   };
+  const AFT_UI_Z = 999999999;
   Object.assign(toggle.style, {
     position:'fixed', top:'16px', right:'16px',
     background:'#ff0', color:'#000', fontWeight:'bold',
-    padding:'6px 12px', zIndex:2147483648, cursor:'pointer'
+    padding:'6px 12px', zIndex: AFT_UI_Z, cursor:'pointer'
   });
+  hlPanel.style.zIndex = AFT_UI_Z;
+  customPanel.style.zIndex = AFT_UI_Z;
   document.body.append(toggle);
+  toggle.dataset.aftRole = 'toggle';
+  hlPanel.dataset.aftRole = 'panel';
+  customPanel.dataset.aftRole = 'custom';
   buSelect.value = currentBU;
   updateOuOptions();
   if (currentOU) {
