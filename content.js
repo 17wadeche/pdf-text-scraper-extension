@@ -229,6 +229,16 @@ async function main(host = {}, fetchUrlOverride) {
   const customLbl   = document.createElement('label');
   customLbl.htmlFor = customChk.id;
   customLbl.textContent = 'Use Custom';
+  const hlPanel = document.createElement('div');
+  hlPanel.id = 'aftHlPanel';
+  hlPanel.style.cssText = `
+    position:fixed; top:60px; right:16px;
+    background:#fff; border:1px solid #ccc; border-radius:6px;
+    padding:8px; box-shadow:0 2px 10px rgba(0,0,0,.2);
+    font:12px sans-serif; color:#000;
+    width:300px; max-width:90vw; display:none; z-index:${AFT_UI_Z};
+  `;
+  hlPanel.textContent = 'Highlight panel';
   const customPanel = document.createElement('div');
   customPanel.id = 'aftCustomPanel';
   customPanel.style.cssText = `
