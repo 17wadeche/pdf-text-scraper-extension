@@ -84,7 +84,7 @@ async function main(host = {}) {
   let container = null;
   window.__AFT_VERSION = '0.1.3d';
   console.log('[AFT] init v' + window.__AFT_VERSION, location.href);
-  const AFT_UI_Z = 999999999;
+  const AFT_UI_Z = 21474837000;
   const styleTag = document.createElement('style');
   styleTag.textContent = `
     .modern-select {
