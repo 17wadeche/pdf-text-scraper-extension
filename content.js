@@ -15,6 +15,40 @@ try {
   customRules = JSON.parse(localStorage.getItem('highlight_custom_rules') || '[]');
   if (!Array.isArray(customRules)) customRules = [];
 } catch { customRules = []; }
+function findPdfHostElements() {
+  let embedEl = document.querySelector(
+    'embed[type*="pdf"],object[type*="pdf"]'
+  );
+  let viewerEl = document.querySelector('pdf-viewer');
+  if (viewerEl && !embedEl) {
+    try {
+      const sr = viewerEl.shadowRoot;
+      if (sr) {
+        embedEl = sr.querySelector('embed[type*="pdf"],object[type*="pdf"]') || null;
+      }
+    } catch { /* ignore cross-origin */ }
+  }
+  return { viewerEl, embedEl };
+}
+function startWhenReady() {
+  if (initialized) return;
+  if (!urlIsAllowed()) return;
+  const host = findPdfHostElements();
+  if (host.viewerEl || host.embedEl) {
+    initialized = true;
+    main(host);
+    return;
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    if (document.contentType === 'application/pdf') {
+      initialized = true;
+      main(host);   // host may have nulls; main handles fallback sizing
+    }
+    return;
+  }
+  setTimeout(startWhenReady, 200);
+}
+startWhenReady();
 function isPdfEmbedPresent() {
   return document.querySelector(
     'embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]'
@@ -64,7 +98,8 @@ const CSS_COLOR_KEYWORDS = [
   'springgreen','steelblue','tan','teal','thistle','tomato','turquoise','violet','wheat','white',
   'whitesmoke','yellow','yellowgreen'
 ];
-async function main() {
+async function main(host = {}) {
+  const { viewerEl = null, embedEl = null } = host;
   const styleTag = document.createElement('style');
   styleTag.textContent = `
     .modern-select {
@@ -676,12 +711,15 @@ async function main() {
   const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
   pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.mjs');
   const { PDFViewer, PDFLinkService, EventBus } = pdfjsViewer;
-  const viewerEl = document.querySelector('pdf-viewer');
-  const embed    = viewerEl?.shadowRoot
-    ? viewerEl.shadowRoot.querySelector('embed[type*="pdf"]')
-    : document.querySelector('embed[type="application/pdf"],embed[type="application/x-google-chrome-pdf"]');
-  const rect = embed.getBoundingClientRect();
-  embed.style.display = 'none';
+  let embed = embedEl;
+  if (!embed && viewerEl) {
+    try {
+      embed = viewerEl.shadowRoot?.querySelector('embed[type*="pdf"],object[type*="pdf"]') || null;
+    } catch { /* ignore */ }
+  }
+  const rect = embed
+    ? embed.getBoundingClientRect()
+    : { top:0, left:0, width:window.innerWidth, height:window.innerHeight };
   const container = document.createElement('div');
   Object.assign(container.style, {
     position:'absolute',
@@ -693,7 +731,12 @@ async function main() {
     background:'#fff', 
     zIndex:2147483647
   });
-  embed.parentNode.insertBefore(container, embed.nextSibling);
+  if (embed && embed.parentNode) {
+    embed.style.display = 'none';
+    embed.parentNode.insertBefore(container, embed.nextSibling);
+  } else {
+    document.body.appendChild(container);
+  }
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
@@ -707,7 +750,13 @@ async function main() {
     });
   });
   function updateContainer() {
-    const r = embed.getBoundingClientRect();
+    let r;
+    if (embed) {
+      const er = embed.getBoundingClientRect();
+      r = {top:er.top, left:er.left, width:er.width, height:er.height};
+    } else {
+      r = {top:0, left:0, width:window.innerWidth, height:window.innerHeight};
+    }
     Object.assign(container.style, {
       top:   `${r.top}px`,
       left:  `${r.left}px`,
@@ -715,6 +764,7 @@ async function main() {
       height:`${r.height}px`
     });
   }
+  updateContainer();
   window.addEventListener('scroll', updateContainer);
   window.addEventListener('resize', updateContainer);
   let data;
