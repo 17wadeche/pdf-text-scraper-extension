@@ -701,8 +701,6 @@ async function main(host = {}, fetchUrlOverride) {
   container.appendChild(viewerDiv);
   document.body.appendChild(toggle);
   toggle.dataset.aftRole   = 'toggle';
-  hlPanel.dataset.aftRole  = 'panel';
-  customPanel.dataset.aftRole = 'custom';
   toggle.style.zIndex      = AFT_UI_Z;
   hlPanel.style.zIndex     = AFT_UI_Z;
   customPanel.style.zIndex = AFT_UI_Z;
