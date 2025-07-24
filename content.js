@@ -744,7 +744,7 @@ async function main(host = {}, fetchUrlOverride) {
       });
     });
     if (pulseMode) {
-      setTimeout(() => { pulseMode = false; }, 10000);
+      setTimeout(() => { pulseMode = false; }, 3000);
     }
   }
   function refreshAll() {
@@ -959,12 +959,15 @@ async function main(host = {}, fetchUrlOverride) {
   `;
   fix.textContent += `
     @keyframes pulseHighlight {
-      0%   { filter: brightness(1.8) saturate(1.4); transform: scale(1);   }
-      50%  { filter: brightness(2.2) saturate(1.8); transform: scale(1.04); }
+      0%   { filter: brightness(2.5) saturate(2); transform: scale(1);   }
+      50%  { filter: brightness(3) saturate(3); transform: scale(1.08); }
       100% { filter: brightness(1.0) saturate(1.0); transform: scale(1);   }
     }
     .word-highlight.pulse {
       animation: pulseHighlight 0.9s ease-out 0s 2 alternate;
+      mix-blend-mode: normal !important;
+      z-index: 10 !important;
+      opacity: 1 !important;
     }
     .styled-word.pulse {
       animation: pulseHighlight 0.9s ease-out 0s 2 alternate;
