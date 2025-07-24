@@ -359,7 +359,7 @@ async function main(host = {}, fetchUrlOverride) {
   const customPanelClose = document.createElement('button');
   customPanelClose.textContent = '✕';
   customPanelClose.style.cssText = `
-    position: absolute;
+    position: relative;
     top: 6px;
     right: 6px;
     font-size: 12px;
