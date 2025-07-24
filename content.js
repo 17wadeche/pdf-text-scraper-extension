@@ -816,27 +816,36 @@ async function main(host = {}, fetchUrlOverride) {
   hlPanel.dataset.aftRole = 'panel';
   customPanel.dataset.aftRole = 'custom';
   hlPanel.style.zIndex = AFT_UI_Z;
+  const hlHeader = document.createElement('div');
   const hlDragHdr = document.createElement('div');
   hlDragHdr.textContent = 'Style Settings';
   hlDragHdr.style.cssText = 'cursor:move;font-weight:bold;padding:4px;';
   hlPanel.prepend(hlDragHdr);
+  hlHeader.textContent = 'Style Settings';
+  hlHeader.style.cssText = `
+    font-weight:bold; margin-bottom:4px; cursor:move;
+    display:flex; align-items:center; justify-content:space-between;
+  `;
   let isHlDragging = false, hlDragOffsetX = 0, hlDragOffsetY = 0;
-  hlDragHdr.addEventListener('mousedown', (e) => {
-    isHlDragging = true;
-    const rect = hlPanel.getBoundingClientRect();
-    hlDragOffsetX = e.clientX - rect.left;
-    hlDragOffsetY = e.clientY - rect.top;
-    document.body.style.userSelect = 'none';
-  });
-  document.addEventListener('mouseup', () => {
-    isHlDragging = false;
-    document.body.style.userSelect = '';
-  });
-  document.addEventListener('mousemove', (e) => {
-    if (!isHlDragging) return;
-    hlPanel.style.left = `${e.clientX - hlDragOffsetX}px`;
-    hlPanel.style.top = `${e.clientY - hlDragOffsetY}px`;
-  });
+
+hlDragHdr.addEventListener('mousedown', (e) => {
+  isHlDragging = true;
+  const rect = hlPanel.getBoundingClientRect();
+  hlDragOffsetX = e.clientX - rect.left;
+  hlDragOffsetY = e.clientY - rect.top;
+  document.body.style.userSelect = 'none';
+});
+
+document.addEventListener('mouseup', () => {
+  isHlDragging = false;
+  document.body.style.userSelect = '';
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isHlDragging) return;
+  hlPanel.style.left = `${e.clientX - hlDragOffsetX}px`;
+  hlPanel.style.top = `${e.clientY - hlDragOffsetY}px`;
+});
   const hlClose = document.createElement('button');
   hlClose.textContent = '✕';
   hlClose.style.cssText = `
