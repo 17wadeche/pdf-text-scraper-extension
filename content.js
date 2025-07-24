@@ -744,7 +744,7 @@ async function main(host = {}, fetchUrlOverride) {
       });
     });
     if (pulseMode) {
-      setTimeout(() => { pulseMode = false; }, 3000);
+      setTimeout(() => { pulseMode = false; }, 1000);
     }
   }
   function refreshAll() {
