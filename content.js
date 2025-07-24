@@ -485,8 +485,46 @@ async function main(host = {}, fetchUrlOverride) {
     addHdr.textContent='Add New';
     addHdr.style.cssText='font-weight:bold;margin:4px 0;';
     customPanelBody.appendChild(addHdr);
+    const newRow=document.createElement('div');
+    newRow.style.cssText='display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:start;';
+    const newWords=document.createElement('input'); newWords.type='text'; newWords.placeholder='word1, word2';
+    const newProp=document.createElement('select');
+    [['background','Background'],['color','Text'],['underline','Underline']].forEach(([v,l])=>{
+      const opt=document.createElement('option');opt.value=v;opt.textContent=l;newProp.appendChild(opt);
+    });
+    const newColorWrap=document.createElement('div'); newColorWrap.style.cssText='display:flex;gap:4px;align-items:center;';
+    const newColorSel=makeColorSelect('');
+    const newColorInput=document.createElement('input'); newColorInput.type='color'; newColorInput.value='#ffff00'; newColorInput.style.display='none'; newColorInput.style.width='22px';
+    newColorSel.addEventListener('change',()=>{
+      newColorInput.style.display = (newColorSel.value==='__custom__')?'':'none';
+    });
+    newColorWrap.append(newColorSel,newColorInput);
+    newRow.append(newWords,newProp,newColorWrap);
+    customPanelBody.appendChild(newRow);
+    const newRowBtns=document.createElement('div');
+    newRowBtns.style.cssText='margin-top:4px;display:flex;justify-content:flex-end;gap:4px;';
+    const newAddBtn=document.createElement('button'); newAddBtn.textContent='Add'; newAddBtn.style.fontSize='11px';
+    const newCancelBtn=document.createElement('button'); newCancelBtn.textContent='Clear'; newCancelBtn.style.fontSize='11px';
+    newRowBtns.append(newCancelBtn,newAddBtn);
+    customPanelBody.appendChild(newRowBtns);
+    const footer = document.createElement('div');
+    footer.style.cssText = `
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #ccc;
+    `;
+
     const exportBtn = document.createElement('button');
-    exportBtn.textContent = 'Export Styles';
+    exportBtn.textContent = '⬇ Export';
+    exportBtn.style.cssText = `
+      background-color: #007bff;
+      color: white;
+      border-color: #007bff;
+    `;
+
     exportBtn.onclick = () => {
       const exportData = customRules.map(r => ({
         words: r.words,
@@ -501,14 +539,20 @@ async function main(host = {}, fetchUrlOverride) {
       a.click();
       URL.revokeObjectURL(url);
     };
-    customPanelBody.appendChild(exportBtn);
+
     const importInput = document.createElement('input');
     importInput.type = 'file';
     importInput.accept = 'application/json';
     importInput.style.display = 'none';
 
     const importBtn = document.createElement('button');
-    importBtn.textContent = 'Import Styles';
+    importBtn.textContent = '⬆ Import';
+    importBtn.style.cssText = `
+      background-color: #28a745;
+      color: white;
+      border-color: #28a745;
+    `;
+
     importBtn.onclick = () => importInput.click();
 
     importInput.onchange = () => {
@@ -533,31 +577,14 @@ async function main(host = {}, fetchUrlOverride) {
       reader.readAsText(file);
     };
 
-    customPanelBody.appendChild(importBtn);
-    customPanelBody.appendChild(importInput);
-    const newRow=document.createElement('div');
-    newRow.style.cssText='display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:start;';
-    const newWords=document.createElement('input'); newWords.type='text'; newWords.placeholder='word1, word2';
-    const newProp=document.createElement('select');
-    [['background','Background'],['color','Text'],['underline','Underline']].forEach(([v,l])=>{
-      const opt=document.createElement('option');opt.value=v;opt.textContent=l;newProp.appendChild(opt);
-    });
-    const newColorWrap=document.createElement('div'); newColorWrap.style.cssText='display:flex;gap:4px;align-items:center;';
-    const newColorSel=makeColorSelect('');
-    const newColorInput=document.createElement('input'); newColorInput.type='color'; newColorInput.value='#ffff00'; newColorInput.style.display='none'; newColorInput.style.width='22px';
-    newColorSel.addEventListener('change',()=>{
-      newColorInput.style.display = (newColorSel.value==='__custom__')?'':'none';
-    });
-    newColorWrap.append(newColorSel,newColorInput);
-    newRow.append(newWords,newProp,newColorWrap);
-    customPanelBody.appendChild(newRow);
+    footer.appendChild(importBtn);
+    footer.appendChild(exportBtn);
+    customPanelBody.appendChild(importInput);  // invisible, but needed for file upload
+    customPanelBody.appendChild(footer);
 
-    const newRowBtns=document.createElement('div');
-    newRowBtns.style.cssText='margin-top:4px;display:flex;justify-content:flex-end;gap:4px;';
-    const newAddBtn=document.createElement('button'); newAddBtn.textContent='Add'; newAddBtn.style.fontSize='11px';
-    const newCancelBtn=document.createElement('button'); newCancelBtn.textContent='Clear'; newCancelBtn.style.fontSize='11px';
-    newRowBtns.append(newCancelBtn,newAddBtn);
-    customPanelBody.appendChild(newRowBtns);
+
+
+
 
     newCancelBtn.onclick=()=>{newWords.value='';newColorSel.value='';newColorInput.style.display='none';};
     newAddBtn.onclick=()=>{
