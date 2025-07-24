@@ -318,14 +318,19 @@ async function main(host = {}, fetchUrlOverride) {
     font:12px sans-serif; color:#000;
     width:300px; max-width:90vw; display:none; z-index:${AFT_UI_Z};
   `;
-
   const customPanelHdr = document.createElement('div');
   customPanelHdr.textContent = 'Custom Highlights';
   customPanelHdr.innerHTML = `
-    <div style="display:flex;align-items:center;gap:6px;">
-      <span style="font-weight:bold;"></span>
-      <span style="font-weight:bold;">Custom Highlights</span>
-    </div>
+    font-weight: bold;
+    margin-bottom: 4px;
+    cursor: move;
+    user-select: none;
+    background: #f7f7f7;
+    border-bottom: 1px solid #ddd;
+    padding: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   `;
   customPanelHdr.style.cursor = 'move';
   let isDragging = false, offsetX, offsetY;
