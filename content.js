@@ -485,7 +485,23 @@ async function main(host = {}, fetchUrlOverride) {
     addHdr.textContent='Add New';
     addHdr.style.cssText='font-weight:bold;margin:4px 0;';
     customPanelBody.appendChild(addHdr);
-
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = 'Export Styles';
+    exportBtn.onclick = () => {
+      const exportData = customRules.map(r => ({
+        words: r.words,
+        prop: r.prop,
+        color: r.color
+      }));
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'custom_highlight_styles.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+    customPanelBody.appendChild(exportBtn);
     const newRow=document.createElement('div');
     newRow.style.cssText='display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:start;';
     const newWords=document.createElement('input'); newWords.type='text'; newWords.placeholder='word1, word2';
