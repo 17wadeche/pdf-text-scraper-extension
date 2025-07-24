@@ -360,8 +360,8 @@ async function main(host = {}, fetchUrlOverride) {
   customPanelClose.textContent = '✕';
   customPanelClose.style.cssText = `
     position: relative;
-    top: 6px;
-    right: 6px;
+    top: 4px;
+    right: 4px;
     font-size: 12px;
     padding: 0 6px;
     cursor: pointer;
