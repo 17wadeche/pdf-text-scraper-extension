@@ -139,12 +139,6 @@ function persistCustomRules() {
   const storageShape = customRules.map(r => ({style:r.style, words:r.words}));
   localStorage.setItem('highlight_custom_rules', JSON.stringify(storageShape));
 }
-function refreshAll() {
-  updateStyleWords();
-  clearHighlights(container);
-  renderAllHighlights();
-  renderCustomPanel();
-}
 function rebuildRuleStyles() {
   customRules.forEach(r => { r.style = buildStyleFromFields(r.prop, r.color); });
 }
@@ -747,6 +741,12 @@ async function main(host = {}, fetchUrlOverride) {
     if (pulseMode) {
       setTimeout(() => { pulseMode = false; }, 100);
     }
+  }
+  function refreshAll() {
+    updateStyleWords();
+    clearHighlights(container);
+    renderAllHighlights();
+    renderCustomPanel();
   }
   buSelect.onchange = () => {
     currentBU = buSelect.value;
