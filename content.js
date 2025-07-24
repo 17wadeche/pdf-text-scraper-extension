@@ -343,7 +343,17 @@ async function main(host = {}, fetchUrlOverride) {
   });
   const customPanelClose = document.createElement('button');
   customPanelClose.textContent = '✕';
-  customPanelClose.style.cssText = 'font-size:12px;line-height:1;padding:0 4px;cursor:pointer;';
+  customPanelClose.style.cssText = `
+    font-size: 14px;
+    color: red;
+    font-weight: bold;
+    border: none;
+    background: transparent;
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    cursor: pointer;
+  `;
   customPanelHdr.appendChild(customPanelClose);
   const customPanelBody = document.createElement('div');
   customPanel.append(customPanelHdr, customPanelBody);
@@ -803,17 +813,33 @@ async function main(host = {}, fetchUrlOverride) {
   customPanel.dataset.aftRole = 'custom';
   hlPanel.style.zIndex = AFT_UI_Z;
   const hlHeader = document.createElement('div');
-  hlHeader.textContent = 'Settings';
+  hlHeader.textContent = 'Style Settings';
   hlHeader.style.cssText = `
-    font-weight:bold; margin-bottom:4px;
+    font-weight:bold; margin-bottom:4px; cursor:move;
     display:flex; align-items:center; justify-content:space-between;
   `;
-
+  let draggingHl = false, hlOffsetX, hlOffsetY;
+  hlDragHdr.addEventListener('mousedown', (e) => {
+    draggingHl = true;
+    const rect = hlPanel.getBoundingClientRect();
+    hlOffsetX = e.clientX - rect.left;
+    hlOffsetY = e.clientY - rect.top;
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mouseup', () => {
+    draggingHl = false;
+    document.body.style.userSelect = '';
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!draggingHl) return;
+    hlPanel.style.left = `${e.clientX - hlOffsetX}px`;
+    hlPanel.style.top = `${e.clientY - hlOffsetY}px`;
+    hlPanel.style.position = 'fixed'; // ensure it's positioned
+  });
   const hlClose = document.createElement('button');
   hlClose.textContent = '✕';
   hlClose.style.cssText = 'font-size:12px;padding:0 6px;cursor:pointer;';
   hlHeader.appendChild(hlClose);
-
   const hlBody = document.createElement('div');
   hlBody.id = 'aftHlPanelBody';
   const buLabel = document.createElement('label');
