@@ -816,16 +816,15 @@ async function main(host = {}, fetchUrlOverride) {
   hlPanel.dataset.aftRole = 'panel';
   customPanel.dataset.aftRole = 'custom';
   hlPanel.style.zIndex = AFT_UI_Z;
-  const hlHeader = document.createElement('div');
   const hlDragHdr = document.createElement('div');
   hlDragHdr.textContent = 'Style Settings';
-  hlDragHdr.style.cssText = 'cursor:move;font-weight:bold;padding:4px;';
-  hlPanel.prepend(hlDragHdr);
-  hlHeader.textContent = 'Style Settings';
+  const hlHeader = document.createElement('div');
   hlHeader.style.cssText = `
-    font-weight:bold; margin-bottom:4px; cursor:move;
+    font-weight:bold; margin-bottom:4px;
     display:flex; align-items:center; justify-content:space-between;
   `;
+  hlDragHdr.style.cssText = 'cursor:move;';
+  hlPanel.prepend(hlDragHdr);
   let isHlDragging = false, hlDragOffsetX = 0, hlDragOffsetY = 0;
   hlDragHdr.addEventListener('mousedown', (e) => {
     isHlDragging = true;
