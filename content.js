@@ -826,23 +826,22 @@ async function main(host = {}, fetchUrlOverride) {
     font-weight:bold; margin-bottom:4px; cursor:move;
     display:flex; align-items:center; justify-content:space-between;
   `;
-  let draggingHl = false, hlOffsetX, hlOffsetY;
+  let isHlDragging = false, hlDragOffsetX = 0, hlDragOffsetY = 0;
   hlDragHdr.addEventListener('mousedown', (e) => {
-    draggingHl = true;
+    isHlDragging = true;
     const rect = hlPanel.getBoundingClientRect();
-    hlOffsetX = e.clientX - rect.left;
-    hlOffsetY = e.clientY - rect.top;
+    hlDragOffsetX = e.clientX - rect.left;
+    hlDragOffsetY = e.clientY - rect.top;
     document.body.style.userSelect = 'none';
   });
   document.addEventListener('mouseup', () => {
-    draggingHl = false;
+    isHlDragging = false;
     document.body.style.userSelect = '';
   });
   document.addEventListener('mousemove', (e) => {
-    if (!draggingHl) return;
-    hlPanel.style.left = `${e.clientX - hlOffsetX}px`;
-    hlPanel.style.top = `${e.clientY - hlOffsetY}px`;
-    hlPanel.style.position = 'fixed'; // ensure it's positioned
+    if (!isHlDragging) return;
+    hlPanel.style.left = `${e.clientX - hlDragOffsetX}px`;
+    hlPanel.style.top = `${e.clientY - hlDragOffsetY}px`;
   });
   const hlClose = document.createElement('button');
   hlClose.textContent = '✕';
