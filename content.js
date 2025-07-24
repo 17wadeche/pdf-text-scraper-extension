@@ -323,7 +323,7 @@ async function main(host = {}, fetchUrlOverride) {
   customPanelHdr.textContent = 'Custom Highlights';
   customPanelHdr.innerHTML = `
     <div style="display:flex;align-items:center;gap:6px;">
-      <span style="font-weight:bold;">☰</span>
+      <span style="font-weight:bold;"></span>
       <span style="font-weight:bold;">Custom Highlights</span>
     </div>
   `;
