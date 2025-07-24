@@ -817,47 +817,36 @@ async function main(host = {}, fetchUrlOverride) {
   customPanel.dataset.aftRole = 'custom';
   hlPanel.style.zIndex = AFT_UI_Z;
   const hlHeader = document.createElement('div');
-  const hlDragHdr = document.createElement('div');
-  hlDragHdr.textContent = 'Style Settings';
-  hlDragHdr.style.cssText = `
-    cursor: move;
+  hlHeader.textContent = 'Style Settings';
+  hlHeader.style.cssText = `
     font-weight: bold;
-    padding: 4px;
+    margin-bottom: 4px;
+    cursor: move;
     user-select: none;
     background: #f7f7f7;
     border-bottom: 1px solid #ddd;
-  `;
-  hlPanel.prepend(hlDragHdr);
-  hlHeader.textContent = 'Style Settings';
-  hlHeader.style.cssText = `
-    font-weight:bold; 
-    margin-bottom:4px; 
-    cursor:move;
-    user-select: none;
-    display:flex; 
-    align-items:center; 
-    justify-content:space-between;
+    padding: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   `;
   let isHlDragging = false, hlDragOffsetX = 0, hlDragOffsetY = 0;
-
-hlDragHdr.addEventListener('mousedown', (e) => {
-  isHlDragging = true;
-  const rect = hlPanel.getBoundingClientRect();
-  hlDragOffsetX = e.clientX - rect.left;
-  hlDragOffsetY = e.clientY - rect.top;
-  document.body.style.userSelect = 'none';
-});
-
-document.addEventListener('mouseup', () => {
-  isHlDragging = false;
-  document.body.style.userSelect = '';
-});
-
-document.addEventListener('mousemove', (e) => {
-  if (!isHlDragging) return;
-  hlPanel.style.left = `${e.clientX - hlDragOffsetX}px`;
-  hlPanel.style.top = `${e.clientY - hlDragOffsetY}px`;
-});
+  hlHeader.addEventListener('mousedown', (e) => {
+    isHlDragging = true;
+    const rect = hlPanel.getBoundingClientRect();
+    hlDragOffsetX = e.clientX - rect.left;
+    hlDragOffsetY = e.clientY - rect.top;
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mouseup', () => {
+    isHlDragging = false;
+    document.body.style.userSelect = '';
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!isHlDragging) return;
+    hlPanel.style.left = `${e.clientX - hlDragOffsetX}px`;
+    hlPanel.style.top = `${e.clientY - hlDragOffsetY}px`;
+  });
   const hlClose = document.createElement('button');
   hlClose.textContent = '✕';
   hlClose.style.cssText = `
