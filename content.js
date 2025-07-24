@@ -347,6 +347,9 @@ async function main(host = {}, fetchUrlOverride) {
   const customPanelClose = document.createElement('button');
   customPanelClose.textContent = '✕';
   customPanelClose.style.cssText = `
+    position: absolute;
+    top: 6px;
+    right: 6px;
     font-size: 12px;
     padding: 0 6px;
     cursor: pointer;
@@ -354,6 +357,7 @@ async function main(host = {}, fetchUrlOverride) {
     color: white;
     border: none;
     border-radius: 4px;
+    z-index: 1;
   `;
   customPanelHdr.appendChild(customPanelClose);
   const customPanelBody = document.createElement('div');
