@@ -319,8 +319,7 @@ async function main(host = {}, fetchUrlOverride) {
     width:300px; max-width:90vw; display:none; z-index:${AFT_UI_Z};
   `;
   const customPanelHdr = document.createElement('div');
-  customPanelHdr.textContent = 'Custom Highlights';
-  customPanelHdr.innerHTML = `
+  hlHeader.style.cssText = `
     font-weight: bold;
     margin-bottom: 4px;
     cursor: move;
@@ -331,6 +330,13 @@ async function main(host = {}, fetchUrlOverride) {
     display: flex;
     justify-content: space-between;
     align-items: center;
+  `;
+  customPanelHdr.textContent = 'Custom Highlights';
+  customPanelHdr.innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="font-weight:bold;"></span>
+      <span style="font-weight:bold;">Custom Highlights</span>
+    </div>
   `;
   customPanelHdr.style.cursor = 'move';
   let isDragging = false, offsetX, offsetY;
@@ -353,15 +359,13 @@ async function main(host = {}, fetchUrlOverride) {
   const customPanelClose = document.createElement('button');
   customPanelClose.textContent = '✕';
   customPanelClose.style.cssText = `
-    font-size: 14px;
-    color: red;
-    font-weight: bold;
-    border: none;
-    background: transparent;
-    position: absolute;
-    top: 6px;
-    right: 8px;
+    font-size: 12px;
+    padding: 0 6px;
     cursor: pointer;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 4px;
   `;
   customPanelHdr.appendChild(customPanelClose);
   const customPanelBody = document.createElement('div');
