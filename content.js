@@ -502,6 +502,39 @@ async function main(host = {}, fetchUrlOverride) {
       URL.revokeObjectURL(url);
     };
     customPanelBody.appendChild(exportBtn);
+    const importInput = document.createElement('input');
+    importInput.type = 'file';
+    importInput.accept = 'application/json';
+    importInput.style.display = 'none';
+
+    const importBtn = document.createElement('button');
+    importBtn.textContent = 'Import Styles';
+    importBtn.onclick = () => importInput.click();
+
+    importInput.onchange = () => {
+      const file = importInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          if (!Array.isArray(imported)) throw new Error('Invalid format');
+          const newRules = imported.map(r => normalizeRuleFromStorage(r)).filter(Boolean);
+          customRules.push(...newRules);
+          persistCustomRules();
+          includeCustom = true;
+          customChk.checked = true;
+          refreshAll();
+          renderCustomPanel();
+        } catch (err) {
+          alert('Failed to import styles: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    customPanelBody.appendChild(importBtn);
+    customPanelBody.appendChild(importInput);
     const newRow=document.createElement('div');
     newRow.style.cssText='display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:start;';
     const newWords=document.createElement('input'); newWords.type='text'; newWords.placeholder='word1, word2';
