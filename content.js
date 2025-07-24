@@ -326,6 +326,18 @@ async function main(host = {}, fetchUrlOverride) {
       <span style="font-weight:bold;">Custom Highlights</span>
     </div>
   `;
+  customPanelHdr.style.cssText = `
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #f0f0f0;
+    font-weight: bold;
+    border-bottom: 1px solid #ccc;
+    position: relative;
+    margin-bottom: 8px;
+  `;
   customPanelHdr.style.cursor = 'move';
   let isDragging = false, offsetX, offsetY;
   customPanelHdr.addEventListener('mousedown', (e) => {
