@@ -830,8 +830,13 @@ async function main(host = {}, fetchUrlOverride) {
   hlPanel.prepend(hlDragHdr);
   hlHeader.textContent = 'Style Settings';
   hlHeader.style.cssText = `
-    font-weight:bold; margin-bottom:4px; cursor:move;
-    display:flex; align-items:center; justify-content:space-between;
+    font-weight:bold; 
+    margin-bottom:4px; 
+    cursor:move;
+    user-select: none;
+    display:flex; 
+    align-items:center; 
+    justify-content:space-between;
   `;
   let isHlDragging = false, hlDragOffsetX = 0, hlDragOffsetY = 0;
 
