@@ -516,7 +516,6 @@ async function main(host = {}, fetchUrlOverride) {
       padding-top: 8px;
       border-top: 1px solid #ccc;
     `;
-
     const exportBtn = document.createElement('button');
     exportBtn.textContent = '⬇ Export';
     exportBtn.style.cssText = `
@@ -524,7 +523,6 @@ async function main(host = {}, fetchUrlOverride) {
       color: white;
       border-color: #007bff;
     `;
-
     exportBtn.onclick = () => {
       const exportData = customRules.map(r => ({
         words: r.words,
@@ -539,12 +537,10 @@ async function main(host = {}, fetchUrlOverride) {
       a.click();
       URL.revokeObjectURL(url);
     };
-
     const importInput = document.createElement('input');
     importInput.type = 'file';
     importInput.accept = 'application/json';
     importInput.style.display = 'none';
-
     const importBtn = document.createElement('button');
     importBtn.textContent = '⬆ Import';
     importBtn.style.cssText = `
@@ -552,9 +548,7 @@ async function main(host = {}, fetchUrlOverride) {
       color: white;
       border-color: #28a745;
     `;
-
     importBtn.onclick = () => importInput.click();
-
     importInput.onchange = () => {
       const file = importInput.files[0];
       if (!file) return;
@@ -576,16 +570,10 @@ async function main(host = {}, fetchUrlOverride) {
       };
       reader.readAsText(file);
     };
-
     footer.appendChild(importBtn);
     footer.appendChild(exportBtn);
     customPanelBody.appendChild(importInput);  // invisible, but needed for file upload
     customPanelBody.appendChild(footer);
-
-
-
-
-
     newCancelBtn.onclick=()=>{newWords.value='';newColorSel.value='';newColorInput.style.display='none';};
     newAddBtn.onclick=()=>{
       const words = newWords.value.split(/[\n,]/).map(w=>w.trim()).filter(Boolean);
