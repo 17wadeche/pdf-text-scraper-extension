@@ -139,6 +139,12 @@ function persistCustomRules() {
   const storageShape = customRules.map(r => ({style:r.style, words:r.words}));
   localStorage.setItem('highlight_custom_rules', JSON.stringify(storageShape));
 }
+function refreshAll() {
+  updateStyleWords();
+  clearHighlights(container);
+  renderAllHighlights();
+  renderCustomPanel();
+}
 function rebuildRuleStyles() {
   customRules.forEach(r => { r.style = buildStyleFromFields(r.prop, r.color); });
 }
@@ -442,7 +448,6 @@ async function main(host = {}, fetchUrlOverride) {
         const delBtn=document.createElement('button'); delBtn.textContent='Delete'; delBtn.style.fontSize='11px';
         actionRow.append(saveBtn,delBtn);
         row.appendChild(actionRow);
-
         saveBtn.onclick = () => {
           const raw = wordsInput.value;
           const words = raw.split(/[\n,]/).map(w=>w.trim()).filter(Boolean);
