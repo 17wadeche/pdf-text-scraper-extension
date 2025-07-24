@@ -819,7 +819,14 @@ async function main(host = {}, fetchUrlOverride) {
   const hlHeader = document.createElement('div');
   const hlDragHdr = document.createElement('div');
   hlDragHdr.textContent = 'Style Settings';
-  hlDragHdr.style.cssText = 'cursor:move;font-weight:bold;padding:4px;';
+  hlDragHdr.style.cssText = `
+    cursor: move;
+    font-weight: bold;
+    padding: 4px;
+    user-select: none;
+    background: #f7f7f7;
+    border-bottom: 1px solid #ddd;
+  `;
   hlPanel.prepend(hlDragHdr);
   hlHeader.textContent = 'Style Settings';
   hlHeader.style.cssText = `
