@@ -894,7 +894,7 @@ async function main(host = {}, fetchUrlOverride) {
     isCollapsed = !isCollapsed;
     hlBody.style.display = isCollapsed ? 'none' : '';
     hlClose.textContent = isCollapsed ? '☰' : '✕';
-    hlPanel.style.left = isCollapsed ? '8px' : '16px';
+    hlPanel.style.left = isCollapsed ? '8px' : '70px';
   };
   let data, fetchUrl, resp;
   try {
