@@ -347,15 +347,13 @@ async function main(host = {}, fetchUrlOverride) {
   const customPanelClose = document.createElement('button');
   customPanelClose.textContent = '✕';
   customPanelClose.style.cssText = `
-    font-size: 14px;
-    color: white;
-    font-weight: bold;
-    border: none;
-    background: red;
-    position: absolute;
-    top: 6px;
-    right: 8px;
+    font-size: 12px;
+    padding: 0 6px;
     cursor: pointer;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 4px;
   `;
   customPanelHdr.appendChild(customPanelClose);
   const customPanelBody = document.createElement('div');
