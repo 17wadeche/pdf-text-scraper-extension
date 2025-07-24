@@ -280,7 +280,11 @@ async function main(host = {}, fetchUrlOverride) {
   }
   updateStyleWords({suppressPulse:true});
   const buSelect = document.createElement('select');
+  buSelect.style.marginLeft = '-8px';
+  buSelect.style.width = 'calc(100% + 16px)';
   const ouSelect = document.createElement('select');
+  ouSelect.style.marginLeft = '-8px';
+  ouSelect.style.width = 'calc(100% + 16px)';
   ouSelect.disabled = true;
   const toggle   = document.createElement('button');
   toggle.id = 'aftToggle';
@@ -857,15 +861,10 @@ async function main(host = {}, fetchUrlOverride) {
   const buRow = document.createElement('div');
   buRow.className = 'aft-row';
   buRow.append(buLabel, buSelect);
-  buRow.style.marginLeft = '-8px';
-  buRow.style.width = 'calc(100% + 16px)';
 
   const ouRow = document.createElement('div');
   ouRow.className = 'aft-row';
   ouRow.append(ouLabel, ouSelect);
-
-  ouRow.style.marginLeft = '-8px';
-  ouRow.style.width = 'calc(100% + 16px)';
 
   hlBody.append(
     buRow,
