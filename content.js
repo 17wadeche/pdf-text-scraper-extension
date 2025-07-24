@@ -467,10 +467,7 @@ async function main(host = {}, fetchUrlOverride) {
           persistCustomRules();
           includeCustom = true;
           customChk.checked = true;
-          updateStyleWords();
-          clearHighlights(container);
-          renderAllHighlights();
-          renderCustomPanel(); // re-render to normalize display
+          refreshAll();
         };
         delBtn.onclick = () => {
           if (!confirm('Delete this custom highlight?')) return;
@@ -480,10 +477,7 @@ async function main(host = {}, fetchUrlOverride) {
             includeCustom=false;
             customChk.checked=false;
           }
-          updateStyleWords();
-          clearHighlights(container);
-          renderAllHighlights();
-          renderCustomPanel();
+          refreshAll();
         };
         customPanelBody.appendChild(row);
         const hr=document.createElement('hr'); hr.style.margin='4px 0'; customPanelBody.appendChild(hr);
@@ -537,10 +531,7 @@ async function main(host = {}, fetchUrlOverride) {
       persistCustomRules();
       includeCustom = true;
       customChk.checked = true;
-      updateStyleWords();
-      clearHighlights(container);
-      renderAllHighlights();
-      renderCustomPanel();
+      refreshAll();
       newWords.value='';
       newColorSel.value='';
       newColorInput.style.display='none';
