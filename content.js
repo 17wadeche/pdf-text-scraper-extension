@@ -813,6 +813,10 @@ async function main(host = {}, fetchUrlOverride) {
   customPanel.dataset.aftRole = 'custom';
   hlPanel.style.zIndex = AFT_UI_Z;
   const hlHeader = document.createElement('div');
+  const hlDragHdr = document.createElement('div');
+  hlDragHdr.textContent = 'Style Settings';
+  hlDragHdr.style.cssText = 'cursor:move;font-weight:bold;padding:4px;';
+  hlPanel.prepend(hlDragHdr);
   hlHeader.textContent = 'Style Settings';
   hlHeader.style.cssText = `
     font-weight:bold; margin-bottom:4px; cursor:move;
