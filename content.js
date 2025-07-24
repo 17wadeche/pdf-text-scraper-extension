@@ -196,7 +196,7 @@ async function main(host = {}, fetchUrlOverride) {
 }
 
 #aftCustomPanel input[type="color"] {
-  width: 30px;
+  width: 20px;
   height: 30px;
   border: none;
   background: none;
@@ -425,7 +425,7 @@ async function main(host = {}, fetchUrlOverride) {
         colorInput.type='color';
         colorInput.value = /^#/.test(rule.color) ? rule.color : '#ffff00';
         colorInput.style.display = /^#/.test(rule.color)?'':'none';
-        colorInput.style.width='22px'; colorInput.style.padding='0'; colorInput.style.border='none';
+        colorInput.style.width='18px'; colorInput.style.padding='0'; colorInput.style.border='none';
         colorInput.style.background='transparent';
         colorSel.addEventListener('change',()=>{
           if (colorSel.value==='__custom__'){
