@@ -348,7 +348,7 @@ async function main(host = {}, fetchUrlOverride) {
   customPanelClose.textContent = '✕';
   customPanelClose.style.cssText = `
     font-size: 14px;
-    color: transparent;
+    color: white;
     font-weight: bold;
     border: none;
     background: red;
