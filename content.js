@@ -319,18 +319,6 @@ async function main(host = {}, fetchUrlOverride) {
     width:300px; max-width:90vw; display:none; z-index:${AFT_UI_Z};
   `;
   const customPanelHdr = document.createElement('div');
-  hlHeader.style.cssText = `
-    font-weight: bold;
-    margin-bottom: 4px;
-    cursor: move;
-    user-select: none;
-    background: #f7f7f7;
-    border-bottom: 1px solid #ddd;
-    padding: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  `;
   customPanelHdr.textContent = 'Custom Highlights';
   customPanelHdr.innerHTML = `
     <div style="display:flex;align-items:center;gap:6px;">
@@ -359,13 +347,15 @@ async function main(host = {}, fetchUrlOverride) {
   const customPanelClose = document.createElement('button');
   customPanelClose.textContent = '✕';
   customPanelClose.style.cssText = `
-    font-size: 12px;
-    padding: 0 6px;
-    cursor: pointer;
-    background-color: red;
-    color: white;
+    font-size: 14px;
+    color: red;
+    font-weight: bold;
     border: none;
-    border-radius: 4px;
+    background: transparent;
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    cursor: pointer;
   `;
   customPanelHdr.appendChild(customPanelClose);
   const customPanelBody = document.createElement('div');
