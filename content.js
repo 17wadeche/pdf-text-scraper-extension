@@ -892,9 +892,19 @@ async function main(host = {}, fetchUrlOverride) {
   let isCollapsed = false;
   hlClose.onclick = () => {
     isCollapsed = !isCollapsed;
-    hlBody.style.display = isCollapsed ? 'none' : '';
-    hlClose.textContent = isCollapsed ? '☰' : '✕';
-    hlPanel.style.left = isCollapsed ? '8px' : '70px';
+    if (isCollapsed) {
+      hlBody.style.display = 'none';
+      hlClose.textContent = '☰';
+      hlPanel.style.width = '40px';
+      hlPanel.style.padding = '4px';
+      hlPanel.style.left = '8px';
+    } else {
+      hlBody.style.display = '';
+      hlClose.textContent = '✕';
+      hlPanel.style.width = '300px';  // or your preferred expanded width
+      hlPanel.style.padding = '8px';
+      hlPanel.style.left = '16px';
+    }
   };
   let data, fetchUrl, resp;
   try {
