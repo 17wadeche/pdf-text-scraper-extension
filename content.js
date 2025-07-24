@@ -816,33 +816,12 @@ async function main(host = {}, fetchUrlOverride) {
   hlPanel.dataset.aftRole = 'panel';
   customPanel.dataset.aftRole = 'custom';
   hlPanel.style.zIndex = AFT_UI_Z;
-  customPanel.style.zIndex = AFT_UI_Z;
-  const hlHeader = document.createElement('div');
-  hlHeader.style.cssText = `
-    font-weight: bold;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: move;
-  `;
-  const hlTitle = document.createElement('span');
-  hlTitle.textContent = 'Style Settings';
-  const hlClose = document.createElement('button');
-  hlClose.textContent = '✕';
-  hlClose.style.cssText = `
-    font-size: 12px;
-    padding: 0 6px;
-    cursor: pointer;
-    background-color: red;
-    color: white;
-    border: none;
-    border-radius: 4px;
-  `;
-  hlHeader.appendChild(hlTitle);
-  hlHeader.appendChild(hlClose);
+  const hlDragHdr = document.createElement('div');
+  hlDragHdr.textContent = 'Style Settings';
+  hlDragHdr.style.cssText = 'cursor:move;font-weight:bold;padding:4px;';
+  hlPanel.prepend(hlDragHdr);
   let isHlDragging = false, hlDragOffsetX = 0, hlDragOffsetY = 0;
-  hlHeader.addEventListener('mousedown', (e) => {
+  hlDragHdr.addEventListener('mousedown', (e) => {
     isHlDragging = true;
     const rect = hlPanel.getBoundingClientRect();
     hlDragOffsetX = e.clientX - rect.left;
@@ -858,8 +837,18 @@ async function main(host = {}, fetchUrlOverride) {
     hlPanel.style.left = `${e.clientX - hlDragOffsetX}px`;
     hlPanel.style.top = `${e.clientY - hlDragOffsetY}px`;
   });
-  hlPanel.innerHTML = '';
-  hlPanel.append(hlHeader, hlBody); 
+  const hlClose = document.createElement('button');
+  hlClose.textContent = '✕';
+  hlClose.style.cssText = `
+    font-size: 12px;
+    padding: 0 6px;
+    cursor: pointer;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 4px;
+  `;
+  hlHeader.appendChild(hlClose);
   const hlBody = document.createElement('div');
   hlBody.id = 'aftHlPanelBody';
   const buLabel = document.createElement('label');
