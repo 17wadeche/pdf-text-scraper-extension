@@ -857,10 +857,15 @@ async function main(host = {}, fetchUrlOverride) {
   const buRow = document.createElement('div');
   buRow.className = 'aft-row';
   buRow.append(buLabel, buSelect);
+  buRow.style.marginLeft = '-8px';
+  buRow.style.width = 'calc(100% + 16px)';
 
   const ouRow = document.createElement('div');
   ouRow.className = 'aft-row';
   ouRow.append(ouLabel, ouSelect);
+
+  ouRow.style.marginLeft = '-8px';
+  ouRow.style.width = 'calc(100% + 16px)';
 
   hlBody.append(
     buRow,
