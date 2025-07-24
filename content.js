@@ -846,7 +846,15 @@ async function main(host = {}, fetchUrlOverride) {
   });
   const hlClose = document.createElement('button');
   hlClose.textContent = '✕';
-  hlClose.style.cssText = 'font-size:12px;padding:0 6px;cursor:pointer;';
+  hlClose.style.cssText = `
+    font-size: 12px;
+    padding: 0 6px;
+    cursor: pointer;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 4px;
+  `;
   hlHeader.appendChild(hlClose);
   const hlBody = document.createElement('div');
   hlBody.id = 'aftHlPanelBody';
