@@ -895,7 +895,7 @@ async function main(host = {}, fetchUrlOverride) {
     if (isCollapsed) {
       hlBody.style.display = 'none';
       hlClose.textContent = '☰';
-      hlPanel.style.width = '40px';
+      hlPanel.style.width = '80px';
       hlPanel.style.padding = '4px';
       hlPanel.style.left = '8px';
     } else {
