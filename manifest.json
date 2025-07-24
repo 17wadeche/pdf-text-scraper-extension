@@ -6,7 +6,6 @@
   "content_scripts": [
     {
       "matches": [
-        "https://crm.medtronic.com/*",
         "https://cpic1cs.corp.medtronic.com:8008/*",
         "https://crmstage.medtronic.com/*"
       ],
@@ -17,7 +16,6 @@
     }
   ],
   "host_permissions": [
-    "https://crm.medtronic.com/*",
     "https://cpic1cs.corp.medtronic.com:8008/*",
     "https://crmstage.medtronic.com/*"
   ],
@@ -34,7 +32,6 @@
         "styles.js"
       ],
       "matches": [
-        "https://crm.medtronic.com/*",
         "https://cpic1cs.corp.medtronic.com:8008/*",
         "https://crmstage.medtronic.com/*"
       ]
