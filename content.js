@@ -182,7 +182,7 @@ async function main(host = {}, fetchUrlOverride) {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   font-family: system-ui, sans-serif;
   font-size: 13px;
-  width: 320px;
+  width: 400px;
 }
 
 #aftCustomPanel input[type="text"],
@@ -316,7 +316,7 @@ async function main(host = {}, fetchUrlOverride) {
     background:#fff; border:1px solid #ccc; border-radius:6px;
     padding:8px; box-shadow:0 2px 10px rgba(0,0,0,.2);
     font:12px sans-serif; color:#000;
-    width:300px; max-width:90vw; display:none; z-index:${AFT_UI_Z};
+    width:400px; max-width:95vw; display:none; z-index:${AFT_UI_Z};
   `;
   const customPanelHdr = document.createElement('div');
   customPanelHdr.textContent = 'Custom Highlights';
@@ -403,7 +403,7 @@ async function main(host = {}, fetchUrlOverride) {
     } else {
       customRules.forEach((rule, idx) => {
         const row = document.createElement('div');
-        row.style.cssText = 'display:grid;grid-template-columns:1fr auto auto;gap:4px;align-items:start;margin-bottom:4px;';
+        row.style.cssText = 'display:grid;grid-template-columns:2fr auto auto;gap:4px;align-items:start;margin-bottom:4px;';
         const wordsInput = document.createElement('input');
         wordsInput.type='text';
         wordsInput.value = rule.words.join(', ');
@@ -467,7 +467,6 @@ async function main(host = {}, fetchUrlOverride) {
           renderAllHighlights();
           renderCustomPanel(); // re-render to normalize display
         };
-
         delBtn.onclick = () => {
           if (!confirm('Delete this custom highlight?')) return;
           customRules.splice(idx,1);
