@@ -932,7 +932,7 @@ async function main(host = {}, fetchUrlOverride) {
     data = await resp.arrayBuffer();
     console.log('[AFT] fetched PDF bytes:', data.byteLength, 'from', fetchUrl);
   } catch (err) {
-    console.error('[AFT] Could not fetch PDF:', err);
+    if (DEBUG) console.debug('[AFT] PDF fetch failed:', err);
     return;
   }
   const pdfDoc      = await pdfjsLib.getDocument({data}).promise;
