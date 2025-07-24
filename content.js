@@ -394,7 +394,9 @@ async function main(host = {}, fetchUrlOverride) {
     return sel;
   }
   function renderCustomPanel() {
-    customPanelBody.innerHTML = '';
+    while (customPanelBody.firstChild) {
+      customPanelBody.removeChild(customPanelBody.firstChild);
+    }
     if (!customRules.length) {
       const empty = document.createElement('div');
       empty.textContent = 'No custom rules yet.';
