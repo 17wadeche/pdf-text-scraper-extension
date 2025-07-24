@@ -327,16 +327,16 @@ async function main(host = {}, fetchUrlOverride) {
     </div>
   `;
   customPanelHdr.style.cssText = `
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    padding: 8px 12px;
-    background: #f0f0f0;
     font-weight: bold;
-    border-bottom: 1px solid #ccc;
-    position: relative;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    cursor: move;
+    user-select: none;
+    background: #f7f7f7;
+    border-bottom: 1px solid #ddd;
+    padding: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   `;
   customPanelHdr.style.cursor = 'move';
   let isDragging = false, offsetX, offsetY;
