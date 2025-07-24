@@ -280,8 +280,8 @@ async function main(host = {}, fetchUrlOverride) {
   }
   updateStyleWords({suppressPulse:true});
   const buSelect = document.createElement('select');
-  buSelect.style.marginLeft = '-8px';
-  buSelect.style.width = 'calc(100% + 16px)';
+  buSelect.style.marginLeft = '-20px';
+  buSelect.style.width = 'calc(100% + 23px)';
   const ouSelect = document.createElement('select');
   ouSelect.style.marginLeft = '-8px';
   ouSelect.style.width = 'calc(100% + 16px)';
