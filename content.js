@@ -3,6 +3,34 @@ const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
   'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
+(function offerOpenStyledButton() {
+  if (location.hash !== '#noaft') return;
+  if (!urlIsAllowed(location.href.replace(/#noaft$/, ''))) return;
+  function injectButton() {
+    if (document.getElementById('__aft_open_styled')) return;    // don’t duplicate
+    const btn = document.createElement('button');
+    btn.id = '__aft_open_styled';
+    btn.textContent = 'Open Styled';
+    btn.style.cssText = `
+      position:fixed; top:16px; right:16px;
+      z-index:2147483647; padding:6px 12px;
+      background:#ff0; color:#000; font-weight:bold;
+      cursor:pointer; border:1px solid #888; border-radius:4px;
+    `;
+    btn.onclick = () => {
+      const extViewerBase = chrome.runtime.getURL('viewer.html');
+      const pdfUrl = location.href.replace(/#noaft$/, '');
+      location.href = extViewerBase + '?src=' + encodeURIComponent(pdfUrl);
+    };
+    document.body.appendChild(btn);
+  }
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', injectButton, { once: true });
+  } else {
+    injectButton();
+  }
+  return;
+})();
 (function redirectIfPluginPdf() {
   try {
     const extViewerBase = chrome.runtime.getURL('viewer.html');
@@ -41,11 +69,12 @@ function findPdfHostElements() {
       if (sr) {
         embedEl = sr.querySelector('embed[type*="pdf"],object[type*="pdf"]') || null;
       }
-    } catch { /* ignore cross-origin */ }
+    } catch { }
   }
   return { viewerEl, embedEl };
 }
 function startWhenReady() {
+  if (location.hash === '#noaft') return;
   if (initialized) return;
   const fromViewer = !!window.__AFT_FROM_VIEWER;
   if (!fromViewer && !urlIsAllowed()) return;
@@ -183,7 +212,6 @@ async function main(host = {}, fetchUrlOverride) {
   font-size: 13px;
   width: 400px;
 }
-
 #aftCustomPanel input[type="text"],
 #aftCustomPanel select {
   font-size: 13px;
@@ -193,7 +221,6 @@ async function main(host = {}, fetchUrlOverride) {
   width: 100%;
   box-sizing: border-box;
 }
-
 #aftCustomPanel input[type="color"] {
   width: 20px;
   height: 30px;
@@ -201,7 +228,6 @@ async function main(host = {}, fetchUrlOverride) {
   background: none;
   padding: 0;
 }
-
 #aftCustomPanel button {
   font-size: 12px;
   padding: 4px 10px;
@@ -211,17 +237,14 @@ async function main(host = {}, fetchUrlOverride) {
   cursor: pointer;
   transition: background 0.2s ease;
 }
-
 #aftCustomPanel button:hover {
   background: #e0e0e0;
 }
-
 #aftCustomPanel hr {
   border: none;
   border-top: 1px solid #eee;
   margin: 8px 0;
 }
-
 .aft-row {
   display: flex;
   gap: 6px;
@@ -229,17 +252,14 @@ async function main(host = {}, fetchUrlOverride) {
   margin-bottom: 6px;
   flex-wrap: wrap;
 }
-
 .aft-row > * {
   flex: 1;
   min-width: 0;
 }
-
 .aft-row.actions {
   justify-content: flex-end;
   margin-top: 4px;
 }
-
   `;
   let showingStyled = true;
   document.head.appendChild(styleTag);
@@ -288,7 +308,7 @@ async function main(host = {}, fetchUrlOverride) {
   const toggle   = document.createElement('button');
   toggle.id = 'aftToggle';
   [buSelect, ouSelect].forEach(s => s.className = 'modern-select');
-  toggle.textContent = 'Original';
+  toggle.textContent = 'Open Original';
   const addBtn      = document.createElement('button');
   addBtn.textContent = 'Edit Personal Styles';
   const customChk   = document.createElement('input');
@@ -788,6 +808,13 @@ async function main(host = {}, fetchUrlOverride) {
       target.parentNode.replaceChild(wrap, target);
     }
   }
+  function isTextStyle(rule) {
+    if (rule.prop) return rule.prop === 'color';       // custom rules already carry .prop
+    const css = rule.style || '';
+    return  /(?:^|;)\s*color\s*:/.test(css) &&         // has a text colour
+            !/background\s*:/.test(css) &&             // …but no background
+            !/text-decoration-line\s*:\s*underline/i.test(css); // …and no underline
+  }
   function renderAllHighlights() {
     if (!container) return;
     clearHighlights(container);
@@ -796,19 +823,21 @@ async function main(host = {}, fetchUrlOverride) {
       page.querySelectorAll('.textLayer span').forEach(span => {
         const txt = span.textContent.trim();
         if (txt.startsWith('* ')) {
-          const yellowRules = styleWordsToUse.map(rule => ({
-            _regexes: rule._regexes,
-            style:    'background: orange; color: black;'
-          }));
-          highlightSpan(span, yellowRules, page);
+          const orangeRules = styleWordsToUse.map(rule =>
+            isTextStyle(rule)
+              ? {                          // clone & override only text-style rules
+                  ...rule,
+                  style: 'background: orange; color: black;'
+                }
+              : rule                       // leave underline / background untouched
+          );
+          highlightSpan(span, orangeRules, page);
           return;
         }
         highlightSpan(span, styleWordsToUse, page);
       });
     });
-    if (pulseMode) {
-      setTimeout(() => { pulseMode = false; }, 1000);
-    }
+    if (pulseMode) setTimeout(() => { pulseMode = false; }, 1000);
   }
   function refreshAll() {
     updateStyleWords();
@@ -859,7 +888,7 @@ async function main(host = {}, fetchUrlOverride) {
   if (!embed && viewerEl) {
     try {
       embed = viewerEl.shadowRoot?.querySelector('embed[type*="pdf"],object[type*="pdf"]') || null;
-    } catch { /* ignore */ }
+    } catch {  }
   }
   container = document.createElement('div');
   container.className = 'aft-container';
@@ -869,13 +898,60 @@ async function main(host = {}, fetchUrlOverride) {
     width: '100vw',
     height: '100vh',
     overflow: 'auto',
-    background: '#fff',
+    background: '#000',
     zIndex: 2147483647
   });
   if (embed) {
     embed.style.display = 'none';
   }
   document.body.appendChild(container);
+  const loader = document.createElement('div');
+  loader.id = 'aftLoader';
+  Object.assign(loader.style, {
+    position: 'fixed',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#000',          // same black you set on container
+    zIndex: 2147483648           // one above container
+  });
+  loader.innerHTML = '<div class="pulse-ring"></div>';
+  document.body.appendChild(loader);
+  const spinnerCSS = document.createElement('style');
+  spinnerCSS.textContent = `
+    .pulse-ring {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+    .pulse-ring::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: #1804F0;
+      opacity: 0.25;
+      filter: blur(10px);
+      pointer-events: none;
+    }
+    .pulse-ring::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 #1804F0;
+      animation: pulseBig 1.6s ease-out infinite;
+      filter: drop-shadow(0 0 8px #1804F0);
+      pointer-events: none;
+    }
+    @keyframes pulseBig {
+      0%   { box-shadow: 0 0 0   0   #1804F0; }
+      60%  { box-shadow: 0 0 0  80px rgba(24,4,240,0); }
+      100% { box-shadow: 0 0 0   0   rgba(24,4,240,0); }
+    }
+  `;
+  document.head.appendChild(spinnerCSS);
   const viewerDiv = document.createElement('div');
   viewerDiv.className = 'pdfViewer';
   container.appendChild(viewerDiv);
@@ -990,7 +1066,7 @@ async function main(host = {}, fetchUrlOverride) {
     fetchUrl = fetchUrlOverride ||
            (embed && embed.getAttribute && embed.getAttribute('original-url')) ||
            location.href;
-    resp = await fetch(fetchUrl, { credentials: 'include' });
+    resp = await fetch(fetchUrl, { credentials: 'include', cache: 'force-cache' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     data = await resp.arrayBuffer();
     console.log('[AFT] fetched PDF bytes:', data.byteLength, 'from', fetchUrl);
@@ -1002,6 +1078,10 @@ async function main(host = {}, fetchUrlOverride) {
   const eventBus    = new EventBus();
   const linkService = new PDFLinkService({eventBus});
   const pdfViewer   = new PDFViewer({container, viewer:viewerDiv, eventBus, linkService});
+  eventBus.on('pagerendered',       () => loader.remove());
+  eventBus.on('pagesloaded',        () => loader.remove());
+  eventBus.on('pagesinit',          () => loader.remove());
+  eventBus.on('documentloadfailed', () => loader.remove());
   const fix = document.createElement('style');
   fix.textContent = `
     .textLayer span {
@@ -1039,11 +1119,22 @@ async function main(host = {}, fetchUrlOverride) {
       position:absolute;
       pointer-events:none;
       z-index:6;
-      height:4px;                /* wave height; scaled in JS */
+      height:4px;
       background-repeat:repeat-x;
       background-position:left bottom;
       background-size:auto 100%;
       mix-blend-mode:multiply;
+    }
+    .page { box-shadow: 0 0 6px rgba(0,0,0,.12); margin:0 auto 24px; }
+    .page::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -16px;
+      border-bottom: 1px dashed #888;
+      opacity: .7;
+      pointer-events: none;
     }
   `;
   document.head.appendChild(fix);
@@ -1111,27 +1202,18 @@ async function main(host = {}, fetchUrlOverride) {
     toggle.textContent = 'Open Original';
   }
   toggle.onclick = () => {
-    if (!hasEmbedForToggle) {
-      window.open(fetchUrl + '#noaft', '_blank', 'noopener,noreferrer');
+    if (embed) {
+      embed.style.display = '';
+    } else if (window.__AFT_FETCH_URL) {
+      location.href = window.__AFT_FETCH_URL + (window.__AFT_FETCH_URL.includes('#') ? '' : '#noaft');
       return;
     }
-    showingStyled = !showingStyled;
-    if (showingStyled) {
-      includeCustom = customChk.checked;
-      updateStyleWords();
-      container.style.display = '';
-      embed.style.display     = 'none';
-      hlPanel.style.display   = '';   // show panel
-      aftRefreshHighlights('toggle-on');
-      toggle.textContent = 'Original';
-    } else {
-      includeCustom = false;
-      customChk.checked = false;
-      updateStyleWords();
-      container.style.display = 'none';
-      embed.style.display     = '';
-      hlPanel.style.display   = 'none'; // hide panel
-      toggle.textContent = 'Styled';
-    }
+    container?.remove();
+    hlPanel?.remove();
+    customPanel?.remove();
+    toggle?.remove();
+    document.body.classList.remove('aft-active');
+    styleTag?.remove();
+    link?.remove();
   };
 }
