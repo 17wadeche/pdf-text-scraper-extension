@@ -102,8 +102,29 @@ startWhenReady();
 function normWord(w) { return w.trim().toLowerCase(); }
 function esc(re) { return re.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function makeRegex(word) {
-  const p = esc(word.trim());
-  return new RegExp(`(?<![\\p{L}\\p{N}])(${p})(?![\\p{L}\\p{N}])`, 'giu');
+  const w = word.trim().toLowerCase();
+  let pattern;
+  if (/[^aeiou]y$/.test(w)) {
+    const stem = esc(w.slice(0, -1));
+    pattern = `${stem}(?:y|ies)`;
+  } else if (/[^aeiou]ies$/.test(w)) {
+    const stem = esc(w.slice(0, -3));
+    pattern = `${stem}(?:y|ies)`;
+  } else if (/(?:ch|sh|x|s|z|o)$/.test(w)) {
+    pattern = esc(w) + '(?:es)?';
+  } else if (/(?:ches|shes|xes|ses|zes|oes)$/.test(w)) {
+    pattern = esc(w.replace(/es$/, '')) + '(?:es)?';
+  } else if (/ed$/.test(w)) {                 // word **already ends in -ed**
+    const stem = esc(w.slice(0, -2));         // resolv
+    pattern = `${stem}(?:e?d?)?`;             // resolv | resolve | resolved
+  } else if (/e$/.test(w)) {                  // word ends in **lone e** (resolve)
+    pattern = esc(w) + '(?:s|d)?';                // resolve | resolved
+  } else if (w.endsWith('s')) {
+    pattern = esc(w.slice(0, -1)) + 's?';
+  } else {
+    pattern = esc(w) + '(?:s|ed)?';
+  }
+  return new RegExp(`(?<![\\p{L}\\p{N}])(${pattern})(?![\\p{L}\\p{N}])`, 'giu');
 }
 const FORCE_TEXT_VISIBLE = ';color:#000 !important;-webkit-text-fill-color:#000 !important;';
 const CSS_COLOR_KEYWORDS = [
