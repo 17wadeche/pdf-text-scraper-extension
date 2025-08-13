@@ -287,6 +287,7 @@ async function main(host = {}, fetchUrlOverride) {
     'Device Summary',
     'Reason for Transmission',
     'Alert and Event Summary',
+    'First Name',
     'Observations',
     'Notable Data Section',
     'Notes',
