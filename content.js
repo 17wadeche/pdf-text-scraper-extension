@@ -240,32 +240,6 @@ function scrollToPage(pageEl) {
   const top = pageEl.offsetTop - 24;
   container.scrollTo({ top, behavior: 'smooth' });
 }
-function findPageContainingPhrase(phrase) {
-  const needleLC = phrase.toLowerCase();
-  const pages = container.querySelectorAll('.page');
-  for (const page of pages) {
-    const tl = page.querySelector('.textLayer');
-    const pageText = (tl?.innerText || '').toLowerCase();
-    if (pageText.includes(needleLC)) {
-      return page;
-    }
-  }
-  return null;
-}
-function jumpToPhrase(phrase) {
-  const page = findPageContainingPhrase(phrase);
-  if (!page) {
-    return false;
-  }
-  scrollToPage(page);
-  if (!flashFirstSpanMatchOnPage(page, phrase)) {
-    const pageRect = page.getBoundingClientRect();
-    const scale = getPageScale(page);
-    const fake = new DOMRect(pageRect.left + 16, pageRect.top + 80, pageRect.width - 32, 20);
-    flashRectsOnPage(page, [fake]);
-  }
-  return true;
-}
 function persistCustomRules() {
   const storageShape = customRules.map(r => ({style:r.style, words:r.words}));
   localStorage.setItem('highlight_custom_rules', JSON.stringify(storageShape));
@@ -278,6 +252,32 @@ customRules = customRules
   .filter(Boolean);
 async function main(host = {}, fetchUrlOverride) {
   const { viewerEl = null, embedEl = null } = host;
+  function findPageContainingPhrase(phrase) {
+    const needleLC = phrase.toLowerCase();
+    const pages = container.querySelectorAll('.page');
+    for (const page of pages) {
+      const tl = page.querySelector('.textLayer');
+      const pageText = (tl?.innerText || '').toLowerCase();
+      if (pageText.includes(needleLC)) {
+        return page;
+      }
+    }
+    return null;
+  }
+  function jumpToPhrase(phrase) {
+    const page = findPageContainingPhrase(phrase);
+    if (!page) {
+      return false;
+    }
+    scrollToPage(page);
+    if (!flashFirstSpanMatchOnPage(page, phrase)) {
+      const pageRect = page.getBoundingClientRect();
+      const scale = getPageScale(page);
+      const fake = new DOMRect(pageRect.left + 16, pageRect.top + 80, pageRect.width - 32, 20);
+      flashRectsOnPage(page, [fake]);
+    }
+    return true;
+  }
   let container = null;
   window.__AFT_VERSION = '0.1.3d';
   console.log('[AFT] init v' + window.__AFT_VERSION, location.href);
