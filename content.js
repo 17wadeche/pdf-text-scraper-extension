@@ -1454,7 +1454,7 @@ async function main(host = {}, fetchUrlOverride) {
     btn.className = 'aft-ql-btn';
     btn.title = `Jump to "${label}"`;
     btn.textContent = label;
-    btn.onclick = () => {
+    btn.onclick = async () => {
       const ok = await jumpToPhrase(label);
       if (!ok) {
         btn.classList.add('aft-ql-notfound');
