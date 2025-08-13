@@ -322,7 +322,10 @@ async function main(host = {}, fetchUrlOverride) {
     if (!phrase) return false;
     const pageRect = pageEl.getBoundingClientRect();
     const scale = getPageScale(pageEl);
-    const spans = pageEl.querySelectorAll('.textLayer span');
+    const isNonWord = s => /^[^\p{L}\p{N}]+$/u.test(s || "");
+    const tokenAlts = t => (t === "and" ? ["and", "&"] : [t]);
+    const toLC = s => (s || "").toLowerCase();
+    const spans = pageEl.querySelectorAll(".textLayer span");
     for (const s of spans) {
       const rng = getRangeForPhraseInSpan(s, phrase);
       if (!rng) continue;
@@ -330,51 +333,69 @@ async function main(host = {}, fetchUrlOverride) {
       try { rng.detach?.(); } catch {}
       if (rects.length) {
         const yLocal = (rects[0].top - pageRect.top - 8) / scale;
-        scrollToLocalY(pageEl, yLocal);
+        const target = pageEl.offsetTop + Math.max(0, yLocal - 60);
+        container.scrollTo({ top: target, behavior: "smooth" });
         flashRectsOnPage(pageEl, rects);
         return true;
       }
     }
-    const tokens = (phrase || '').toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const tokens = toLC(phrase).trim().split(/\s+/).filter(Boolean);
     if (!tokens.length) return false;
-    const allSpans = Array.from(pageEl.querySelectorAll('.textLayer span'));
-    const toLC  = s => (s || '').toLowerCase();
+    const allSpans = Array.from(spans);
     for (let i = 0; i < allSpans.length; i++) {
-      let k = 0;         // token index
-      let j = i;         // span cursor
-      const ranges = []; // ranges for each token hit
+      let j = i;                 // span index cursor
+      let pos = 0;               // search start within current span
+      let k = 0;                 // token index
+      const ranges = [];         // collected ranges for each token
       while (k < tokens.length && j < allSpans.length) {
         const span = allSpans[j];
-        const lc = toLC(span.textContent || '');
-        if (!lc.trim()) { j++; continue; }                 // skip empties
-        const hit = lc.indexOf(tokens[k]);
-        if (hit >= 0) {
-          const tn = getFirstTextNode(span);
-          if (!tn) { j++; continue; }
-          const rng = document.createRange();
-          rng.setStart(tn, Math.max(0, Math.min(hit, tn.length)));
-          rng.setEnd(tn,   Math.max(0, Math.min(hit + tokens[k].length, tn.length)));
-          ranges.push(rng);
-          k++; j++;                                         // next token, next span
-        } else if (/^[^\p{L}\p{N}]+$/u.test(lc)) {
-          j++;                                             // allow punctuation-only spans between tokens
-        } else {
-          ranges.forEach(r => { try { r.detach?.(); } catch {} });
-          break;
+        const lc = toLC(span.textContent || "");
+        const tn = getFirstTextNode(span);
+        if (!tn || !lc.trim()) { j++; pos = 0; continue; }
+        let foundHere = false;
+        for (const alt of tokenAlts(tokens[k])) {
+          const rx = new RegExp(`(?<![\\p{L}\\p{N}])${alt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "u");
+          const sub = lc.slice(pos);
+          const m = rx.exec(sub);
+          if (m) {
+            const hit = pos + m.index;
+            const rng = document.createRange();
+            const start = Math.max(0, Math.min(hit, tn.length));
+            const end   = Math.max(0, Math.min(hit + alt.length, tn.length));
+            rng.setStart(tn, start);
+            rng.setEnd(tn, end);
+            ranges.push(rng);
+            pos = hit + alt.length;       // continue within the same span
+            k++;
+            foundHere = true;
+            break;
+          }
         }
+        if (foundHere) continue;
+        const tail = lc.slice(pos).trim();
+        if (!tail || isNonWord(tail) || /^-+$/.test(tail)) {
+          j++; pos = 0;                    // bridge to next span
+          continue;
+        }
+        ranges.forEach(r => { try { r.detach?.(); } catch {} });
+        break;
       }
       if (k === tokens.length) {
         const rects = [];
-        ranges.forEach(r => { rects.push(...Array.from(r.getClientRects()).filter(rr => rr.width && rr.height)); try { r.detach?.(); } catch {} });
+        for (const r of ranges) {
+          rects.push(...Array.from(r.getClientRects()).filter(rr => rr.width && rr.height));
+          try { r.detach?.(); } catch {}
+        }
         if (rects.length) {
           const yLocal = (rects[0].top - pageRect.top - 8) / scale;
-          scrollToLocalY(pageEl, yLocal);
+          const target = pageEl.offsetTop + Math.max(0, yLocal - 60);
+          container.scrollTo({ top: target, behavior: "smooth" });
           flashRectsOnPage(pageEl, rects);
           return true;
         }
       }
     }
-    return false; // let caller do the top-of-page fallback
+    return false; // caller will show the top-of-page fallback
   }
   const normalize = s => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
   const pageTextCache = new Map();
@@ -1434,7 +1455,7 @@ async function main(host = {}, fetchUrlOverride) {
     btn.title = `Jump to "${label}"`;
     btn.textContent = label;
     btn.onclick = () => {
-      const ok = jumpToPhrase(label);
+      const ok = await jumpToPhrase(label);
       if (!ok) {
         btn.classList.add('aft-ql-notfound');
         setTimeout(() => btn.classList.remove('aft-ql-notfound'), 900);
