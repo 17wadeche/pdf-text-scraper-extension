@@ -471,16 +471,13 @@ async function main(host = {}, fetchUrlOverride) {
     }
     if (!pageNumber) return false;
     pdfViewer.scrollPageIntoView({ pageNumber });
-    await waitForPageReady(pageNumber);
+    await ensureTextLayerRendered(pageNumber);
     const page =
       pdfViewer._pages?.[pageNumber - 1]?.div ||
       container.querySelector(`.page[data-page-number="${pageNumber}"]`);
     if (!page) return true;
-    if (!phrase || !flashFirstSpanMatchOnPage(page, phrase)) {
-      const pageRect = page.getBoundingClientRect();
-      const scale = getPageScale(page);
-      const fake = new DOMRect(pageRect.left + 16, pageRect.top + 80, pageRect.width - 32, 20);
-      flashRectsOnPage(page, [fake]);
+    if (phrase) {
+      flashFirstSpanMatchOnPage(page, phrase);
     }
     return true;
   }
@@ -493,12 +490,7 @@ async function main(host = {}, fetchUrlOverride) {
       pdfViewer._pages?.[pageNumber - 1]?.div ||
       container.querySelector(`.page[data-page-number="${pageNumber}"]`);
     if (!page) return true; 
-    if (!flashFirstSpanMatchOnPage(page, phrase)) {
-      const pageRect = page.getBoundingClientRect();
-      const scale = getPageScale(page);
-      const fake = new DOMRect(pageRect.left + 16, pageRect.top + 80, pageRect.width - 32, 20);
-      flashRectsOnPage(page, [fake]);
-    }
+    flashFirstSpanMatchOnPage(page, phrase);
     return true;
   }
   let container = null;
