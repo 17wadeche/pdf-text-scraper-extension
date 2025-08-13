@@ -339,7 +339,7 @@ async function main(host = {}, fetchUrlOverride) {
         const rects = Array.from(rng.getClientRects()).filter(r => r.width && r.height);
         try { rng.detach?.(); } catch {}
         if (rects.length) results.push(rects);
-        idx = needle.length;
+        idx += needle.length;
       }
     }
     const allSpans = Array.from(spans);
