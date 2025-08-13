@@ -318,6 +318,15 @@ async function main(host = {}, fetchUrlOverride) {
     const target = pageEl.offsetTop + Math.max(0, yLocal - 60);
     container.scrollTo({ top: target, behavior: 'smooth' });
   }
+  async function findAllPagesFor(phrase) {
+    const needle = normalize(phrase);
+    const pages = [];
+    for (let n = 1; n <= pdfDoc.numPages; n++) {
+      const text = await getPageText(n);
+      if (text.includes(needle)) pages.push(n);
+    }
+    return pages;
+  }
   function collectMatchesOnPage(pageEl, phrase) {
     if (!phrase) return [];
     const pageRect = pageEl.getBoundingClientRect();
@@ -476,13 +485,13 @@ async function main(host = {}, fetchUrlOverride) {
     }
     if (!pageNumber) return false;
     pdfViewer.scrollPageIntoView({ pageNumber });
-    await ensureTextLayerRendered(pageNumber);
+    await waitForPageReady(pageNumber, 1200);
     const page =
       pdfViewer._pages?.[pageNumber - 1]?.div ||
       container.querySelector(`.page[data-page-number="${pageNumber}"]`);
-    if (!page) return true;
-    if (!phrase) return true;
-    return flashMatchOnPage(page, phrase, { afterY }).ok;
+    if (!page) return { ok:true, yLocal:null, wrapped:false };
+    if (!phrase) return { ok:true, yLocal:null, wrapped:false };
+    return flashMatchOnPage(page, phrase, { afterY });
   }
   async function jumpToPhrase(phrase, opts = {}) {
     const pageNumber = await findPageNumberByPhrase(phrase);
@@ -1615,36 +1624,41 @@ async function main(host = {}, fetchUrlOverride) {
   }
   async function computeAndRenderQuickLinks() {
     const results = await Promise.all(
-      QUICK_LINKS.map(async label => [label, await findAllTargetsFor(label)])
+      QUICK_LINKS.map(async label => [label, await findAllPagesFor(label)])
     );
     const present = results
-      .filter(([, targets]) => targets.length > 0)
-      .sort((a, b) => (a[1][0]?.pageNumber || 1e9) - (b[1][0]?.pageNumber || 1e9));
+      .filter(([, pages]) => pages.length > 0)
+      .sort((a, b) => a[1][0] - b[1][0]);
     qlGrid.innerHTML = "";
-    for (const [label, targets] of present) {
-      const state = linkStates.get(label) || { targets, idx: 0 };
-      state.targets = targets;
+    for (const [label, pages] of present) {
+      const state = linkStates.get(label) || { pages, pageIdx: 0, yByPage: new Map() };
+      state.pages = pages;
       state.idx = Math.min(state.idx || 0, Math.max(0, targets.length - 1));
       linkStates.set(label, state);
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "aft-ql-btn";
-      btn.title = `Jump to "${label}" — ${targets.length} occurrence${targets.length > 1 ? 's' : ''}`;
+      btn.title = `Jump to "${label}" — on ${pages.length} page${pages.length>1?'s':''}`;
       setBtnProgressText(btn, label, null, null); // show just the label initially
       btn.onclick = async (ev) => {
         if (btn.__busy) return;
         btn.__busy = true;
         try {
           const st = linkStates.get(label);
-          const total = st.targets.length;
-          if (!total) return;
+          if (!st.pages.length) return;
           const step = ev.shiftKey ? -1 : 1;
-          const idx = ((st.idx % total) + total) % total; // keep in [0..total-1]
-          const displayIdx = idx + 1;                      // 1-based for the label
-          const target = st.targets[idx];
-          setBtnProgressText(btn, label, displayIdx, total);
-          await jumpTo({ pageNumber: target.pageNumber, phrase: label, afterY: target.yLocal - 0.5 });
-          st.idx = (idx + step + total) % total;
+          for (let attempts = 0; attempts < st.pages.length; attempts++) {
+            const pageNumber = st.pages[((st.pageIdx % st.pages.length) + st.pages.length) % st.pages.length];
+            const afterY = st.yByPage.get(pageNumber) ?? -Infinity;
+            const res = await jumpTo({ pageNumber, phrase: label, afterY });
+            if (res && res.ok) {
+              st.yByPage.set(pageNumber, res.yLocal);
+              if (res.wrapped) st.pageIdx = (st.pageIdx + step + st.pages.length) % st.pages.length;
+              break;
+            } else {
+              st.pageIdx = (st.pageIdx + step + st.pages.length) % st.pages.length;
+            }
+          }
         } finally {
           btn.__busy = false;
         }
@@ -1656,7 +1670,7 @@ async function main(host = {}, fetchUrlOverride) {
   }
   eventBus.on('pagesinit', async () => {
     pdfViewer.currentScaleValue = 'auto'; // or 'page-fit'
-    await computeAndRenderQuickLinks();
+    computeAndRenderQuickLinks(); 
   });
   let _aftRefreshScheduled = false;
   let _aftLastReason = '';
