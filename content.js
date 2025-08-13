@@ -1636,9 +1636,6 @@ async function main(host = {}, fetchUrlOverride) {
         btn.__busy = true;
         try {
           const st = linkStates.get(label);
-          if (!st.targets || !st.targets.length) {
-            st.targets = await findAllTargetsFor(label);
-          }
           const total = st.targets.length;
           if (!total) return;
           const step = ev.shiftKey ? -1 : 1;
