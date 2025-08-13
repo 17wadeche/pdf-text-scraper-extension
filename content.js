@@ -93,7 +93,7 @@ function startWhenReady() {
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     if (document.contentType === 'application/pdf') {
       initialized = true;
-      main(host);   // host may be nulls; main can handle
+      main(host);
     }
     return;
   }
@@ -115,11 +115,11 @@ function makeRegex(word) {
     pattern = esc(w) + '(?:es)?';
   } else if (/(?:ches|shes|xes|ses|zes|oes)$/.test(w)) {
     pattern = esc(w.replace(/es$/, '')) + '(?:es)?';
-  } else if (/ed$/.test(w)) {                 // word **already ends in -ed**
-    const stem = esc(w.slice(0, -2));         // resolv
-    pattern = `${stem}(?:e?d?)?`;             // resolv | resolve | resolved
-  } else if (/e$/.test(w)) {                  // word ends in **lone e** (resolve)
-    pattern = esc(w) + '(?:s|d)?';                // resolve | resolved
+  } else if (/ed$/.test(w)) {
+    const stem = esc(w.slice(0, -2));
+    pattern = `${stem}(?:e?d?)?`;
+  } else if (/e$/.test(w)) {
+    pattern = esc(w) + '(?:s|d)?';
   } else if (w.endsWith('s')) {
     pattern = esc(w.slice(0, -1)) + 's?';
   } else {
@@ -161,7 +161,7 @@ function parseStyleToFields(styleStr) {
   if (bg) return {prop:'background', color:bg[1].trim()};
   const col = /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(styleStr);
   if (col) return {prop:'color', color:col[1].trim()};
-  return {prop:'background', color:'yellow'}; // default
+  return {prop:'background', color:'yellow'};
 }
 function buildStyleFromFields(prop, color) {
   if (prop === 'underline') {
@@ -176,7 +176,7 @@ function normalizeRuleFromStorage(r) {
   if (!words.length && typeof r.word === 'string') words = [r.word];
   let prop = r.prop, color = r.color, style = r.style;
   if (!style) style = buildStyleFromFields(prop || 'background', color || 'yellow');
-  ({prop, color} = parseStyleToFields(style)); // ensure
+  ({prop, color} = parseStyleToFields(style)); 
   return {
     id: r.id || (Date.now().toString(36) + Math.random().toString(36).slice(2)),
     words,
@@ -260,52 +260,6 @@ async function main(host = {}, fetchUrlOverride) {
     });
     setTimeout(() => overlays.forEach(o => o.remove()), 1600);
   }
-  function getRangeForPhraseInSpan(span, phrase) {
-    if (!span) return null;
-    const needleLC = (phrase || '').toLowerCase();
-    if (!needleLC) return null;
-    const walker = document.createTreeWalker(
-      span,
-      NodeFilter.SHOW_TEXT,
-      { acceptNode: n => n.data ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
-    );
-    const nodes = [];
-    const lengths = [];
-    let full = '';
-    for (let n; (n = walker.nextNode()); ) {
-      const t = n.data;
-      nodes.push(n);
-      lengths.push(t.length);
-      full += t;
-    }
-    if (!full) return null;
-    const haystack = full.toLowerCase();
-    const idx = haystack.indexOf(needleLC);
-    if (idx < 0) return null;
-    const endPos = idx + needleLC.length;
-    let pos = 0;
-    let startNode = null, startOffset = 0;
-    let endNode = null, endOffset = 0;
-    for (let i = 0; i < nodes.length; i++) {
-      const len = lengths[i];
-      if (!startNode && idx < pos + len) {
-        startNode = nodes[i];
-        startOffset = idx - pos;
-      }
-      if (endPos <= pos + len) {
-        endNode = nodes[i];
-        endOffset = endPos - pos;
-        break;
-      }
-      pos += len;
-    }
-    if (!startNode || !endNode) return null;
-    const clamp = (node, off) => Math.max(0, Math.min(off, (node.data || '').length));
-    const rng = document.createRange();
-    rng.setStart(startNode, clamp(startNode, startOffset));
-    rng.setEnd(endNode, clamp(endNode, endOffset));
-    return rng;
-  }
   function getFirstTextNode(el) {
     const walker = document.createTreeWalker(
       el,
@@ -313,10 +267,6 @@ async function main(host = {}, fetchUrlOverride) {
       { acceptNode: n => n.data ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
     );
     return walker.nextNode();
-  }
-  function scrollToLocalY(pageEl, yLocal) {
-    const target = pageEl.offsetTop + Math.max(0, yLocal - 60);
-    container.scrollTo({ top: target, behavior: 'smooth' });
   }
   async function findAllPagesFor(phrase) {
     const needle = normalize(phrase);
@@ -329,8 +279,6 @@ async function main(host = {}, fetchUrlOverride) {
   }
   function collectMatchesOnPage(pageEl, phrase) {
     if (!phrase) return [];
-    const pageRect = pageEl.getBoundingClientRect();
-    const scale = getPageScale(pageEl);
     const isNonWord = s => /^[^\p{L}\p{N}]+$/u.test(s || "");
     const tokenAlts = t => (t === "and" ? ["and", "&"] : [t]);
     const toLC = s => (s || "").toLowerCase();
@@ -393,7 +341,7 @@ async function main(host = {}, fetchUrlOverride) {
             try { r.detach?.(); } catch {}
           }
           if (rects.length) results.push(rects);
-          i = j; // continue after the match we just consumed
+          i = j;
         }
       }
     }
@@ -429,22 +377,6 @@ async function main(host = {}, fetchUrlOverride) {
     pageTextCache.set(pageNumber, text);
     return text;
   }
-  async function findFirstPageFor(label) {
-    const needle = normalize(label);
-    for (let n = 1; n <= pdfDoc.numPages; n++) {
-      const text = await getPageText(n);
-      if (text.includes(needle)) return n;
-    }
-    return null;
-  }
-  async function findPageNumberByPhrase(phrase) {
-    const needle = normalize(phrase);
-    for (let n = 1; n <= pdfDoc.numPages; n++) {
-      const text = await getPageText(n);
-      if (text.includes(needle)) return n;
-    }
-    return null;
-  }
   function ensureTextLayerRendered(pageNumber) {
     const pv = pdfViewer._pages?.[pageNumber - 1];
     if (!pv) return Promise.resolve();
@@ -476,7 +408,7 @@ async function main(host = {}, fetchUrlOverride) {
       if (pv && pv.textLayer?.renderingDone) return resolve();
       eventBus.on('textlayerrendered', onText);
       eventBus.on('pagerendered', onPage);
-      const to = setTimeout(finish, timeout); // best-effort fallback
+      const to = setTimeout(finish, timeout);
     });
   }
   async function jumpTo({ pageNumber, phrase, afterY }) {
@@ -672,7 +604,7 @@ async function main(host = {}, fetchUrlOverride) {
   link.rel  = 'stylesheet';
   link.href = chrome.runtime.getURL('pdf_viewer.css');
   document.head.appendChild(link);
-  const { defaultStyleWords, config } = await import(chrome.runtime.getURL('styles.js'));
+  const { config } = await import(chrome.runtime.getURL('styles.js'));
   let currentBU = localStorage.getItem('highlight_BU') || '';
   let currentOU = localStorage.getItem('highlight_OU') || '';
   let styleWordsToUse = [];
@@ -996,7 +928,7 @@ async function main(host = {}, fetchUrlOverride) {
     };
     footer.appendChild(importBtn);
     footer.appendChild(exportBtn);
-    customPanelBody.appendChild(importInput);  // invisible, but needed for file upload
+    customPanelBody.appendChild(importInput);
     customPanelBody.appendChild(footer);
     newCancelBtn.onclick=()=>{newWords.value='';newColorSel.value='';newColorInput.style.display='none';};
     newAddBtn.onclick=()=>{
@@ -1163,9 +1095,9 @@ async function main(host = {}, fetchUrlOverride) {
           if (pulseMode && job.isNew) ul.classList.add('pulse');
           const ulColor = getUnderlineColorFromStyle(style);
           const x = (r.left - pageRect.left - 8) / scale;
-          const y = (r.bottom - pageRect.top - 8 - 3) / scale; // 3px tweak
+          const y = (r.bottom - pageRect.top - 8 - 3) / scale;
           const w = r.width / scale;
-          const h = 4; // matches .word-underline height; small constant
+          const h = 4;
           ul.style.left  = `${x}px`;
           ul.style.top   = `${y}px`;
           ul.style.width = `${w}px`;
@@ -1202,7 +1134,7 @@ async function main(host = {}, fetchUrlOverride) {
       const wrap = document.createElement('span');
       wrap.classList.add('styled-word');
       const isUnderline = /text-decoration-line\s*:\s*underline/i.test(style);
-      if (isUnderline) wrap.classList.add('aft-ul'); // marker class
+      if (isUnderline) wrap.classList.add('aft-ul');
       if (shift) wrap.classList.add('shift-left');
       if (pulseMode && job.isNew) wrap.classList.add('pulse');
       const needsForce =
@@ -1214,11 +1146,11 @@ async function main(host = {}, fetchUrlOverride) {
     }
   }
   function isTextStyle(rule) {
-    if (rule.prop) return rule.prop === 'color';       // custom rules already carry .prop
+    if (rule.prop) return rule.prop === 'color';
     const css = rule.style || '';
-    return  /(?:^|;)\s*color\s*:/.test(css) &&         // has a text colour
-            !/background\s*:/.test(css) &&             // …but no background
-            !/text-decoration-line\s*:\s*underline/i.test(css); // …and no underline
+    return  /(?:^|;)\s*color\s*:/.test(css) &&
+            !/background\s*:/.test(css) &&
+            !/text-decoration-line\s*:\s*underline/i.test(css);
   }
   function renderAllHighlights() {
     if (!container) return;
@@ -1230,11 +1162,11 @@ async function main(host = {}, fetchUrlOverride) {
         if (txt.startsWith('* ')) {
           const orangeRules = styleWordsToUse.map(rule =>
             isTextStyle(rule)
-              ? {                          // clone & override only text-style rules
+              ? {
                   ...rule,
                   style: 'background: orange; color: black;'
                 }
-              : rule                       // leave underline / background untouched
+              : rule
           );
           highlightSpan(span, orangeRules, page);
           return;
@@ -1283,7 +1215,6 @@ async function main(host = {}, fetchUrlOverride) {
     clearHighlights(container);
     renderAllHighlights();
   });
-
   updateStyleWords();
   const pdfjsLib    = await import(chrome.runtime.getURL('pdf.mjs'));
   const pdfjsViewer = await import(chrome.runtime.getURL('pdf_viewer.mjs'));
@@ -1332,8 +1263,8 @@ async function main(host = {}, fetchUrlOverride) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#000',          // same black you set on container
-    zIndex: 2147483648           // one above container
+    background: '#000',
+    zIndex: 2147483648
   });
   loader.innerHTML = '<div class="pulse-ring"></div>';
   document.body.appendChild(loader);
@@ -1435,19 +1366,15 @@ async function main(host = {}, fetchUrlOverride) {
   const buLabel = document.createElement('label');
   buLabel.textContent = 'BU:';
   buLabel.style.fontWeight = 'bold';
-
   const ouLabel = document.createElement('label');
   ouLabel.textContent = 'OU:';
   ouLabel.style.fontWeight = 'bold';
-
   const buRow = document.createElement('div');
   buRow.className = 'aft-row';
   buRow.append(buLabel, buSelect);
-
   const ouRow = document.createElement('div');
   ouRow.className = 'aft-row';
   ouRow.append(ouLabel, ouSelect);
-
   hlBody.append(
     buRow,
     ouRow,
@@ -1491,8 +1418,8 @@ async function main(host = {}, fetchUrlOverride) {
   qlWrap.append(qlHeader, qlGrid);
   hlBody.appendChild(qlWrap);
   updateQlCollapseUI();
-  hlBody.style.display = ''; // show by default
-  hlPanel.innerHTML = ''; // clear previous text
+  hlBody.style.display = ''; 
+  hlPanel.innerHTML = ''; 
   hlPanel.append(hlHeader, hlBody);
   customPanel.style.zIndex = AFT_UI_Z;
   toggle.dataset.aftRole   = 'toggle';
@@ -1509,7 +1436,7 @@ async function main(host = {}, fetchUrlOverride) {
     } else {
       hlBody.style.display = '';
       hlClose.textContent = '✕';
-      hlPanel.style.width = '300px';  // or your preferred expanded width
+      hlPanel.style.width = '300px';  
       hlPanel.style.padding = '8px';
       hlPanel.style.left = '16px';
     }
@@ -1633,18 +1560,22 @@ async function main(host = {}, fetchUrlOverride) {
     for (const [label, pages] of present) {
       const state = linkStates.get(label) || { pages, pageIdx: 0, yByPage: new Map() };
       state.pages = pages;
-      state.idx = Math.min(state.idx || 0, Math.max(0, pages.length - 1));
+      state.pageIdx = Math.min(
+        typeof state.pageIdx === 'number' && !Number.isNaN(state.pageIdx) ? state.pageIdx : 0,
+        Math.max(0, pages.length - 1)
+      );
       linkStates.set(label, state);
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "aft-ql-btn";
       btn.title = `Jump to "${label}" — on ${pages.length} page${pages.length>1?'s':''}`;
-      setBtnProgressText(btn, label, null, null); // show just the label initially
+      setBtnProgressText(btn, label, (state.pageIdx ?? 0) + 1, state.pages.length);
       btn.onclick = async (ev) => {
         if (btn.__busy) return;
         btn.__busy = true;
         try {
           const st = linkStates.get(label);
+          if (typeof st.pageIdx !== 'number' || Number.isNaN(st.pageIdx)) st.pageIdx = 0;
           if (!st.pages.length) return;
           const step = ev.shiftKey ? -1 : 1;
           for (let attempts = 0; attempts < st.pages.length; attempts++) {
@@ -1669,14 +1600,13 @@ async function main(host = {}, fetchUrlOverride) {
     updateQlCollapseUI();
   }
   eventBus.on('pagesinit', async () => {
-    pdfViewer.currentScaleValue = 'auto'; // or 'page-fit'
+    pdfViewer.currentScaleValue = 'auto';
     computeAndRenderQuickLinks(); 
   });
   let _aftRefreshScheduled = false;
-  let _aftLastReason = '';
   function aftRefreshHighlights(reason = '') {
     _aftLastReason = reason;
-    if (_aftRefreshScheduled) return;          // coalesce
+    if (_aftRefreshScheduled) return;
     _aftRefreshScheduled = true;
     requestAnimationFrame(() => {
       _aftRefreshScheduled = false;
@@ -1701,7 +1631,7 @@ async function main(host = {}, fetchUrlOverride) {
     });
     aftRefreshHighlights('tlr-' + pageNumber);
   });
-  const AFT_POLL_MS = 800;  // tune: smaller = more responsive, larger = less CPU
+  const AFT_POLL_MS = 800;
   let _aftLastSig = '';
   function aftComputeSig() {
     if (!container) return '';
@@ -1714,7 +1644,7 @@ async function main(host = {}, fetchUrlOverride) {
     const sig = aftComputeSig();
     if (sig !== _aftLastSig) {
       _aftLastSig = sig;
-      aftRefreshHighlights('poll-change');   // coalesced via wrapper
+      aftRefreshHighlights('poll-change');
     }
   }, AFT_POLL_MS);
   let _aftScrollDebounce;
