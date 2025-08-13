@@ -358,15 +358,6 @@ async function main(host = {}, fetchUrlOverride) {
     }
     return null;
   }
-  btn.onclick = async () => {
-    btn.disabled = true;
-    const ok = await jumpToPhrase(label);
-    if (!ok) {
-      btn.classList.add('aft-ql-notfound');
-      setTimeout(() => btn.classList.remove('aft-ql-notfound'), 900);
-    }
-    btn.disabled = false;
-  };
   const normalize = s => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
   const pageTextCache = new Map();
   async function getPageText(pageNumber) {
