@@ -1,13 +1,26 @@
 // content.js
 const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
-  'https://crmstage.medtronic.com/sap/bc/contentserver/'
+  'https://crmstage.medtronic.com/sap/bc/contentserver/',
+  "https://crm.medtronic.com/sap/bc/contentserver/"
+];
+const QUICK_LINKS = [
+  'Device Summary',
+  'Reason for Transmission',
+  'Alert and Event Summary',
+  'Observations',
+  'Notable Data Section',
+  'Notes',
+  'Device Status',
+  'Episodes List',
+  'Other Hardware Notes',
+  'CareAlert Event List'
 ];
 (function offerOpenStyledButton() {
   if (location.hash !== '#noaft') return;
   if (!urlIsAllowed(location.href.replace(/#noaft$/, ''))) return;
   function injectButton() {
-    if (document.getElementById('__aft_open_styled')) return;    // don’t duplicate
+    if (document.getElementById('__aft_open_styled')) return;
     const btn = document.createElement('button');
     btn.id = '__aft_open_styled';
     btn.textContent = 'Open Styled';
@@ -184,6 +197,87 @@ function normalizeRuleFromStorage(r) {
     style: buildStyleFromFields(prop, color)
   };
 }
+function getPageScale(pageEl) {
+  let scale = 1;
+  const m = pageEl?.style?.transform?.match(/scale\(([^)]+)\)/);
+  if (m) scale = parseFloat(m[1]) || 1;
+  return scale;
+}
+function flashRectsOnPage(pageEl, rects) {
+  const pageRect = pageEl.getBoundingClientRect();
+  const scale = getPageScale(pageEl);
+  const overlays = [];
+  rects.forEach(r => {
+    const box = document.createElement('div');
+    box.className = 'aft-ql-flash';
+    const x = (r.left - pageRect.left - 8) / scale;
+    const y = (r.top  - pageRect.top  - 8) / scale;
+    box.style.left   = `${x}px`;
+    box.style.top    = `${y}px`;
+    box.style.width  = `${r.width / scale}px`;
+    box.style.height = `${r.height / scale}px`;
+    pageEl.appendChild(box);
+    overlays.push(box);
+  });
+  setTimeout(() => overlays.forEach(o => o.remove()), 1600);
+}
+function findFirstMatchRangeInSpan(span, needleLC) {
+  if (!span || !span.firstChild || span.firstChild.nodeType !== Node.TEXT_NODE) return null;
+  const text = span.textContent || '';
+  const idx = text.toLowerCase().indexOf(needleLC);
+  if (idx < 0) return null;
+  const rng = document.createRange();
+  rng.setStart(span.firstChild, idx);
+  rng.setEnd(span.firstChild, idx + needleLC.length);
+  return rng;
+}
+function flashFirstSpanMatchOnPage(pageEl, phrase) {
+  const needleLC = phrase.toLowerCase();
+  const spans = pageEl.querySelectorAll('.textLayer span');
+  for (const s of spans) {
+    const rng = findFirstMatchRangeInSpan(s, needleLC);
+    if (rng) {
+      const rects = Array.from(rng.getClientRects());
+      rng.detach?.();
+      if (rects.length) {
+        flashRectsOnPage(pageEl, rects);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function scrollToPage(pageEl) {
+  if (!pageEl) return;
+  const top = pageEl.offsetTop - 24;
+  container.scrollTo({ top, behavior: 'smooth' });
+}
+function findPageContainingPhrase(phrase) {
+  const needleLC = phrase.toLowerCase();
+  const pages = container.querySelectorAll('.page');
+  for (const page of pages) {
+    const tl = page.querySelector('.textLayer');
+    const pageText = (tl?.innerText || '').toLowerCase();
+    if (pageText.includes(needleLC)) {
+      return page;
+    }
+  }
+  return null;
+}
+function jumpToPhrase(phrase) {
+  const page = findPageContainingPhrase(phrase);
+  if (!page) {
+    return false;
+  }
+  scrollToPage(page);
+  if (!flashFirstSpanMatchOnPage(page, phrase)) {
+    const pageRect = page.getBoundingClientRect();
+    const scale = getPageScale(page);
+    const fake = new DOMRect(pageRect.left + 16, pageRect.top + 80, pageRect.width - 32, 20);
+    flashRectsOnPage(page, [fake]);
+  }
+  return true;
+}
 function persistCustomRules() {
   const storageShape = customRules.map(r => ({style:r.style, words:r.words}));
   localStorage.setItem('highlight_custom_rules', JSON.stringify(storageShape));
@@ -281,6 +375,56 @@ async function main(host = {}, fetchUrlOverride) {
   justify-content: flex-end;
   margin-top: 4px;
 }
+  #aftQuickLinks {
+    margin-top: 8px;
+  }
+  #aftQuickLinksHeader {
+    font-weight: bold;
+    margin: 8px 0 4px;
+  }
+  .aft-ql-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .aft-ql-btn {
+    display: inline-block;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    transition: transform .04s ease, background .15s ease, border-color .15s ease;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .aft-ql-btn:hover {
+    background: #f7f9ff;
+    border-color: #cfe0ff;
+    transform: translateY(-1px);
+  }
+  .aft-ql-notfound {
+    opacity: .7;
+  }
+  /* Flash highlight for quick-jump */
+  .aft-ql-flash {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(255, 235, 59, .65); /* warm yellow */
+    outline: 1px solid rgba(0,0,0,.12);
+    z-index: 9999;
+    animation: aftQlFlash 1.4s ease-out 1 forwards;
+    mix-blend-mode: multiply;
+  }
+  @keyframes aftQlFlash {
+    0%   { filter: brightness(1.8) saturate(1.6); }
+    60%  { filter: brightness(2.2) saturate(2.0); }
+    100% { filter: brightness(1)   saturate(1);   opacity: .15; }
+  }
   `;
   let showingStyled = true;
   document.head.appendChild(styleTag);
@@ -1058,8 +1202,31 @@ async function main(host = {}, fetchUrlOverride) {
     customChk,
     customLbl
   );
+  const qlWrap = document.createElement('div');
+  qlWrap.id = 'aftQuickLinks';
+  const qlHeader = document.createElement('div');
+  qlHeader.id = 'aftQuickLinksHeader';
+  qlHeader.textContent = 'Quick Links';
+  const qlGrid = document.createElement('div');
+  qlGrid.className = 'aft-ql-grid';
+  QUICK_LINKS.forEach(label => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'aft-ql-btn';
+    btn.title = `Jump to "${label}"`;
+    btn.textContent = label;
+    btn.onclick = () => {
+      const ok = jumpToPhrase(label);
+      if (!ok) {
+        btn.classList.add('aft-ql-notfound');
+        setTimeout(() => btn.classList.remove('aft-ql-notfound'), 900);
+      }
+    };
+    qlGrid.appendChild(btn);
+  });
+  qlWrap.append(qlHeader, qlGrid);
+  hlBody.appendChild(qlWrap);
   hlBody.style.display = ''; // show by default
-
   hlPanel.innerHTML = ''; // clear previous text
   hlPanel.append(hlHeader, hlBody);
   customPanel.style.zIndex = AFT_UI_Z;
