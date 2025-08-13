@@ -219,20 +219,69 @@ function findFirstMatchRangeInSpan(span, needleLC) {
   rng.setEnd(span.firstChild, idx + needleLC.length);
   return rng;
 }
-function flashFirstSpanMatchOnPage(pageEl, phrase) {
-  const needleLC = phrase.toLowerCase();
-  const spans = pageEl.querySelectorAll('.textLayer span');
-  for (const s of spans) {
-    const rng = findFirstMatchRangeInSpan(s, needleLC);
-    if (rng) {
-      const rects = Array.from(rng.getClientRects());
-      rng.detach?.();
+function getFirstTextNode(el) {
+  const walker = document.createTreeWalker(
+    el,
+    NodeFilter.SHOW_TEXT,
+    { acceptNode: n => n.data ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
+  );
+  return walker.nextNode();
+}
+function flashMultiSpanMatchOnPage(pageEl, phrase) {
+  const tokens = (phrase || '').toLowerCase().trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return false;
+  const spans = Array.from(pageEl.querySelectorAll('.textLayer span'));
+  const toLC  = s => (s || '').toLowerCase();
+  for (let i = 0; i < spans.length; i++) {
+    let k = 0;           // token index
+    let j = i;           // span cursor
+    const picks = [];    // { span, start, len } for each matched token
+    while (k < tokens.length && j < spans.length) {
+      const lc = toLC(spans[j].textContent || '');
+      if (!lc.trim()) { j++; continue; }                         // skip empty
+
+      const hit = lc.indexOf(tokens[k]);
+      if (hit >= 0) {
+        picks.push({ span: spans[j], start: hit, len: tokens[k].length });
+        k++; j++;                                                 // next token, next span
+      } else {
+        if (/^[^\p{L}\p{N}]+$/u.test(lc)) { j++; continue; }
+        break;
+      }
+    }
+    if (k === tokens.length) {
+      const rects = [];
+      for (const { span, start, len } of picks) {
+        const tn = getFirstTextNode(span);
+        if (!tn) continue;
+        const rng = document.createRange();
+        rng.setStart(tn, Math.max(0, Math.min(start, tn.length)));
+        rng.setEnd(tn,   Math.max(0, Math.min(start + len, tn.length)));
+        rects.push(...Array.from(rng.getClientRects()).filter(r => r.width && r.height));
+        try { rng.detach?.(); } catch {}
+      }
       if (rects.length) {
         flashRectsOnPage(pageEl, rects);
         return true;
       }
     }
   }
+  return false;
+}
+function flashFirstSpanMatchOnPage(pageEl, phrase) {
+  const spans = pageEl.querySelectorAll('.textLayer span');
+  for (const s of spans) {
+    const rng = getRangeForPhraseInSpan(s, phrase);
+    if (rng) {
+      const rects = Array.from(rng.getClientRects()).filter(r => r.width && r.height);
+      try { rng.detach?.(); } catch {}
+      if (rects.length) {
+        flashRectsOnPage(pageEl, rects);
+        return true;
+      }
+    }
+  }
+  if (flashMultiSpanMatchOnPage(pageEl, phrase)) return true;
   return false;
 }
 function scrollToPage(pageEl) {
@@ -1535,48 +1584,31 @@ async function main(host = {}, fetchUrlOverride) {
       state.pages = pages;           // update in case doc changed
       state.idx = Math.min(state.idx || 0, Math.max(0, pages.length - 1));
       linkStates.set(label, state);
-
-      // make the button
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "aft-ql-btn";
       btn.title = `Jump to "${label}" — ${pages.length} occurrence${pages.length > 1 ? 's' : ''}`;
       setBtnProgressText(btn, label, null, null); // show just the label initially
-
       btn.onclick = async (ev) => {
         if (btn.__busy) return;
         btn.__busy = true;
-
         try {
           const st = linkStates.get(label);
           const total = st.pages.length;
           if (!total) return;
-
-          // support SHIFT+click to go backwards (optional nicety)
           const step = ev.shiftKey ? -1 : 1;
-
-          // compute which occurrence we’re about to show
           const idx = ((st.idx % total) + total) % total; // keep in [0..total-1]
           const displayIdx = idx + 1;                      // 1-based for the label
           const pageNumber = st.pages[idx];
-
-          // update button text to reflect where we’re going
           setBtnProgressText(btn, label, displayIdx, total);
-
-          // jump there and flash
           await jumpTo({ pageNumber, phrase: label });
-
-          // advance index for the next click (or go backwards with shift)
           st.idx = (idx + step + total) % total;
-
         } finally {
           btn.__busy = false;
         }
       };
-
       qlGrid.appendChild(btn);
     }
-
     qlWrap.style.display = qlGrid.children.length ? "" : "none";
   }
   eventBus.on('pagesinit', async () => {
