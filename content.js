@@ -1180,19 +1180,33 @@ async function main(host = {}, fetchUrlOverride) {
   }
   container = document.createElement('div');
   container.className = 'aft-container';
-  Object.assign(container.style, {
-    position: 'fixed',
-    inset: '0',              // top/right/bottom/left 0
-    width: '100vw',
-    height: '100vh',
-    overflow: 'auto',
-    background: '#000',
-    zIndex: 2147483647
-  });
   if (embed) {
-    embed.style.display = 'none';
+    const rect = embed.getBoundingClientRect();
+    const heightPx = Math.max(
+      Math.round(rect?.height || embed.clientHeight || parseInt(embed.getAttribute?.('height') || '0', 10) || 800),
+      300
+    );
+    Object.assign(container.style, {
+      position: 'relative',
+      width: '100%',
+      maxWidth: '100%',
+      height: heightPx + 'px',
+      overflow: 'auto',
+      background: '#000'
+    });
+    embed.replaceWith(container);
+  } else {
+    Object.assign(container.style, {
+      position: 'fixed',
+      inset: '0',
+      width: '100vw',
+      height: '100vh',
+      overflow: 'auto',
+      background: '#000',
+      zIndex: 2147483647
+    });
+    document.body.appendChild(container);
   }
-  document.body.appendChild(container);
   const loader = document.createElement('div');
   loader.id = 'aftLoader';
   Object.assign(loader.style, {
@@ -1481,7 +1495,7 @@ async function main(host = {}, fetchUrlOverride) {
     qlWrap.style.display = qlGrid.children.length ? "" : "none";
   }
   eventBus.on('pagesinit', async () => {
-    pdfViewer.currentScaleValue = 'page-width';
+    pdfViewer.currentScaleValue = 'auto'; // or 'page-fit'
     await computeAndRenderQuickLinks();
   });
   let _aftRefreshScheduled = false;
@@ -1497,7 +1511,6 @@ async function main(host = {}, fetchUrlOverride) {
     });
   }
   setTimeout(() => aftRefreshHighlights('initDelay'), 500);
-  pdfViewer.currentScaleValue = 'page-width';
   linkService.setDocument(pdfDoc, null);
   eventBus.on('pagesloaded', () => {
     setTimeout(() => aftRefreshHighlights('pagesloadedDelay'), 300);
