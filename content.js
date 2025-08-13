@@ -1633,7 +1633,7 @@ async function main(host = {}, fetchUrlOverride) {
     for (const [label, pages] of present) {
       const state = linkStates.get(label) || { pages, pageIdx: 0, yByPage: new Map() };
       state.pages = pages;
-      state.idx = Math.min(state.idx || 0, Math.max(0, targets.length - 1));
+      state.idx = Math.min(state.idx || 0, Math.max(0, pages.length - 1));
       linkStates.set(label, state);
       const btn = document.createElement("button");
       btn.type = "button";
