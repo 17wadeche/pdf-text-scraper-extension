@@ -300,12 +300,64 @@ const config = {
   CRDM: {
     styleWords: [
       {
-        style: 'background:yellow',  
-        words: ['MRI']
+        style: 'color:blue',
+        words: [
+          'Threshold',
+          'Impedance',
+          'Position',
+          'Sensing',
+          'Fracture',
+          'Reset',
+          'Fx',
+          'Repair',
+          'APLC',
+          'Battery',
+          'Invalid data',
+          'Switch',
+          'High',
+          'Low',
+          'Warning',
+          'ERI',
+          'Inappropriate',
+          'Capture',
+          'Pulled back',
+          'Noise',
+          'Setscrew',
+          'Stim',
+          'EMI',
+          '???',
+          'Perforation',
+          'Perfor',
+          'Dislodge',
+          'TWOS',
+          'FFRW',
+          'Capped',
+          'Alert',
+          'Rate',
+          'Note',
+          'Observation',
+          'Notable Data',
+          'Other Hardware Notes',
+          'List',
+          'Model/serial number',
+          'History',
+          'Date of Birth'
+        ]
       },
       {
-        style: 'color:red',           
-        words: ['motor stall']
+        style: 'background:yellow',           
+        words: [
+          'Device Summary',
+          'Reason for Transmission',
+          'Alert and Event Summary',
+          'Observations',
+          'Notable Data Section',
+          'Notes',
+          'Device Status',
+          'Episodes List',
+          'Other Hardware Notes',
+          'CareAlert Event List'
+        ]
       }
     ],
     'Cardiac Rhythm Management': {
