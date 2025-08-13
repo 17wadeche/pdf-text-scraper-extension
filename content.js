@@ -642,6 +642,18 @@ async function main(host = {}, fetchUrlOverride) {
     60%  { filter: brightness(2.2) saturate(2.0); }
     100% { filter: brightness(1)   saturate(1);   opacity: .15; }
   }
+  #aftQuickLinks.collapsed .aft-ql-grid { display: none; }
+  #aftQuickLinksHeader {
+    display:flex; align-items:center; justify-content:space-between;
+    cursor:pointer; user-select:none;
+  }
+  #aftQuickLinksHeader .aft-caret {
+    margin-left:8px; transition: transform .15s ease;
+    font-size:12px; opacity:.8;
+  }
+  #aftQuickLinks.collapsed #aftQuickLinksHeader .aft-caret {
+    transform: rotate(-90deg);
+  }
   `;
   let showingStyled = true;
   document.head.appendChild(styleTag);
@@ -1437,9 +1449,19 @@ async function main(host = {}, fetchUrlOverride) {
   qlWrap.id = 'aftQuickLinks';
   const qlHeader = document.createElement('div');
   qlHeader.id = 'aftQuickLinksHeader';
-  qlHeader.textContent = 'Quick Links';
+  qlHeader.innerHTML = `<span>Quick Links</span><span class="aft-caret">▾</span>`;
   const qlGrid = document.createElement('div');
   qlGrid.className = 'aft-ql-grid';
+  let qlCollapsed = (localStorage.getItem('aft_ql_collapsed') === '1');
+  function updateQlCollapseUI() {
+    qlWrap.classList.toggle('collapsed', qlCollapsed);
+    qlHeader.setAttribute('aria-expanded', String(!qlCollapsed));
+  }
+  qlHeader.addEventListener('click', () => {
+    qlCollapsed = !qlCollapsed;
+    localStorage.setItem('aft_ql_collapsed', qlCollapsed ? '1' : '0');
+    updateQlCollapseUI();
+  });
   QUICK_LINKS.forEach(label => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -1457,6 +1479,7 @@ async function main(host = {}, fetchUrlOverride) {
   });
   qlWrap.append(qlHeader, qlGrid);
   hlBody.appendChild(qlWrap);
+  updateQlCollapseUI();
   hlBody.style.display = ''; // show by default
   hlPanel.innerHTML = ''; // clear previous text
   hlPanel.append(hlHeader, hlBody);
@@ -1614,6 +1637,7 @@ async function main(host = {}, fetchUrlOverride) {
       qlGrid.appendChild(btn);
     }
     qlWrap.style.display = qlGrid.children.length ? "" : "none";
+    updateQlCollapseUI();
   }
   eventBus.on('pagesinit', async () => {
     pdfViewer.currentScaleValue = 'auto'; // or 'page-fit'
