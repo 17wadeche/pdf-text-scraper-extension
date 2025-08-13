@@ -1604,6 +1604,7 @@ async function main(host = {}, fetchUrlOverride) {
     computeAndRenderQuickLinks(); 
   });
   let _aftRefreshScheduled = false;
+  let _aftLastReason = '';
   function aftRefreshHighlights(reason = '') {
     _aftLastReason = reason;
     if (_aftRefreshScheduled) return;
