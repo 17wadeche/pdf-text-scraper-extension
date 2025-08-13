@@ -219,71 +219,6 @@ function findFirstMatchRangeInSpan(span, needleLC) {
   rng.setEnd(span.firstChild, idx + needleLC.length);
   return rng;
 }
-function getFirstTextNode(el) {
-  const walker = document.createTreeWalker(
-    el,
-    NodeFilter.SHOW_TEXT,
-    { acceptNode: n => n.data ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
-  );
-  return walker.nextNode();
-}
-function flashMultiSpanMatchOnPage(pageEl, phrase) {
-  const tokens = (phrase || '').toLowerCase().trim().split(/\s+/).filter(Boolean);
-  if (!tokens.length) return false;
-  const spans = Array.from(pageEl.querySelectorAll('.textLayer span'));
-  const toLC  = s => (s || '').toLowerCase();
-  for (let i = 0; i < spans.length; i++) {
-    let k = 0;           // token index
-    let j = i;           // span cursor
-    const picks = [];    // { span, start, len } for each matched token
-    while (k < tokens.length && j < spans.length) {
-      const lc = toLC(spans[j].textContent || '');
-      if (!lc.trim()) { j++; continue; }                         // skip empty
-
-      const hit = lc.indexOf(tokens[k]);
-      if (hit >= 0) {
-        picks.push({ span: spans[j], start: hit, len: tokens[k].length });
-        k++; j++;                                                 // next token, next span
-      } else {
-        if (/^[^\p{L}\p{N}]+$/u.test(lc)) { j++; continue; }
-        break;
-      }
-    }
-    if (k === tokens.length) {
-      const rects = [];
-      for (const { span, start, len } of picks) {
-        const tn = getFirstTextNode(span);
-        if (!tn) continue;
-        const rng = document.createRange();
-        rng.setStart(tn, Math.max(0, Math.min(start, tn.length)));
-        rng.setEnd(tn,   Math.max(0, Math.min(start + len, tn.length)));
-        rects.push(...Array.from(rng.getClientRects()).filter(r => r.width && r.height));
-        try { rng.detach?.(); } catch {}
-      }
-      if (rects.length) {
-        flashRectsOnPage(pageEl, rects);
-        return true;
-      }
-    }
-  }
-  return false;
-}
-function flashFirstSpanMatchOnPage(pageEl, phrase) {
-  const spans = pageEl.querySelectorAll('.textLayer span');
-  for (const s of spans) {
-    const rng = getRangeForPhraseInSpan(s, phrase);
-    if (rng) {
-      const rects = Array.from(rng.getClientRects()).filter(r => r.width && r.height);
-      try { rng.detach?.(); } catch {}
-      if (rects.length) {
-        flashRectsOnPage(pageEl, rects);
-        return true;
-      }
-    }
-  }
-  if (flashMultiSpanMatchOnPage(pageEl, phrase)) return true;
-  return false;
-}
 function scrollToPage(pageEl) {
   if (!pageEl) return;
   const top = pageEl.offsetTop - 24;
@@ -371,20 +306,75 @@ async function main(host = {}, fetchUrlOverride) {
     rng.setEnd(endNode, clamp(endNode, endOffset));
     return rng;
   }
+  function getFirstTextNode(el) {
+    const walker = document.createTreeWalker(
+      el,
+      NodeFilter.SHOW_TEXT,
+      { acceptNode: n => n.data ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
+    );
+    return walker.nextNode();
+  }
+  function scrollToLocalY(pageEl, yLocal) {
+    const target = pageEl.offsetTop + Math.max(0, yLocal - 60);
+    container.scrollTo({ top: target, behavior: 'smooth' });
+  }
   function flashFirstSpanMatchOnPage(pageEl, phrase) {
+    if (!phrase) return false;
+    const pageRect = pageEl.getBoundingClientRect();
+    const scale = getPageScale(pageEl);
     const spans = pageEl.querySelectorAll('.textLayer span');
     for (const s of spans) {
       const rng = getRangeForPhraseInSpan(s, phrase);
-      if (rng) {
-        const rects = Array.from(rng.getClientRects()).filter(r => r.width && r.height);
-        try { rng.detach?.(); } catch {}
+      if (!rng) continue;
+      const rects = Array.from(rng.getClientRects()).filter(r => r.width && r.height);
+      try { rng.detach?.(); } catch {}
+      if (rects.length) {
+        const yLocal = (rects[0].top - pageRect.top - 8) / scale;
+        scrollToLocalY(pageEl, yLocal);
+        flashRectsOnPage(pageEl, rects);
+        return true;
+      }
+    }
+    const tokens = (phrase || '').toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return false;
+    const allSpans = Array.from(pageEl.querySelectorAll('.textLayer span'));
+    const toLC  = s => (s || '').toLowerCase();
+    for (let i = 0; i < allSpans.length; i++) {
+      let k = 0;         // token index
+      let j = i;         // span cursor
+      const ranges = []; // ranges for each token hit
+      while (k < tokens.length && j < allSpans.length) {
+        const span = allSpans[j];
+        const lc = toLC(span.textContent || '');
+        if (!lc.trim()) { j++; continue; }                 // skip empties
+        const hit = lc.indexOf(tokens[k]);
+        if (hit >= 0) {
+          const tn = getFirstTextNode(span);
+          if (!tn) { j++; continue; }
+          const rng = document.createRange();
+          rng.setStart(tn, Math.max(0, Math.min(hit, tn.length)));
+          rng.setEnd(tn,   Math.max(0, Math.min(hit + tokens[k].length, tn.length)));
+          ranges.push(rng);
+          k++; j++;                                         // next token, next span
+        } else if (/^[^\p{L}\p{N}]+$/u.test(lc)) {
+          j++;                                             // allow punctuation-only spans between tokens
+        } else {
+          ranges.forEach(r => { try { r.detach?.(); } catch {} });
+          break;
+        }
+      }
+      if (k === tokens.length) {
+        const rects = [];
+        ranges.forEach(r => { rects.push(...Array.from(r.getClientRects()).filter(rr => rr.width && rr.height)); try { r.detach?.(); } catch {} });
         if (rects.length) {
+          const yLocal = (rects[0].top - pageRect.top - 8) / scale;
+          scrollToLocalY(pageEl, yLocal);
           flashRectsOnPage(pageEl, rects);
           return true;
         }
       }
     }
-    return false;
+    return false; // let caller do the top-of-page fallback
   }
   const normalize = s => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
   const pageTextCache = new Map();
@@ -597,9 +587,10 @@ async function main(host = {}, fetchUrlOverride) {
   }
   .aft-ql-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 6px;
   }
+  .aft-ql-btn { width: 100%; }
   .aft-ql-btn {
     display: inline-block;
     padding: 6px 8px;
