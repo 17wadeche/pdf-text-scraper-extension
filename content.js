@@ -423,7 +423,7 @@ async function main(host = {}, fetchUrlOverride) {
       eventBus.on("textlayerrendered", on);
     });
   }
-  function waitForPageReady(pageNumber, timeout = 6000) {
+  function waitForPageReady(pageNumber, timeout = 1000) {
     return new Promise(resolve => {
       let done = false;
       const finish = () => {
