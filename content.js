@@ -4,18 +4,6 @@ const ALLOWED_PREFIXES = [
   'https://crmstage.medtronic.com/sap/bc/contentserver/',
   "https://crm.medtronic.com/sap/bc/contentserver/"
 ];
-const QUICK_LINKS = [
-  'Device Summary',
-  'Reason for Transmission',
-  'Alert and Event Summary',
-  'Observations',
-  'Notable Data Section',
-  'Notes',
-  'Device Status',
-  'Episodes List',
-  'Other Hardware Notes',
-  'CareAlert Event List'
-];
 (function offerOpenStyledButton() {
   if (location.hash !== '#noaft') return;
   if (!urlIsAllowed(location.href.replace(/#noaft$/, ''))) return;
@@ -295,6 +283,18 @@ async function main(host = {}, fetchUrlOverride) {
   console.log('[AFT] init v' + window.__AFT_VERSION, location.href);
   const AFT_UI_Z = 21474837000;
   const styleTag = document.createElement('style');
+  const QUICK_LINKS = [
+    'Device Summary',
+    'Reason for Transmission',
+    'Alert and Event Summary',
+    'Observations',
+    'Notable Data Section',
+    'Notes',
+    'Device Status',
+    'Episodes List',
+    'Other Hardware Notes',
+    'CareAlert Event List'
+  ];
   styleTag.textContent = `
     .modern-select {
       color: #000;
