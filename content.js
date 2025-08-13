@@ -276,24 +276,63 @@ async function main(host = {}, fetchUrlOverride) {
     });
     setTimeout(() => overlays.forEach(o => o.remove()), 1600);
   }
-  function findFirstMatchRangeInSpan(span, needleLC) {
-    if (!span || !span.firstChild || span.firstChild.nodeType !== Node.TEXT_NODE) return null;
-    const text = span.textContent || '';
-    const idx = text.toLowerCase().indexOf(needleLC);
+  function getRangeForPhraseInSpan(span, phrase) {
+    if (!span) return null;
+
+    const needleLC = (phrase || '').toLowerCase();
+    if (!needleLC) return null;
+
+    // Collect all descendant text nodes in render order
+    const walker = document.createTreeWalker(
+      span,
+      NodeFilter.SHOW_TEXT,
+      { acceptNode: n => n.data ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
+    );
+    const nodes = [];
+    const lengths = [];
+    let full = '';
+    for (let n; (n = walker.nextNode()); ) {
+      const t = n.data;
+      nodes.push(n);
+      lengths.push(t.length);
+      full += t;
+    }
+    if (!full) return null;
+    const haystack = full.toLowerCase();
+    const idx = haystack.indexOf(needleLC);
     if (idx < 0) return null;
+    const endPos = idx + needleLC.length;
+    let pos = 0;
+    let startNode = null, startOffset = 0;
+    let endNode = null, endOffset = 0;
+    for (let i = 0; i < nodes.length; i++) {
+      const len = lengths[i];
+
+      if (!startNode && idx < pos + len) {
+        startNode = nodes[i];
+        startOffset = idx - pos;
+      }
+      if (endPos <= pos + len) {
+        endNode = nodes[i];
+        endOffset = endPos - pos;
+        break;
+      }
+      pos += len;
+    }
+    if (!startNode || !endNode) return null;
+    const clamp = (node, off) => Math.max(0, Math.min(off, (node.data || '').length));
     const rng = document.createRange();
-    rng.setStart(span.firstChild, idx);
-    rng.setEnd(span.firstChild, idx + needleLC.length);
+    rng.setStart(startNode, clamp(startNode, startOffset));
+    rng.setEnd(endNode, clamp(endNode, endOffset));
     return rng;
   }
   function flashFirstSpanMatchOnPage(pageEl, phrase) {
-    const needleLC = phrase.toLowerCase();
     const spans = pageEl.querySelectorAll('.textLayer span');
     for (const s of spans) {
-      const rng = findFirstMatchRangeInSpan(s, needleLC);
+      const rng = getRangeForPhraseInSpan(s, phrase);
       if (rng) {
-        const rects = Array.from(rng.getClientRects());
-        rng.detach?.();
+        const rects = Array.from(rng.getClientRects()).filter(r => r.width && r.height);
+        try { rng.detach?.(); } catch {}
         if (rects.length) {
           flashRectsOnPage(pageEl, rects);
           return true;
