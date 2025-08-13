@@ -117,7 +117,7 @@ function makeRegex(word) {
     pattern = esc(w.replace(/es$/, '')) + '(?:es)?';
   } else if (/ed$/.test(w)) {
     const stem = esc(w.slice(0, -2));
-    pattern = `${stem}(?:e?d?)?`;
+    pattern = `${stem}(?:ed|e)?`;
   } else if (/e$/.test(w)) {
     pattern = esc(w) + '(?:s|d)?';
   } else if (w.endsWith('s')) {
