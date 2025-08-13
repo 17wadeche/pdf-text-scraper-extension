@@ -358,12 +358,56 @@ async function main(host = {}, fetchUrlOverride) {
     }
     return null;
   }
-  function jumpToPhrase(phrase) {
-    const page = findPageContainingPhrase(phrase);
-    if (!page) {
-      return false;
+  btn.onclick = async () => {
+    btn.disabled = true;
+    const ok = await jumpToPhrase(label);
+    if (!ok) {
+      btn.classList.add('aft-ql-notfound');
+      setTimeout(() => btn.classList.remove('aft-ql-notfound'), 900);
     }
-    scrollToPage(page);
+    btn.disabled = false;
+  };
+  const normalize = s => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const pageTextCache = new Map();
+  async function getPageText(pageNumber) {
+    if (pageTextCache.has(pageNumber)) return pageTextCache.get(pageNumber);
+    const page = await pdfDoc.getPage(pageNumber);
+    const tc = await page.getTextContent();
+    const text = normalize(tc.items.map(it => it.str || "").join(" "));
+    pageTextCache.set(pageNumber, text);
+    return text;
+  }
+  async function findPageNumberByPhrase(phrase) {
+    const needle = normalize(phrase);
+    for (let n = 1; n <= pdfDoc.numPages; n++) {
+      const text = await getPageText(n);
+      if (text.includes(needle)) return n;
+    }
+    return null;
+  }
+  function ensureTextLayerRendered(pageNumber) {
+    const pv = pdfViewer._pages?.[pageNumber - 1];
+    if (!pv) return Promise.resolve();
+    if (pv.textLayer && pv.textLayer.renderingDone) return Promise.resolve();
+    return new Promise(resolve => {
+      const on = ({ pageNumber: num }) => {
+        if (num === pageNumber) {
+          eventBus.off("textlayerrendered", on);
+          resolve();
+        }
+      };
+      eventBus.on("textlayerrendered", on);
+    });
+  }
+  async function jumpToPhrase(phrase) {
+    const pageNumber = await findPageNumberByPhrase(phrase);
+    if (!pageNumber) return false;
+    pdfViewer.scrollPageIntoView({ pageNumber });
+    await ensureTextLayerRendered(pageNumber);
+    const page =
+      pdfViewer._pages?.[pageNumber - 1]?.div ||
+      container.querySelector(`.page[data-page-number="${pageNumber}"]`);
+    if (!page) return true; 
     if (!flashFirstSpanMatchOnPage(page, phrase)) {
       const pageRect = page.getBoundingClientRect();
       const scale = getPageScale(page);
@@ -381,7 +425,6 @@ async function main(host = {}, fetchUrlOverride) {
     'Device Summary',
     'Reason for Transmission',
     'Alert and Event Summary',
-    'First Name',
     'Observations',
     'Notable Data Section',
     'Notes',
