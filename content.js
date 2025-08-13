@@ -341,23 +341,6 @@ async function main(host = {}, fetchUrlOverride) {
     }
     return false;
   }
-  function scrollToPage(pageEl) {
-    if (!pageEl) return;
-    const top = pageEl.offsetTop - 24;
-    container.scrollTo({ top, behavior: 'smooth' });
-  }
-  function findPageContainingPhrase(phrase) {
-    const needleLC = phrase.toLowerCase();
-    const pages = container.querySelectorAll('.page');
-    for (const page of pages) {
-      const tl = page.querySelector('.textLayer');
-      const pageText = (tl?.innerText || '').toLowerCase();
-      if (pageText.includes(needleLC)) {
-        return page;
-      }
-    }
-    return null;
-  }
   const normalize = s => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
   const pageTextCache = new Map();
   async function getPageText(pageNumber) {
