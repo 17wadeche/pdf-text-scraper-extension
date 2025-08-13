@@ -1452,6 +1452,7 @@ async function main(host = {}, fetchUrlOverride) {
   linkService.setViewer(pdfViewer);
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
+
   async function computeAndRenderQuickLinks() {
     const results = await Promise.all(
       QUICK_LINKS.map(async label => [label, await findFirstPageFor(label)])
@@ -1467,15 +1468,22 @@ async function main(host = {}, fetchUrlOverride) {
       btn.textContent = label;
       btn.title = `Jump to "${label}" (p.${pageNumber})`;
       btn.onclick = async () => {
-        btn.disabled = true;
-        await jumpToPhrase(label); // uses your robust jump (scroll + ensure text layer + flash)
-        btn.disabled = false;
+        if (btn.__busy) return;         // prevent double-fire while the jump runs
+        btn.__busy = true;
+        try {
+          await jumpToPhrase(label);
+        } finally {
+          btn.__busy = false;           // guaranteed to re-enable
+        }
       };
       qlGrid.appendChild(btn);
     });
     qlWrap.style.display = qlGrid.children.length ? "" : "none";
   }
-  await computeAndRenderQuickLinks();
+  eventBus.on('pagesinit', async () => {
+    pdfViewer.currentScaleValue = 'page-width';
+    await computeAndRenderQuickLinks();
+  });
   let _aftRefreshScheduled = false;
   let _aftLastReason = '';
   function aftRefreshHighlights(reason = '') {
