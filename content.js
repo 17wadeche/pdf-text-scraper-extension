@@ -1507,35 +1507,76 @@ async function main(host = {}, fetchUrlOverride) {
   linkService.setViewer(pdfViewer);
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
-
+  const linkStates = new Map();
+  function setBtnProgressText(btn, label, idxOneBased, total) {
+    btn.textContent = (total && idxOneBased)
+      ? `${label} (${idxOneBased} of ${total})`
+      : label;
+  }
+  async function findAllPagesFor(phrase) {
+    const needle = (phrase || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const pages = [];
+    for (let n = 1; n <= pdfDoc.numPages; n++) {
+      const text = await getPageText(n);          // uses your existing cache
+      if (text.includes(needle)) pages.push(n);
+    }
+    return pages;
+  }
   async function computeAndRenderQuickLinks() {
     const results = await Promise.all(
-      QUICK_LINKS.map(async label => [label, await findFirstPageFor(label)])
+      QUICK_LINKS.map(async label => [label, await findAllPagesFor(label)])
     );
     const present = results
-      .filter(([, page]) => page != null)
-      .sort((a, b) => a[1] - b[1]);
+      .filter(([, pages]) => pages.length > 0)
+      .sort((a, b) => a[1][0] - b[1][0]);
     qlGrid.innerHTML = "";
-    for (const [label, pageNumber] of present) {
+    for (const [label, pages] of present) {
+      const state = linkStates.get(label) || { pages, idx: 0 };
+      state.pages = pages;           // update in case doc changed
+      state.idx = Math.min(state.idx || 0, Math.max(0, pages.length - 1));
+      linkStates.set(label, state);
+
+      // make the button
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "aft-ql-btn";
-      btn.textContent = label;
-      btn.title = `Jump to "${label}" (p.${pageNumber})`;
-      btn.dataset.pageNumber = String(pageNumber);
-      btn.onclick = async () => {
+      btn.title = `Jump to "${label}" — ${pages.length} occurrence${pages.length > 1 ? 's' : ''}`;
+      setBtnProgressText(btn, label, null, null); // show just the label initially
+
+      btn.onclick = async (ev) => {
         if (btn.__busy) return;
         btn.__busy = true;
-        btn.disabled = true;
+
         try {
+          const st = linkStates.get(label);
+          const total = st.pages.length;
+          if (!total) return;
+
+          // support SHIFT+click to go backwards (optional nicety)
+          const step = ev.shiftKey ? -1 : 1;
+
+          // compute which occurrence we’re about to show
+          const idx = ((st.idx % total) + total) % total; // keep in [0..total-1]
+          const displayIdx = idx + 1;                      // 1-based for the label
+          const pageNumber = st.pages[idx];
+
+          // update button text to reflect where we’re going
+          setBtnProgressText(btn, label, displayIdx, total);
+
+          // jump there and flash
           await jumpTo({ pageNumber, phrase: label });
+
+          // advance index for the next click (or go backwards with shift)
+          st.idx = (idx + step + total) % total;
+
         } finally {
           btn.__busy = false;
-          btn.disabled = false;
         }
       };
+
       qlGrid.appendChild(btn);
     }
+
     qlWrap.style.display = qlGrid.children.length ? "" : "none";
   }
   eventBus.on('pagesinit', async () => {
