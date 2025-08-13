@@ -278,11 +278,8 @@ async function main(host = {}, fetchUrlOverride) {
   }
   function getRangeForPhraseInSpan(span, phrase) {
     if (!span) return null;
-
     const needleLC = (phrase || '').toLowerCase();
     if (!needleLC) return null;
-
-    // Collect all descendant text nodes in render order
     const walker = document.createTreeWalker(
       span,
       NodeFilter.SHOW_TEXT,
@@ -307,7 +304,6 @@ async function main(host = {}, fetchUrlOverride) {
     let endNode = null, endOffset = 0;
     for (let i = 0; i < nodes.length; i++) {
       const len = lengths[i];
-
       if (!startNode && idx < pos + len) {
         startNode = nodes[i];
         startOffset = idx - pos;
@@ -344,12 +340,27 @@ async function main(host = {}, fetchUrlOverride) {
   const normalize = s => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
   const pageTextCache = new Map();
   async function getPageText(pageNumber) {
-    if (pageTextCache.has(pageNumber)) return pageTextCache.get(pageNumber);
-    const page = await pdfDoc.getPage(pageNumber);
-    const tc = await page.getTextContent();
-    const text = normalize(tc.items.map(it => it.str || "").join(" "));
+    const cached = pageTextCache.get(pageNumber);
+    if (cached) {
+      return typeof cached.then === "function" ? await cached : cached;
+    }
+    const pending = (async () => {
+      const page = await pdfDoc.getPage(pageNumber);
+      const tc = await page.getTextContent();
+      return normalize(tc.items.map(it => it.str || "").join(" "));
+    })();
+    pageTextCache.set(pageNumber, pending);
+    const text = await pending;
     pageTextCache.set(pageNumber, text);
     return text;
+  }
+  async function findFirstPageFor(label) {
+    const needle = normalize(label);
+    for (let n = 1; n <= pdfDoc.numPages; n++) {
+      const text = await getPageText(n);
+      if (text.includes(needle)) return n;
+    }
+    return null;
   }
   async function findPageNumberByPhrase(phrase) {
     const needle = normalize(phrase);
@@ -1441,6 +1452,30 @@ async function main(host = {}, fetchUrlOverride) {
   linkService.setViewer(pdfViewer);
   await new Promise(resolve => requestAnimationFrame(resolve));
   pdfViewer.setDocument(pdfDoc);
+  async function computeAndRenderQuickLinks() {
+    const results = await Promise.all(
+      QUICK_LINKS.map(async label => [label, await findFirstPageFor(label)])
+    );
+    const present = results
+      .filter(([, page]) => page != null)
+      .sort((a, b) => a[1] - b[1]);
+    qlGrid.innerHTML = "";
+    present.forEach(([label, pageNumber]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "aft-ql-btn";
+      btn.textContent = label;
+      btn.title = `Jump to "${label}" (p.${pageNumber})`;
+      btn.onclick = async () => {
+        btn.disabled = true;
+        await jumpToPhrase(label); // uses your robust jump (scroll + ensure text layer + flash)
+        btn.disabled = false;
+      };
+      qlGrid.appendChild(btn);
+    });
+    qlWrap.style.display = qlGrid.children.length ? "" : "none";
+  }
+  await computeAndRenderQuickLinks();
   let _aftRefreshScheduled = false;
   let _aftLastReason = '';
   function aftRefreshHighlights(reason = '') {
