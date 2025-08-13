@@ -384,6 +384,46 @@ async function main(host = {}, fetchUrlOverride) {
       eventBus.on("textlayerrendered", on);
     });
   }
+  function waitForPageReady(pageNumber, timeout = 6000) {
+    return new Promise(resolve => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        eventBus.off('textlayerrendered', onText);
+        eventBus.off('pagerendered', onPage);
+        clearTimeout(to);
+        resolve();
+      };
+      const onText = ({ pageNumber: n }) => { if (n === pageNumber) finish(); };
+      const onPage = ({ pageNumber: n }) => { if (n === pageNumber) finish(); };
+      const pv = pdfViewer?._pages?.[pageNumber - 1];
+      if (pv && pv.textLayer?.renderingDone) return resolve();
+      eventBus.on('textlayerrendered', onText);
+      eventBus.on('pagerendered', onPage);
+      const to = setTimeout(finish, timeout); // best-effort fallback
+    });
+  }
+  
+  async function jumpTo({ pageNumber, phrase }) {
+    if (!pageNumber && phrase) {
+      pageNumber = await findPageNumberByPhrase(phrase);
+    }
+    if (!pageNumber) return false;
+    pdfViewer.scrollPageIntoView({ pageNumber });
+    await waitForPageReady(pageNumber);
+    const page =
+      pdfViewer._pages?.[pageNumber - 1]?.div ||
+      container.querySelector(`.page[data-page-number="${pageNumber}"]`);
+    if (!page) return true;
+    if (!phrase || !flashFirstSpanMatchOnPage(page, phrase)) {
+      const pageRect = page.getBoundingClientRect();
+      const scale = getPageScale(page);
+      const fake = new DOMRect(pageRect.left + 16, pageRect.top + 80, pageRect.width - 32, 20);
+      flashRectsOnPage(page, [fake]);
+    }
+    return true;
+  }
   async function jumpToPhrase(phrase) {
     const pageNumber = await findPageNumberByPhrase(phrase);
     if (!pageNumber) return false;
@@ -419,6 +459,7 @@ async function main(host = {}, fetchUrlOverride) {
     'CareAlert Event List'
   ];
   styleTag.textContent = `
+    .aft-ql-flash { pointer-events: none; }
     .modern-select {
       color: #000;
       -webkit-appearance: none;
@@ -1475,23 +1516,26 @@ async function main(host = {}, fetchUrlOverride) {
       .filter(([, page]) => page != null)
       .sort((a, b) => a[1] - b[1]);
     qlGrid.innerHTML = "";
-    present.forEach(([label, pageNumber]) => {
+    for (const [label, pageNumber] of present) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "aft-ql-btn";
       btn.textContent = label;
       btn.title = `Jump to "${label}" (p.${pageNumber})`;
+      btn.dataset.pageNumber = String(pageNumber);
       btn.onclick = async () => {
-        if (btn.__busy) return;         // prevent double-fire while the jump runs
+        if (btn.__busy) return;
         btn.__busy = true;
+        btn.disabled = true;
         try {
-          await jumpToPhrase(label);
+          await jumpTo({ pageNumber, phrase: label });
         } finally {
-          btn.__busy = false;           // guaranteed to re-enable
+          btn.__busy = false;
+          btn.disabled = false;
         }
       };
       qlGrid.appendChild(btn);
-    });
+    }
     qlWrap.style.display = qlGrid.children.length ? "" : "none";
   }
   eventBus.on('pagesinit', async () => {
