@@ -1,8 +1,7 @@
 // content.js
 const ALLOWED_PREFIXES = [
   'https://cpic1cs.corp.medtronic.com:8008/sap/bc/contentserver/',
-  'https://crmstage.medtronic.com/sap/bc/contentserver/',
-  "https://crm.medtronic.com/sap/bc/contentserver/"
+  'https://crmstage.medtronic.com/sap/bc/contentserver/'
 ];
 (function offerOpenStyledButton() {
   if (location.hash !== '#noaft') return;
