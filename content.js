@@ -729,7 +729,7 @@ async function main(host = {}, fetchUrlOverride) {
   const customPanel = document.createElement('div');
   customPanel.id = 'aftCustomPanel';
   customPanel.style.cssText = `
-    position:fixed; top:160px; left:16px;
+    position:fixed; top:190px; left:16px;
     background:#fff; border:1px solid #ccc; border-radius:6px;
     padding:8px; box-shadow:0 2px 10px rgba(0,0,0,.2);
     font:12px sans-serif; color:#000;
